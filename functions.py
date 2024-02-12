@@ -552,6 +552,7 @@ def load_model_data_xarray(model_variable: str,
                                concat_dim='time',
                                join='override',
                                coords='minimal',
+                               engine='netcdf4',
                                parallel=True)
         
         # Append the dataset to the model data
