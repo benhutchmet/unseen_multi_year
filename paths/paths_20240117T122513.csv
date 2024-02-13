@@ -30,5 +30,5 @@ psl,dcppA-hindcast,MIROC6,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/dat
 psl,dcppA-hindcast,IPSL-CM6A-LR,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/IPSL-CM6A-LR
 psl,dcppA-hindcast,CESM1-1-CAM5-CMIP5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/CESM1-1-CAM5-CMIP5
 psl,dcppA-hindcast,EC-Earth3,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/EC-Earth3/
-psl,dcppA-hindcast,HadGEM3-GC31-MM,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/
+psl,dcppA-hindcast,HadGEM3-GC31-MM,/work/scratch-nopw2/benhutch/psl/HadGEM3-GC31-MM/global/all_forecast_years/DJFM/outputs
 psl,dcppA-hindcast,NorCPM1,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/NorCPM1
