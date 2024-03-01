@@ -221,11 +221,11 @@ def load_model_data(model_variable: str,
     assert first_year == start_year, "The first year is not the same as the start year"
 
     # Print the window over which we are slicing the time
-    print("Slicing over:", f"{first_year}-12-01", f"{first_year + avg_period}-03-30")
+    print("Slicing over:", f"{first_year}-12-01", f"{first_year + avg_period}-12-01")
 
     # Extract the time slice between
     # First december to second march
-    ds_slice = ds.sel(time=slice(f"{first_year}-12-01", f"{first_year + avg_period}-03-30"))
+    ds_slice = ds.sel(time=slice(f"{first_year}-12-01", f"{first_year + avg_period}-12-01"))
 
     # Extract the nmonths
     n_months = len(ds_slice['time'])
@@ -256,7 +256,7 @@ def load_model_data(model_variable: str,
                         lon=slice(lon1, lon2)).mean(dim=('lat','lon'))
 
             # Extract the time slice between
-            ds_slice = ds.sel(time=slice(f"{year}-12-01", f"{year + avg_period}-03-30"))
+            ds_slice = ds.sel(time=slice(f"{year}-12-01", f"{year + avg_period}-12-01"))
 
             # Extract the data
             model_data[year - start_year, member_index, :] = ds_slice[model_variable].values
@@ -958,7 +958,7 @@ def plot_events(model_data: np.ndarray,
     plt.xlabel('Year')
 
     # Add the axis labels
-    plt.ylabel('Wind speed (m/s)')
+    plt.ylabel('Average Wind speed (m/s)')
 
     # Show the plot
     plt.show()
