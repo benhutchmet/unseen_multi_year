@@ -15,6 +15,7 @@ from scipy import stats, signal
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import seaborn as sns
+import xesmf as xe
 
 # Import types
 from typing import Any, Callable, Union
@@ -273,67 +274,15 @@ def load_model_data(model_variable: str,
 
 # Define a function for preprocessing the model data
 def preprocess(ds: xr.Dataset,
-               first_fcst_year_idx: int,
-               last_fcst_year_idx: int,
-               lat1: float,
-               lat2: float,
-               lon1: float,
-               lon2: float,
-               months: list,
 ):
     """
     Preprocess the model data using xarray
+
+    Parameters
+
+    ds: xr.Dataset
+        The dataset to preprocess
     """
-
-    # Expand the dimensions of the dataset
-    ds = ds.expand_dims('ensemble_member')
-
-    # Set the ensemble member
-    ds['ensemble_member'] = [ds.attrs['variant_label']]
-
-    # Extract the years from the data
-    years = ds.time.dt.year.values
-
-    # Find the unique years
-    unique_years = np.unique(years)
-
-    # Extract the first year
-    first_year = int(unique_years[first_fcst_year_idx])
-
-    # Extract the last year
-    last_year = int(unique_years[last_fcst_year_idx])
-
-    # Extract the start and end months
-    start_month = months[0] ; end_month = months[-1]
-
-    # If the start or end month is a single digit
-    if start_month < 10:
-        start_month = f"0{start_month}"
-
-    if end_month < 10:
-        end_month = f"0{end_month}"
-
-    # Form the strings for the start and end dates
-    # E.g. October 1962 to March 1970
-    start_date = f"{first_year}-{start_month}-01" ; end_date = f"{last_year}-{end_month + 1}-01"
-
-    # Constrain the data to this period
-    ds = ds.sel(time=slice(start_date, end_date))
-
-    # Select only the specified months
-    ds = ds.sel(time=ds['time.month'].isin(months))
-
-    # # Find the centre of the period between start and end date
-    # mid_date = pd.to_datetime(start_date) + (pd.to_datetime(end_date) - pd.to_datetime(start_date)) / 2
-
-    # # Take the mean over the time dimension
-    # ds = ds.sel(time=slice(start_date, end_date)).mean(dim='time')
-
-    # # Take the mean over the lat and lon dimensions
-    # ds = ds.sel(lat=slice(lat1, lat2), lon=slice(lon1, lon2)).mean(dim=('lat', 'lon'))
-
-    # # Set the time to the mid date
-    # ds['time'] = mid_date
 
     # Return the dataset
     return ds
@@ -349,7 +298,6 @@ def load_model_data_xarray(model_variable: str,
                            first_fcst_year: int,
                            last_fcst_year: int,
                            months: list,
-                           preprocess: Callable = None,
                            engine: str = 'netcdf4',
                            parallel: bool = True,
 ):
@@ -397,11 +345,6 @@ def load_model_data_xarray(model_variable: str,
     months: list
         The months to take the time average over
         E.g. [10, 11, 12, 1, 2, 3] for October to March
-
-    preprocess (Callable): 
-            ``preprocess`` function accepting and returning
-            :py:class:`xarray.Dataset` only. To be passed to
-            :py:func:`xarray.open_dataset`. Defaults to None.
 
     engine: str
         The engine to use for opening the dataset
@@ -608,7 +551,7 @@ def load_model_data_xarray(model_variable: str,
                 file,
                 combine="nested",
                 concat_dim="time",
-                preprocess=preprocess,
+                preprocess=lambda ds: preprocess(ds, grid),
                 parallel=parallel,
                 engine=engine,
                 coords="minimal",  # expecting identical coords
@@ -616,8 +559,14 @@ def load_model_data_xarray(model_variable: str,
                 compat="override",  # speed up
             ).squeeze()
 
-            # Set new integer time
-            member_ds = set_integer_time_axis(member_ds)
+            # init_year = start_year and variant_label is unique_variant_labels[0]
+            if init_year == start_year and variant_label == unique_variant_labels[0]:
+                # Set new int time
+                member_ds = set_integer_time_axis(xro=member_ds,
+                                                first_month_attr=True)
+            else:
+                # Set new integer time
+                member_ds = set_integer_time_axis(member_ds)
 
             # Append the member dataset to the member list
             member_list.append(member_ds)
@@ -663,7 +612,8 @@ def load_model_data_xarray(model_variable: str,
 def set_integer_time_axis(
     xro: Union[xr.DataArray, xr.Dataset],
     offset: int = 1,
-    time_dim: str = "time"
+    time_dim: str = "time",
+    first_month_attr: bool = False,
 ) -> Union[xr.DataArray, xr.Dataset]:
     """
     Set time axis to integers starting from `offset`.
@@ -680,10 +630,22 @@ def set_integer_time_axis(
     time_dim: str, optional
         The name of the time dimension in the input xarray object. Default is "time".
 
+    first_month_attr: bool, optional
+        Whether to include the first month as an attribute in the dataset.
+        Default is False.
+
     Returns:
     xr.DataArray or xr.Dataset
         The input xarray object with the time axis set to integers starting from `offset`.
     """
+
+    if first_month_attr:
+        # Extract the first forecast year-month pair
+        first_month = xro[time_dim].values[0]
+
+        # Add the first month as an attribute to the dataset
+        xro.attrs["first_month"] = str(first_month)
+
     xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
     return xro
 
