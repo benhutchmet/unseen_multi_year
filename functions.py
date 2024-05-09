@@ -632,31 +632,6 @@ def load_model_data_xarray(
     # Return ds
     return ds
 
-
-# # # Loop over the member files
-# # for member_file in tqdm(member_files, desc="Processing members"):
-# #     # print("Processing member:", member_file)
-
-# #     # Open the files
-# #     ds = xr.open_mfdataset(member_file,
-# #                            preprocess=lambda ds: preprocess(ds, first_fcst_year_idx, last_fcst_year_idx, lat1, lat2, lon1, lon2, months),
-# #                            combine='nested',
-# #                            concat_dim='time',
-# #                            join='override',
-# #                            coords='minimal',
-# #                            engine='netcdf4',
-# #                            parallel=True)
-
-# #     # Append the dataset to the model data
-# #     dss.append(ds)
-
-# # # Concatenate the datasets
-# # ds = xr.concat(dss, dim='ensemble_member')
-
-# # Return the model data
-# return member_files, unique_variant_labels
-
-
 def set_integer_time_axis(
     xro: Union[xr.DataArray, xr.Dataset],
     offset: int = 1,
@@ -696,6 +671,61 @@ def set_integer_time_axis(
 
     xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
     return xro
+
+# Define a function to perform regridding to regular -180 to 180 grid
+def regrid_ds(
+    ds: xr.Dataset,
+    variable: str,
+    grid_bounds: list[float] = [-180.0, 180.0, -90.0, 90.0],
+    rg_algo: str = "bilinear",
+    periodic: bool = True,
+) -> xr.Dataset:
+    """
+    Regrid the input dataset to a regular grid with specified bounds.
+
+    Inputs:
+    ds: xr.Dataset
+        The input xarray Dataset to be regridded.
+
+    variable: str
+        The name of the variable to be regridded.
+
+    grid_bounds: list[float], optional
+        The bounds of the regular grid to which the input dataset is regridded.
+        Default is [-180.0, 180.0, -90.0, 90.0].
+
+    rg_algo: str, optional
+        The regridding algorithm to be used. Default is "bilinear".
+
+    periodic: bool, optional
+        Whether the input data is on a periodic grid. Default is True.
+
+    Returns:
+    xr.Dataset
+        The regridded xarray Dataset.
+    """
+
+    # Calculate the resolution of the input dataset
+    lat_res = (ds['lat'].max() - ds['lat'].min())/(ds['lat'].count()-1.).values
+    lon_res = (ds['lon'].max() - ds['lon'].min())/(ds['lon'].count()-1.).values
+
+    # Set up the 2d grid
+    ds_out = xe.util.grid_2d(
+        grid_bounds[0], grid_bounds[1], lon_res,
+        grid_bounds[2], grid_bounds[3], lat_res
+    )
+
+    # Set up the regridder
+    regridder = xe.Regridder(
+        ds, ds_out, rg_algo, periodic=periodic,
+    )
+
+    # Perform the regridding
+    da_regridded = regridder(ds[variable])
+
+    # Return the regridded dataset
+    return da_regridded
+
 
 
 # Function for loading the observations
