@@ -599,7 +599,7 @@ def load_model_data_xarray(
                 file,
                 combine="nested",
                 concat_dim="time",
-                preprocess=lambda ds: preprocess(ds, grid),
+                preprocess=lambda ds: preprocess(ds),
                 parallel=parallel,
                 engine=engine,
                 coords="minimal",  # expecting identical coords
@@ -757,12 +757,11 @@ def select_gridbox(
 
     # Extract the latitudinal and longitudinal bounds
     lon1, lon2, lat1, lat2 = grid["lon1"], grid["lon2"], grid["lat1"], grid["lat2"]
-
+    
     # Assert that the latitudinal and longitudinal bounds for ds are -180 to 180
     assert (
-        ds["lon"].min().values <= -180.0 and ds["lon"].max().values >= 180.0
+        ds["lon"].min().values >= -180.0 and ds["lon"].max().values <= 180.0
     ), "The longitudinal bounds for the dataset are not -180 to 180"
-
     # Assert that the latitudinal bounds for ds are -90 to 90
     assert (
         ds["lat"].min().values >= -90.0 and ds["lat"].max().values <= 90.0
