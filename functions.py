@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import seaborn as sns
 
+# Import types
+from typing import Any, Callable, Union
+
 # Path to modules
 import dictionaries as dicts
 
@@ -26,7 +29,8 @@ def load_model_data(model_variable: str,
                     start_year: int,
                     end_year: int,
                     avg_period: int,
-                    grid: dict):
+                    grid: dict,
+):
     """
     Function for loading each of the ensemble members for a given model
     
@@ -275,8 +279,8 @@ def preprocess(ds: xr.Dataset,
                lat2: float,
                lon1: float,
                lon2: float,
-               start_month: int = 12,
-               end_month: int = 3):
+               months: list,
+):
     """
     Preprocess the model data using xarray
     """
@@ -299,6 +303,9 @@ def preprocess(ds: xr.Dataset,
     # Extract the last year
     last_year = int(unique_years[last_fcst_year_idx])
 
+    # Extract the start and end months
+    start_month = months[0] ; end_month = months[-1]
+
     # If the start or end month is a single digit
     if start_month < 10:
         start_month = f"0{start_month}"
@@ -307,19 +314,26 @@ def preprocess(ds: xr.Dataset,
         end_month = f"0{end_month}"
 
     # Form the strings for the start and end dates
-    start_date = f"{first_year}-{start_month}-01" ; end_date = f"{last_year}-{end_month}-30"
+    # E.g. October 1962 to March 1970
+    start_date = f"{first_year}-{start_month}-01" ; end_date = f"{last_year}-{end_month + 1}-01"
 
-    # Find the centre of the period between start and end date
-    mid_date = pd.to_datetime(start_date) + (pd.to_datetime(end_date) - pd.to_datetime(start_date)) / 2
+    # Constrain the data to this period
+    ds = ds.sel(time=slice(start_date, end_date))
 
-    # Take the mean over the time dimension
-    ds = ds.sel(time=slice(start_date, end_date)).mean(dim='time')
+    # Select only the specified months
+    ds = ds.sel(time=ds['time.month'].isin(months))
 
-    # Take the mean over the lat and lon dimensions
-    ds = ds.sel(lat=slice(lat1, lat2), lon=slice(lon1, lon2)).mean(dim=('lat', 'lon'))
+    # # Find the centre of the period between start and end date
+    # mid_date = pd.to_datetime(start_date) + (pd.to_datetime(end_date) - pd.to_datetime(start_date)) / 2
 
-    # Set the time to the mid date
-    ds['time'] = mid_date
+    # # Take the mean over the time dimension
+    # ds = ds.sel(time=slice(start_date, end_date)).mean(dim='time')
+
+    # # Take the mean over the lat and lon dimensions
+    # ds = ds.sel(lat=slice(lat1, lat2), lon=slice(lon1, lon2)).mean(dim=('lat', 'lon'))
+
+    # # Set the time to the mid date
+    # ds['time'] = mid_date
 
     # Return the dataset
     return ds
@@ -334,8 +348,11 @@ def load_model_data_xarray(model_variable: str,
                            grid: dict,
                            first_fcst_year: int,
                            last_fcst_year: int,
-                           start_month: int = 12,
-                           end_month: int = 3):
+                           months: list,
+                           preprocess: Callable = None,
+                           engine: str = 'netcdf4',
+                           parallel: bool = True,
+):
     """
     Function for loading each of the ensemble members for a given model using xarray
     
@@ -376,6 +393,25 @@ def load_model_data_xarray(model_variable: str,
     last_fcst_year: int
         The last forecast year for taking the time average
         E.g. 1962
+
+    months: list
+        The months to take the time average over
+        E.g. [10, 11, 12, 1, 2, 3] for October to March
+
+    preprocess (Callable): 
+            ``preprocess`` function accepting and returning
+            :py:class:`xarray.Dataset` only. To be passed to
+            :py:func:`xarray.open_dataset`. Defaults to None.
+
+    engine: str
+        The engine to use for opening the dataset
+        Passed to xarray.open_mfdataset
+        Defaults to 'netcdf4'
+
+    parallel: bool
+        Whether to use parallel processing
+        Passed to xarray.open_mfdataset
+        Defaults to True
 
     Returns
     -------
@@ -538,31 +574,118 @@ def load_model_data_xarray(model_variable: str,
     # Initialize the model data
     dss = []
 
-    # Find the index of the forecast first year
-    first_fcst_year_idx = start_year - first_fcst_year ; last_fcst_year_idx = last_fcst_year - first_fcst_year
+    # Will depend on the model here
+    # for s1961 - CanESM5 and IPSL-CM6A-LR both initialized in January 1962
+    # So 1962 will be their first year
+    if model not in ['CanESM5', 'IPSL-CM6A-LR']:
+        # Find the index of the forecast first year
+        first_fcst_year_idx = first_fcst_year - start_year
+        last_fcst_year_idx = (last_fcst_year - first_fcst_year) + 1
+    else:
+        # Find the index of the forecast first year
+        # First should be index 0 normally
+        first_fcst_year_idx = (first_fcst_year - start_year) - 1 
+        last_fcst_year_idx = last_fcst_year - first_fcst_year
 
-    # Loop over the member files
-    for member_file in tqdm(member_files, desc="Processing members"):
-        # print("Processing member:", member_file)
+    # Flatten the member files list
+    member_files = [file for sublist in member_files for file in sublist]
 
-        # Open the files
-        ds = xr.open_mfdataset(member_file,
-                               preprocess=lambda ds: preprocess(ds, first_fcst_year_idx, last_fcst_year_idx, lat1, lat2, lon1, lon2, start_month, end_month),
-                               combine='nested',
-                               concat_dim='time',
-                               join='override',
-                               coords='minimal',
-                               engine='netcdf4',
-                               parallel=True)
-        
-        # Append the dataset to the model data
-        dss.append(ds)
+    init_year_list = []
+    # Loop over init_years
+    for init_year in tqdm(range(start_year, end_year + 1), desc="Processing init years"):
+        print(f"processing init year {init_year}")
+        # Set up the member list
+        member_list = []
+        # Loop over the unique variant labels
+        for variant_label in unique_variant_labels:
+            # Find the matching path for the given year and member
+            # e.g file containing f"s{init_year}-{variant_label}
+            file = [file for file in member_files if f"s{init_year}-{variant_label}" in file][0]
 
-    # Concatenate the datasets
-    ds = xr.concat(dss, dim='ensemble_member')
+            # Open all leads for specified variant label
+            # and init_year
+            member_ds = xr.open_mfdataset(
+                file,
+                combine="nested",
+                concat_dim="time",
+                preprocess=preprocess,
+                parallel=parallel,
+                engine=engine,
+                coords="minimal",  # expecting identical coords
+                data_vars="minimal",  # expecting identical vars
+                compat="override",  # speed up
+            ).squeeze()
 
-    # Return the model data
+            # Set new integer time
+            member_ds = set_integer_time_axis(member_ds)
+
+            # Append the member dataset to the member list
+            member_list.append(member_ds)
+        # Concatenate the member list along the ensemble_member dimension
+        member_ds = xr.concat(member_list, "member")
+        # Append the member dataset to the init_year list
+        init_year_list.append(member_ds)
+    # Concatenate the init_year list along the init dimension
+    # and rename as lead time
+    ds = xr.concat(init_year_list, "init").rename({"time": "lead"})
+
+    # Set up the members
+    ds["member"] = unique_variant_labels
+    ds["init"] = np.arange(start_year, end_year + 1)
+
+    # Return ds
     return ds
+
+
+# # # Loop over the member files
+# # for member_file in tqdm(member_files, desc="Processing members"):
+# #     # print("Processing member:", member_file)
+
+# #     # Open the files
+# #     ds = xr.open_mfdataset(member_file,
+# #                            preprocess=lambda ds: preprocess(ds, first_fcst_year_idx, last_fcst_year_idx, lat1, lat2, lon1, lon2, months),
+# #                            combine='nested',
+# #                            concat_dim='time',
+# #                            join='override',
+# #                            coords='minimal',
+# #                            engine='netcdf4',
+# #                            parallel=True)
+    
+# #     # Append the dataset to the model data
+# #     dss.append(ds)
+
+# # # Concatenate the datasets
+# # ds = xr.concat(dss, dim='ensemble_member')
+
+# # Return the model data
+# return member_files, unique_variant_labels
+
+def set_integer_time_axis(
+    xro: Union[xr.DataArray, xr.Dataset],
+    offset: int = 1,
+    time_dim: str = "time"
+) -> Union[xr.DataArray, xr.Dataset]:
+    """
+    Set time axis to integers starting from `offset`.
+
+    Used in hindcast preprocessing before the concatenation of `intake-esm` happens.
+
+    Inputs:
+    xro: xr.DataArray or xr.Dataset
+        The input xarray DataArray or Dataset whose time axis is to be modified.
+
+    offset: int, optional
+        The starting point for the new integer time axis. Default is 1.
+
+    time_dim: str, optional
+        The name of the time dimension in the input xarray object. Default is "time".
+
+    Returns:
+    xr.DataArray or xr.Dataset
+        The input xarray object with the time axis set to integers starting from `offset`.
+    """
+    xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
+    return xro
 
 # Function for loading the observations
 def load_obs_data(obs_variable: str,
