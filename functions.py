@@ -632,6 +632,7 @@ def load_model_data_xarray(
     # Return ds
     return ds
 
+
 def set_integer_time_axis(
     xro: Union[xr.DataArray, xr.Dataset],
     offset: int = 1,
@@ -672,6 +673,7 @@ def set_integer_time_axis(
     xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
     return xro
 
+
 # Define a function to perform regridding to regular -180 to 180 grid
 def regrid_ds(
     ds: xr.Dataset,
@@ -706,18 +708,20 @@ def regrid_ds(
     """
 
     # Calculate the resolution of the input dataset
-    lat_res = (ds['lat'].max() - ds['lat'].min())/(ds['lat'].count()-1.).values
-    lon_res = (ds['lon'].max() - ds['lon'].min())/(ds['lon'].count()-1.).values
+    lat_res = (ds["lat"].max() - ds["lat"].min()) / (ds["lat"].count() - 1.0).values
+    lon_res = (ds["lon"].max() - ds["lon"].min()) / (ds["lon"].count() - 1.0).values
 
     # Set up the 2d grid
     ds_out = xe.util.grid_2d(
-        grid_bounds[0], grid_bounds[1], lon_res,
-        grid_bounds[2], grid_bounds[3], lat_res
+        grid_bounds[0], grid_bounds[1], lon_res, grid_bounds[2], grid_bounds[3], lat_res
     )
 
     # Set up the regridder
     regridder = xe.Regridder(
-        ds, ds_out, rg_algo, periodic=periodic,
+        ds,
+        ds_out,
+        rg_algo,
+        periodic=periodic,
     )
 
     # Perform the regridding
@@ -727,6 +731,59 @@ def regrid_ds(
     return da_regridded
 
 
+# Define a function to select a gridbox
+def select_gridbox(
+    ds: xr.Dataset,
+    grid: dict[str, float],
+    dim: tuple[str, str] = ("y", "x"),
+) -> xr.Dataset:
+    """
+    Select the gridbox from the input dataset and calculate the mean over it.
+
+    Inputs:
+    ds: xr.Dataset
+        The input xarray Dataset from which the gridbox is to be selected.
+
+    grid: dict[str, float]
+        The dictionary containing the latitudinal and longitudinal bounds of the gridbox.
+
+    dim: tuple[str, str], optional
+        The dimensions along which the mean is calculated. Default is ("y", "x").
+
+    Returns:
+    xr.Dataset
+        The dataset containing the mean over the selected gridbox.
+    """
+
+    # Extract the latitudinal and longitudinal bounds
+    lon1, lon2, lat1, lat2 = grid["lon1"], grid["lon2"], grid["lat1"], grid["lat2"]
+
+    # Assert that the latitudinal and longitudinal bounds for ds are -180 to 180
+    assert (
+        ds["lon"].min().values <= -180.0 and ds["lon"].max().values >= 180.0
+    ), "The longitudinal bounds for the dataset are not -180 to 180"
+
+    # Assert that the latitudinal bounds for ds are -90 to 90
+    assert (
+        ds["lat"].min().values >= -90.0 and ds["lat"].max().values <= 90.0
+    ), "The latitudinal bounds for the dataset are not -90 to 90"
+
+    # Set up the mask
+    mask = (
+        (ds["lat"] >= lat1)
+        & (ds["lat"] <= lat2)
+        & (ds["lon"] >= lon1)
+        & (ds["lon"] <= lon2)
+    )
+
+    # Mask the dataset
+    ds_masked = ds.where(mask)
+
+    # Calculate the mean of the masked dataset
+    ds_mean = ds_masked.mean(dim=dim)
+
+    # Return the mean dataset
+    return ds_mean
 
 # Function for loading the observations
 def load_obs_data(
