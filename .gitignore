@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# random files
+wget*.sh
+*.csv
+paths/*.csv
+*.status
+
 # Distribution / packaging
 .Python
 build/
