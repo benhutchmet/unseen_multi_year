@@ -1,0 +1,1072 @@
+#!/usr/bin/env python
+
+"""
+plotting_functions.py
+=============================
+
+Script to store the functions for plotting the MSLP outlook for specific
+periods, for both the observations (ERA5) and the hindcast (DePreSys).
+
+Usage:
+------
+
+    $ python plotting_functions.py    
+
+"""
+
+# Imports
+import os
+import sys
+import glob
+import time
+
+# Third-party libraries
+import numpy as np
+import pandas as pd
+import xarray as xr
+import iris
+import iris.coords
+import cftime
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mplticker
+import cartopy.crs as ccrs
+
+# Specific third-party imports
+from matplotlib import colors
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from matplotlib.ticker import FuncFormatter
+from tqdm import tqdm
+
+
+# Formatting functions for 4 significant figures and 1 decimal point
+def format_func(
+    x: float,
+    pos: int,
+):
+    """
+    Formats the x-axis ticks as significant figures.
+
+    Args:
+        x (float): The tick value.
+        pos (int): The position of the tick.
+
+    Returns:
+        str: The formatted tick value.
+    """
+    return f"{x:.4g}"
+
+
+def format_func_one_decimal(
+    x: float,
+    pos: int,
+):
+    """
+    Formats the x-axis ticks to one decimal point.
+
+    Args:
+        x (float): The tick value.
+        pos (int): The position of the tick.
+
+    Returns:
+        str: The formatted tick value.
+    """
+    return f"{x:.1f}"
+
+# write a function for plotting the full field MSLP data
+# for a full period of interest e.g. November 2010 -> March 2011
+def plot_mslp_anoms(
+    start_date: str,
+    end_date: str,
+    title: str,
+    variable: str = "msl",
+    freq: str = "amon",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    ERA5_regrid_path: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc",
+    climatology_period: list[int] = [1990, 2020],
+    calc_anoms: bool = False,
+):
+    """
+    Grabs the MSLP anomalies for a given period of interest and plots them.
+
+    Args:
+        start_date (str): The start date of the period of interest.
+        end_date (str): The end date of the period of interest.
+        title (str): The title of the plot.
+        variable (str): The variable of interest.
+        freq (str): The frequency of the data.
+        lat_bounds (list): The latitude bounds for the plot.
+        lon_bounds (list): The longitude bounds for the plot.
+        ERA5_regrid_path (str): The path to the regridded ERA5 data.
+
+    Returns:
+        None
+    """
+
+    # Load the observed data
+    ds = xr.open_mfdataset(
+        ERA5_regrid_path,
+        chunks={"time": 10},
+        combine="by_coords",
+        parallel=False,
+        engine="netcdf4",
+        coords="minimal",
+    )
+
+    # If expver is present in the observations
+    if "expver" in ds.coords:
+        # Combine the first two expver variables
+        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))
+
+    # if the variable is not in the dataset
+    if variable not in ds:
+        # raise an error
+        raise ValueError(f"{variable} not in dataset")
+
+    # calculate the ds climatology
+    if calc_anoms:
+        # Strip the month from the start and end dates
+        # format is "YYYY-MM-DD"
+        start_month = start_date[5:7]
+        end_month = end_date[5:7]
+
+        # form the list of months to subset the data
+        if start_month == end_month:
+            months = [start_month]
+        elif start_month < end_month:
+            months = [
+                str(i).zfill(2) for i in range(int(start_month), int(end_month) + 1)
+            ]
+        else:
+            months = [str(i).zfill(2) for i in range(int(start_month), 13)]
+            months += [str(i).zfill(2) for i in range(1, int(end_month) + 1)]
+
+        # convert all the months to integers
+        months = [int(i) for i in months]
+
+        # print the months
+        print(f"months to subset to: {months}")
+
+        # subset the data to the region
+        ds_clim = ds.sel(
+            lat=slice(lat_bounds[0], lat_bounds[1]),
+            lon=slice(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # subset the data
+        ds_clim = ds_clim.sel(time=ds["time.month"].isin(months))
+
+        # Select the years
+        ds_clim = ds_clim.sel(
+            time=slice(
+                f"{climatology_period[0]}-01-01", f"{climatology_period[1]}-12-31"
+            )
+        )
+
+        # calculate the climatology
+        climatology = ds_clim[variable].mean(dim="time")
+
+    # select the variable
+    ds = ds[variable].sel(time=slice(start_date, end_date)).mean(dim="time")
+
+    # subset to the region of interest
+    ds = ds.sel(
+        lat=slice(lat_bounds[0], lat_bounds[1]), lon=slice(lon_bounds[0], lon_bounds[1])
+    )
+
+    # extract the lons
+    lons = ds["lon"].values
+    lats = ds["lat"].values
+
+    if calc_anoms:
+        # calculate the anomalies
+        field = (ds.values - climatology.values) / 100  # convert to hPa
+    else:
+        field = ds.values / 100  # convert to hPa
+
+    # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+    # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks = clevs
+
+        # ensure that these are floats
+        clevs = clevs.astype(float)
+        ticks = ticks.astype(float)
+    else:
+        # define the contour levels
+        clevs = np.array(np.arange(988, 1024 + 1, 2))
+        ticks = clevs
+
+        # ensure that these are ints
+        clevs = clevs.astype(int)
+        ticks = ticks.astype(int)
+
+    # # print the shape of the inputs
+    # print(f"lons shape: {lons.shape}")
+    # print(f"lats shape: {lats.shape}")
+    # print(f"field shape: {field.shape}")
+    # print(f"clevs shape: {clevs.shape}")
+
+    # # print the field values
+    # print(f"field values: {field}")
+
+    # Define the custom diverging colormap
+    # cs = ["purple", "blue", "lightblue", "lightgreen", "lightyellow", "orange", "red", "darkred"]
+    # cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # custom colormap
+    cs = [
+        "#4D65AD",
+        "#3E97B7",
+        "#6BC4A6",
+        "#A4DBA4",
+        "#D8F09C",
+        "#FFFEBE",
+        "#FFD27F",
+        "#FCA85F",
+        "#F57244",
+        "#DD484C",
+        "#B51948",
+    ]
+    # cs = ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"]
+    cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # plot the data
+    mymap = ax.contourf(
+        lons, lats, field, clevs, transform=ccrs.PlateCarree(), cmap=cmap, extend="both"
+    )
+    contours = ax.contour(
+        lons,
+        lats,
+        field,
+        clevs,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"mean sea level pressure {climatology_period[0]}-{climatology_period[1]} anomaly (hPa)",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label("mean sea level pressure (hPa)", rotation=0, fontsize=10)
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()
+
+    # save figure to file
+    # plt.savefig('../images/8_python_simple_map_plot_sst_anoms_300dpi.png',
+    # format='png', dpi=300)
+
+    # plt.close()
+
+    return None
+
+# define a function for plotting the temperature/wind contours underneath
+# the mslp contours
+def plot_mslp_anoms_temp_wind_obs(
+    start_date: str,
+    end_date: str,
+    title: str,
+    variable: str = "t2m",
+    psl_variable: str = "msl",
+    freq: str = "Amon",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    ERA5_regrid_path: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc",
+    climatology_period: list[int] = [1990, 2020],
+    calc_anoms: bool = False,
+) -> None:
+    """
+    Grabs the MSLP data and surface variable (e.g. temperature, 10m wind speed)
+    for a given period of interest and plots them. Plots the surface variable
+    as contours underneath the MSLP contours.
+
+    Args:
+        start_date (str): The start date of the period of interest.
+        end_date (str): The end date of the period of interest.
+        title (str): The title of the plot.
+        variable (str): The variable of interest.
+        psl_variable (str): The MSLP variable.
+        freq (str): The frequency of the data.
+        lat_bounds (list): The latitude bounds for the plot.
+        lon_bounds (list): The longitude bounds for the plot.
+        ERA5_regrid_path (str): The path to the regridded ERA5 data.
+        climatology_period (list): The climatology period.
+        calc_anoms (bool): Whether to calculate anomalies.
+
+    Returns:
+        None
+    """
+
+    # Load the observed data
+    ds = xr.open_mfdataset(
+        ERA5_regrid_path,
+        chunks={"time": 10},
+        combine="by_coords",
+        parallel=False,
+        engine="netcdf4",
+        coords="minimal",
+    )
+
+    # If expver is present in the observations
+    if "expver" in ds.coords:
+        # Combine the first two expver variables
+        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))
+
+    # if the variable is not in the dataset
+    if variable not in ds:
+        # raise an error
+        raise ValueError(f"{variable} not in dataset")    
+
+    # if the psl_variable is not in the dataset
+    if psl_variable not in ds:
+        # raise an error
+        raise ValueError(f"{psl_variable} not in dataset")
+    
+    # if calc_anoms is True
+    if calc_anoms:
+        # Strip the month from the start and end dates
+        # format is "YYYY-MM-DD"
+        start_month = start_date[5:7]
+        end_month = end_date[5:7]
+
+        # form the list of months to subset the data
+        if start_month == end_month:
+            months = [start_month]
+        elif start_month < end_month:
+            months = [
+                str(i).zfill(2) for i in range(int(start_month), int(end_month) + 1)
+            ]
+        else:
+            months = [str(i).zfill(2) for i in range(int(start_month), 13)]
+            months += [str(i).zfill(2) for i in range(1, int(end_month) + 1)]
+
+        # convert all the months to integers
+        months = [int(i) for i in months]
+
+        # print the months
+        print(f"months to subset to: {months}")
+
+        # subset the data to the region
+        ds_clim = ds.sel(
+            lat=slice(lat_bounds[0], lat_bounds[1]),
+            lon=slice(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # subset the data
+        ds_clim = ds_clim.sel(time=ds["time.month"].isin(months))
+
+        # Select the years
+        ds_clim = ds_clim.sel(
+            time=slice(
+                f"{climatology_period[0]}-01-01", f"{climatology_period[1]}-12-31"
+            )
+        )
+
+        # calculate the climatology
+        psl_climatology = ds_clim[psl_variable].mean(dim="time")
+
+        # calculate the variable climatology
+        var_climatology = ds_clim[variable].mean(dim="time")
+
+    # select the variable
+    ds_var = ds[variable].sel(time=slice(start_date, end_date)).mean(dim="time")
+
+    # select the psl variable
+    ds_psl = ds[psl_variable].sel(time=slice(start_date, end_date)).mean(dim="time")
+
+    # subset to the region of interest
+    ds_var = ds_var.sel(
+        lat=slice(lat_bounds[0], lat_bounds[1]), lon=slice(lon_bounds[0], lon_bounds[1])
+    )
+
+    # subset to the region of interest
+    ds_psl = ds_psl.sel(
+        lat=slice(lat_bounds[0], lat_bounds[1]), lon=slice(lon_bounds[0], lon_bounds[1])
+    )
+
+    # extract the lons
+    lons = ds_var["lon"].values
+    lats = ds_var["lat"].values
+
+    if calc_anoms:
+        # calculate the anomalies
+        field_var = (ds_var.values - var_climatology.values)
+        field_psl = (ds_psl.values - psl_climatology.values) / 100  # convert to hPa
+    else:
+        field_var = ds_var.values
+        field_psl = ds_psl.values / 100
+
+    #if variable in t2m, tas
+    if variable in ["t2m", "tas"]:
+        # convert to degrees celsius
+        field_var -= 273.15
+
+    # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+        # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks = clevs
+
+        # ensure that these are floats
+        clevs = clevs.astype(float)
+        ticks = ticks.astype(float)
+    else:
+        # define the contour levels for the variable
+        # should be 19 of them
+        if variable in ["t2m", "tas"]:
+            # -18 to +18 in 2 degree intervals
+            clevs_var = np.array(np.arange(-18, 18 + 1, 2))
+            ticks_var = clevs_var
+
+            # set up tjhe cmap
+            cmap = "bwr"
+
+            # set the cbar label
+            cbar_label = "temperature (°C)"
+
+        elif variable in ["u10", "v10", "sfcWind", "si10"]:
+            # 0 to 20 in 2 m/s intervals
+            clevs_var = np.array(np.arange(0, 20 + 1, 2))
+            ticks_var = clevs_var
+
+            # set up the cmap
+            cmap = "viridis"
+
+            # set the cbar label
+            cbar_label = "10m wind speed (m/s)"
+        else:
+            raise ValueError(f"Unknown variable {variable}")
+        
+        # define the contour levels
+        clevs_psl = np.array(np.arange(988, 1024 + 1, 2))
+        ticks_psl = clevs_psl
+
+        # ensure that these are ints
+        clevs_psl = clevs_psl.astype(int)
+        ticks_psl = ticks_psl.astype(int)
+
+    # print the len of clevs_psl
+    print(f"len of clevs_psl: {len(clevs_psl)}")
+    print(f"len of clevs_var: {len(clevs_var)}")
+
+    # print field_var and field_psl
+    print(f"field_var shape: {field_var.shape}")
+    print(f"field_psl shape: {field_psl.shape}")
+    # print(f"field_var values: {field_var}")
+    # print(f"field_psl values: {field_psl}")
+
+    # print the field var min and the field var max
+    print(f"field_var min: {field_var.min()}")
+    print(f"field_var max: {field_var.max()}")
+
+    # plot the data
+    mymap = ax.contourf(
+        lons, lats, field_var, clevs_var, transform=ccrs.PlateCarree(), cmap=cmap, extend="both"
+    )
+
+    # plot the psl contours
+    contours = ax.contour(
+        lons,
+        lats,
+        field_psl,
+        clevs_psl,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs_psl, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs_psl, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"{cbar_label} {climatology_period[0]}-{climatology_period[1]} anomaly",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # add contour lines to the colorbar
+        cbar.add_lines(mymap)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label(cbar_label, rotation=0, fontsize=10)
+
+        # set up invisible contour lines for field_var
+        contour_var = ax.contour(
+            lons,
+            lats,
+            field_var,
+            clevs_var,
+            colors=None,
+            transform=ccrs.PlateCarree(),
+            linewidth=0.2,
+            alpha=0.5,
+        )
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contour_var)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks_var)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()
+
+    return None
+
+
+# Write a function which does the same, but for the model data
+def plot_mslp_anoms_model(
+    start_date: str,
+    end_date: str,
+    member: str,
+    title: str,
+    model: str = "HadGEM3-GC31-MM",
+    variable: str = "psl",
+    freq: str = "Amon",
+    experiment: str = "dcppA-hindcast",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    climatology_period: list[int] = [1960, 1990],
+    grid_bounds: list[float] = [-180.0, 180.0, -90.0, 90.0],
+    calc_anoms: bool = False,
+    grid_file: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc",
+    files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
+) -> None:
+    """
+    Grabs the MSLP anomalies for a given period of interest and plots them.
+
+    Args:
+        start_date (str): The start date of the period of interest.
+        end_date (str): The end date of the period of interest.
+        member (str): The member of the model.
+        title (str): The title of the plot.
+        model (str): The model of interest.
+        variable (str): The variable of interest.
+        freq (str): The frequency of the data.
+        lat_bounds (list): The latitude bounds for the plot.
+        lon_bounds (list): The longitude bounds for the plot.
+        climatology_period (list): The climatology period.
+        calc_anoms (bool): Whether to calculate anomalies.
+        files_loc_path (str): The path to the file locations.
+
+    Returns:
+        None
+    """
+
+    # Load the paths
+
+    # Check that the csv file exists
+    if not os.path.exists(files_loc_path):
+        raise FileNotFoundError(f"Cannot find the file {files_loc_path}")
+
+    # Load in the csv file
+    csv_data = pd.read_csv(files_loc_path)
+
+    # print the data we seek
+    print(f"model: {model}")
+    print(f"experiment: {experiment}")
+    print(f"variable: {variable}")
+    print(f"frequency: {freq}")
+
+    # Extract the path for the given model, experiment and variable
+    model_path = csv_data.loc[
+        (csv_data["model"] == model)
+        & (csv_data["experiment"] == experiment)
+        & (csv_data["variable"] == variable)
+        & (csv_data["frequency"] == freq),
+        "path",
+    ].values[0]
+
+    # Assert that theb model path exists
+    assert os.path.exists(model_path), f"Cannot find the model path {model_path}"
+
+    # Assert that the model path is not empty
+    assert os.listdir(model_path), f"Model path {model_path} is empty"
+
+    # print the model path
+    print(f"Model path: {model_path}")
+
+    # Extract the root of the model path
+    model_path_root = model_path.split("/")[1]
+
+    # print the model path root
+    print(f"Model path root: {model_path_root}")
+
+    # example file
+    # /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc 
+
+    # Extract the year from the start and end dates
+    start_year = start_date[:4]
+    end_year = end_date[:4]
+
+    # print the start and end years
+    print(f"start year: {start_year}")
+    print(f"end year: {end_year}")
+
+    # depending on the model_path_root
+    if model_path_root == "work":
+        raise NotImplementedError("work path not implemented yet")
+    elif model_path_root == "gws":
+        # Create the path
+        path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{start_year}-r{member}i*_*_{start_year}??-*.nc"
+
+        # print the path
+        print(f"path: {path}")
+        # print("correct path: /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc")
+
+        # glob this path
+        files = glob.glob(path)
+
+        # assert that files has length 1
+        assert len(files) == 1, f"files has length {len(files)}"
+
+        # print the loaded file
+        print(f"Loaded file: {files[0]}")
+
+        # extract the file
+        file = files[0]
+    elif model_path_root == "badc":
+        raise NotImplementedError("home path not implemented yet")
+    else:
+        raise ValueError(f"Unknown model path root {model_path_root}")
+    
+    # load the observed data as a cube
+    obs = iris.load_cube(grid_file)
+
+    # Load the model data ad a cube
+    cube = iris.load_cube(file)
+
+    # # if expver is a coord in the obs cube
+    # if "expver" in obs.dims():
+    #     # combine the first two expver variables
+    #     obs = obs.extract(iris.Constraint(expver=1)) + obs.extract(iris.Constraint(expver=5))    
+
+    # # print the obs cube
+    # print(f"obs cube: {obs}")
+    # print(f"model cube: {cube}")
+
+    # regrid the model data to the obs grid
+    regrid_cube = cube.regrid(obs, iris.analysis.Linear())
+
+    # # print the regridded cube
+    # print(f"regridded cube: {regrid_cube}")
+
+    # convert the YYYY-MM-DD to cftime objects
+    start_date_cf = cftime.datetime.strptime(start_date, "%Y-%m-%d", calendar='360_day')
+    end_date_cf = cftime.datetime.strptime(end_date, "%Y-%m-%d", calendar='360_day')
+
+    # Slice between the start date and end date
+    regrid_cube = regrid_cube.extract(iris.Constraint(time=lambda cell: start_date_cf <= cell.point <= end_date_cf))
+
+    # take the mean over the time dimension
+    regrid_cube = regrid_cube.collapsed("time", iris.analysis.MEAN)
+
+    # subset to the region of interest
+    regrid_cube = regrid_cube.intersection(latitude=(lat_bounds[0], lat_bounds[1]), longitude=(lon_bounds[0], lon_bounds[1]))
+
+    if calc_anoms:
+        print("Caculating the climatology for the model data")
+
+        # initialise a cube list
+        ds_list = []
+
+        # Loop over the years in the climatology period
+        for year in tqdm(range(climatology_period[0], climatology_period[1] + 1)):
+            # Create the path
+            path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{year}-r{member}i*_*_{year}??-*.nc"
+
+            # # print the path
+            # print(f"path: {path}")
+
+            # glob this path
+            files = glob.glob(path)
+
+            # assert that files has length 1
+            assert len(files) == 1, f"files has length {len(files)}"
+
+            # # print the loaded file
+            # print(f"Loaded file: {files[0]}")
+
+            # extract the file
+            file = files[0]
+
+            # # Load the model data ad a cube
+            # cube = iris.load_cube(file)
+
+            # load the observed data using xarray
+            ds = xr.open_dataset(file)
+
+            # Set up the yyyy-mm-dd format
+            start_date_this = cftime.datetime.strptime(f"{year}-{start_date[5:10]}", "%Y-%m-%d", calendar='360_day')
+            end_date_this = cftime.datetime.strptime(f"{year + 1}-{end_date[5:10]}", "%Y-%m-%d", calendar='360_day')
+
+            # Slice between the start date and end date and take the mean
+            # cube = cube.extract(iris.Constraint(time=lambda cell: start_date_this <= cell.point <= end_date_this))
+
+            # slice between the start date and end date
+            ds = ds.sel(time=slice(start_date_this, end_date_this))
+
+            # append the ds to the cube list
+            ds_list.append(ds[variable])
+
+        # concatenate with a new time dimension using xarray
+        ds_clim = xr.concat(ds_list, dim="time")
+
+        # convert to a cube from xarray
+        cube_clim = ds_clim.to_iris()
+
+        # regrid the model data to the obs grid
+        regrid_cube_clim = cube_clim.regrid(obs, iris.analysis.Linear())
+
+        # subset to the region of interest
+        regrid_cube_clim = regrid_cube_clim.intersection(latitude=(lat_bounds[0], lat_bounds[1]), longitude=(lon_bounds[0], lon_bounds[1]))
+
+        # calculate the time mean of this
+        regrid_cube_clim = regrid_cube_clim.collapsed("time", iris.analysis.MEAN)
+
+    # # print the regridded cube
+    # print(f"regridded cube: {regrid_cube}")
+
+    # extract the lats and lons values
+    lats = regrid_cube.coord("latitude").points
+    lons = regrid_cube.coord("longitude").points
+
+    if calc_anoms:
+        # calculate the anomalies
+        field = (regrid_cube.data - regrid_cube_clim.data) / 100
+    else:
+        # extract the data values
+        field = regrid_cube.data / 100 # convert to hPa
+
+    # # print the shape of the lats and lons
+    # print(f"lats shape: {lats.shape}")
+    # print(f"lons shape: {lons.shape}")
+    # print(f"field shape: {field.shape}")
+
+    # # print the values of the field
+    # print(f"field values: {field}")
+    # print(f"lats values: {lats}")
+    # print(f"lons values: {lons}")
+
+    # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+        # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks = clevs
+
+        # ensure that these are floats
+        clevs = clevs.astype(float)
+        ticks = ticks.astype(float)
+    else:
+        # define the contour levels
+        clevs = np.array(np.arange(988, 1024 + 1, 2))
+        ticks = clevs
+
+        # ensure that these are ints
+        clevs = clevs.astype(int)
+        ticks = ticks.astype(int)
+
+    # custom colormap
+    cs = [
+        "#4D65AD",
+        "#3E97B7",
+        "#6BC4A6",
+        "#A4DBA4",
+        "#D8F09C",
+        "#FFFEBE",
+        "#FFD27F",
+        "#FCA85F",
+        "#F57244",
+        "#DD484C",
+        "#B51948",
+    ]
+    # cs = ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"]
+    cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # plot the data
+    mymap = ax.contourf(
+        lons, lats, field, clevs, transform=ccrs.PlateCarree(), cmap=cmap, extend="both"
+    )
+
+    # plot the contours
+    contours = ax.contour(
+        lons,
+        lats,
+        field,
+        clevs,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+
+    # if calc_anoms is True
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"mean sea level pressure {climatology_period[0]}-{climatology_period[1]} anomaly (hPa)",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label("mean sea level pressure (hPa)", rotation=0, fontsize=10)
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()
+
+    return None
+
+
+def main():
+    """
+    Main function for testing purposes.
+    """
+
+    # Define the start and end dates
+    start_date = "1965-11-01"
+    end_date = "1966-03-30"
+    member = "2"
+    title = "MSLP Anomalies for November 1965 to March 1966, member r2i1p1f2 HadGEM3-GC31-MM"
+
+    # # Call the function
+    # plot_mslp_anoms_model(
+    #     start_date=start_date,
+    #     end_date=end_date,
+    #     member=member,
+    #     title=title,
+    #     calc_anoms=True,
+    # )
+
+    # call rthe new obs function
+    plot_mslp_anoms_temp_wind_obs(
+        start_date=start_date,
+        end_date=end_date,
+        title=title,
+        calc_anoms=False,
+    )
+
+    return None
+
+if __name__ == "__main__":
+    main()
