@@ -72,6 +72,7 @@ def format_func_one_decimal(
     """
     return f"{x:.1f}"
 
+
 # write a function for plotting the full field MSLP data
 # for a full period of interest e.g. November 2010 -> March 2011
 def plot_mslp_anoms(
@@ -342,6 +343,7 @@ def plot_mslp_anoms(
 
     return None
 
+
 # define a function for plotting the temperature/wind contours underneath
 # the mslp contours
 def plot_mslp_anoms_temp_wind_obs(
@@ -397,13 +399,13 @@ def plot_mslp_anoms_temp_wind_obs(
     # if the variable is not in the dataset
     if variable not in ds:
         # raise an error
-        raise ValueError(f"{variable} not in dataset")    
+        raise ValueError(f"{variable} not in dataset")
 
     # if the psl_variable is not in the dataset
     if psl_variable not in ds:
         # raise an error
         raise ValueError(f"{psl_variable} not in dataset")
-    
+
     # if calc_anoms is True
     if calc_anoms:
         # Strip the month from the start and end dates
@@ -472,26 +474,26 @@ def plot_mslp_anoms_temp_wind_obs(
 
     if calc_anoms:
         # calculate the anomalies
-        field_var = (ds_var.values - var_climatology.values)
+        field_var = ds_var.values - var_climatology.values
         field_psl = (ds_psl.values - psl_climatology.values) / 100  # convert to hPa
     else:
         field_var = ds_var.values
         field_psl = ds_psl.values / 100
 
-    #if variable in t2m, tas
-    if variable in ["t2m", "tas"]:
-        # convert to degrees celsius
-        field_var -= 273.15
+        # if variable in t2m, tas
+        if variable in ["t2m", "tas"]:
+            # convert to degrees celsius
+            field_var -= 273.15
 
     # set up the figure
     fig, ax = plt.subplots(
         figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
     )
 
-        # if calc_anoms is True
+    # if calc_anoms is True
     if calc_anoms:
         # clevs = np.linspace(-8, 8, 18)
-        clevs = np.array(
+        clevs_psl = np.array(
             [
                 -8.0,
                 -7.0,
@@ -511,11 +513,76 @@ def plot_mslp_anoms_temp_wind_obs(
                 8.0,
             ]
         )
-        ticks = clevs
+        ticks_psl = clevs_psl
 
         # ensure that these are floats
-        clevs = clevs.astype(float)
-        ticks = ticks.astype(float)
+        clevs_psl = clevs_psl.astype(float)
+        ticks_psl = ticks_psl.astype(float)
+
+        # depending on the variable
+        if variable in ["t2m", "tas"]:
+            # -18 to +18 in 2 degree intervals
+            clevs_var = np.array(
+                [
+                    -5.0,
+                    -4.5,
+                    -4.0,
+                    -3.5,
+                    -3.0,
+                    -2.5,
+                    -2.0,
+                    -1.5,
+                    -1.0,
+                    -0.5,
+                    0.5,
+                    1.0,
+                    1.5,
+                    2.0,
+                    2.5,
+                    3.0,
+                    3.5,
+                    4.0,
+                    4.5,
+                    5.0,
+                ]
+            )
+            ticks_var = clevs_var
+
+            # set up tjhe cmap
+            cmap = "bwr"
+
+            # set the cbar label
+            cbar_label = "temperature (°C)"
+        elif variable in ["u10", "v10", "sfcWind", "si10"]:
+            # 0 to 20 in 2 m/s intervals
+            clevs_var = np.array(
+                [
+                    -1.4,
+                    -1.2,
+                    -1.0,
+                    -0.8,
+                    -0.6,
+                    -0.4,
+                    -0.2,
+                    0.2,
+                    0.4,
+                    0.6,
+                    0.8,
+                    1.0,
+                    1.2,
+                    1.4,
+                ]
+            )
+            ticks_var = clevs_var
+
+            # set up the cmap
+            cmap = "PRGn_r"
+
+            # set the cbar label
+            cbar_label = "10m wind speed (m/s)"
+        else:
+            raise ValueError(f"Unknown variable {variable}")
+
     else:
         # define the contour levels for the variable
         # should be 19 of them
@@ -532,17 +599,17 @@ def plot_mslp_anoms_temp_wind_obs(
 
         elif variable in ["u10", "v10", "sfcWind", "si10"]:
             # 0 to 20 in 2 m/s intervals
-            clevs_var = np.array(np.arange(0, 20 + 1, 2))
+            clevs_var = np.array(np.arange(0, 12 + 1, 1))
             ticks_var = clevs_var
 
             # set up the cmap
-            cmap = "viridis"
+            cmap = "RdPu"
 
             # set the cbar label
             cbar_label = "10m wind speed (m/s)"
         else:
             raise ValueError(f"Unknown variable {variable}")
-        
+
         # define the contour levels
         clevs_psl = np.array(np.arange(988, 1024 + 1, 2))
         ticks_psl = clevs_psl
@@ -558,16 +625,28 @@ def plot_mslp_anoms_temp_wind_obs(
     # print field_var and field_psl
     print(f"field_var shape: {field_var.shape}")
     print(f"field_psl shape: {field_psl.shape}")
-    # print(f"field_var values: {field_var}")
-    # print(f"field_psl values: {field_psl}")
+    print(f"field_var values: {field_var}")
+    print(f"field_psl values: {field_psl}")
 
     # print the field var min and the field var max
     print(f"field_var min: {field_var.min()}")
     print(f"field_var max: {field_var.max()}")
 
+    if variable in ["si10", "sfcWind"] and not calc_anoms:
+        # set up the extend
+        extend = "max"
+    else:
+        extend = "both"
+
     # plot the data
     mymap = ax.contourf(
-        lons, lats, field_var, clevs_var, transform=ccrs.PlateCarree(), cmap=cmap, extend="both"
+        lons,
+        lats,
+        field_var,
+        clevs_var,
+        transform=ccrs.PlateCarree(),
+        cmap=cmap,
+        extend=extend,
     )
 
     # plot the psl contours
@@ -620,8 +699,8 @@ def plot_mslp_anoms_temp_wind_obs(
             fontsize=10,
         )
 
-        # add contour lines to the colorbar
-        cbar.add_lines(mymap)
+        # # add contour lines to the colorbar
+        # cbar.add_lines(mymap)
     else:
         # add colorbar
         cbar = plt.colorbar(
@@ -633,20 +712,20 @@ def plot_mslp_anoms_temp_wind_obs(
         )
         cbar.set_label(cbar_label, rotation=0, fontsize=10)
 
-        # set up invisible contour lines for field_var
-        contour_var = ax.contour(
-            lons,
-            lats,
-            field_var,
-            clevs_var,
-            colors=None,
-            transform=ccrs.PlateCarree(),
-            linewidth=0.2,
-            alpha=0.5,
-        )
+        # # set up invisible contour lines for field_var
+        # contour_var = ax.contour(
+        #     lons,
+        #     lats,
+        #     field_var,
+        #     clevs_var,
+        #     colors="k",
+        #     transform=ccrs.PlateCarree(),
+        #     linewidth=0.2,
+        #     alpha=0.5,
+        # )
 
-        # add contour lines to the colorbar
-        cbar.add_lines(contour_var)
+        # # add contour lines to the colorbar
+        # cbar.add_lines(contour_var)
     cbar.ax.tick_params(labelsize=7, length=0)
     # set the ticks
     cbar.set_ticks(ticks_var)
@@ -739,7 +818,7 @@ def plot_mslp_anoms_model(
     print(f"Model path root: {model_path_root}")
 
     # example file
-    # /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc 
+    # /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc
 
     # Extract the year from the start and end dates
     start_year = start_date[:4]
@@ -775,7 +854,7 @@ def plot_mslp_anoms_model(
         raise NotImplementedError("home path not implemented yet")
     else:
         raise ValueError(f"Unknown model path root {model_path_root}")
-    
+
     # load the observed data as a cube
     obs = iris.load_cube(grid_file)
 
@@ -785,7 +864,7 @@ def plot_mslp_anoms_model(
     # # if expver is a coord in the obs cube
     # if "expver" in obs.dims():
     #     # combine the first two expver variables
-    #     obs = obs.extract(iris.Constraint(expver=1)) + obs.extract(iris.Constraint(expver=5))    
+    #     obs = obs.extract(iris.Constraint(expver=1)) + obs.extract(iris.Constraint(expver=5))
 
     # # print the obs cube
     # print(f"obs cube: {obs}")
@@ -798,17 +877,22 @@ def plot_mslp_anoms_model(
     # print(f"regridded cube: {regrid_cube}")
 
     # convert the YYYY-MM-DD to cftime objects
-    start_date_cf = cftime.datetime.strptime(start_date, "%Y-%m-%d", calendar='360_day')
-    end_date_cf = cftime.datetime.strptime(end_date, "%Y-%m-%d", calendar='360_day')
+    start_date_cf = cftime.datetime.strptime(start_date, "%Y-%m-%d", calendar="360_day")
+    end_date_cf = cftime.datetime.strptime(end_date, "%Y-%m-%d", calendar="360_day")
 
     # Slice between the start date and end date
-    regrid_cube = regrid_cube.extract(iris.Constraint(time=lambda cell: start_date_cf <= cell.point <= end_date_cf))
+    regrid_cube = regrid_cube.extract(
+        iris.Constraint(time=lambda cell: start_date_cf <= cell.point <= end_date_cf)
+    )
 
     # take the mean over the time dimension
     regrid_cube = regrid_cube.collapsed("time", iris.analysis.MEAN)
 
     # subset to the region of interest
-    regrid_cube = regrid_cube.intersection(latitude=(lat_bounds[0], lat_bounds[1]), longitude=(lon_bounds[0], lon_bounds[1]))
+    regrid_cube = regrid_cube.intersection(
+        latitude=(lat_bounds[0], lat_bounds[1]),
+        longitude=(lon_bounds[0], lon_bounds[1]),
+    )
 
     if calc_anoms:
         print("Caculating the climatology for the model data")
@@ -843,8 +927,12 @@ def plot_mslp_anoms_model(
             ds = xr.open_dataset(file)
 
             # Set up the yyyy-mm-dd format
-            start_date_this = cftime.datetime.strptime(f"{year}-{start_date[5:10]}", "%Y-%m-%d", calendar='360_day')
-            end_date_this = cftime.datetime.strptime(f"{year + 1}-{end_date[5:10]}", "%Y-%m-%d", calendar='360_day')
+            start_date_this = cftime.datetime.strptime(
+                f"{year}-{start_date[5:10]}", "%Y-%m-%d", calendar="360_day"
+            )
+            end_date_this = cftime.datetime.strptime(
+                f"{year + 1}-{end_date[5:10]}", "%Y-%m-%d", calendar="360_day"
+            )
 
             # Slice between the start date and end date and take the mean
             # cube = cube.extract(iris.Constraint(time=lambda cell: start_date_this <= cell.point <= end_date_this))
@@ -865,7 +953,10 @@ def plot_mslp_anoms_model(
         regrid_cube_clim = cube_clim.regrid(obs, iris.analysis.Linear())
 
         # subset to the region of interest
-        regrid_cube_clim = regrid_cube_clim.intersection(latitude=(lat_bounds[0], lat_bounds[1]), longitude=(lon_bounds[0], lon_bounds[1]))
+        regrid_cube_clim = regrid_cube_clim.intersection(
+            latitude=(lat_bounds[0], lat_bounds[1]),
+            longitude=(lon_bounds[0], lon_bounds[1]),
+        )
 
         # calculate the time mean of this
         regrid_cube_clim = regrid_cube_clim.collapsed("time", iris.analysis.MEAN)
@@ -882,7 +973,7 @@ def plot_mslp_anoms_model(
         field = (regrid_cube.data - regrid_cube_clim.data) / 100
     else:
         # extract the data values
-        field = regrid_cube.data / 100 # convert to hPa
+        field = regrid_cube.data / 100  # convert to hPa
 
     # # print the shape of the lats and lons
     # print(f"lats shape: {lats.shape}")
@@ -899,7 +990,7 @@ def plot_mslp_anoms_model(
         figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
     )
 
-        # if calc_anoms is True
+    # if calc_anoms is True
     if calc_anoms:
         # clevs = np.linspace(-8, 8, 18)
         clevs = np.array(
@@ -1067,6 +1158,7 @@ def main():
     )
 
     return None
+
 
 if __name__ == "__main__":
     main()
