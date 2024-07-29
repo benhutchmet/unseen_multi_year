@@ -1718,6 +1718,8 @@ def plot_composite_obs(
     # print the head of the df
     print(energy_df.head())
 
+    # if the correct column for the specified energy variable is in the df
+
     return None
 
 def main():
