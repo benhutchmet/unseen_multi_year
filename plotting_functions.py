@@ -1679,6 +1679,13 @@ def plot_composite_obs(
         None
     """
 
+    # set up the dictionary for the energy variables
+    energy_dict = {
+        "demand": "United_Kingdom_demand",
+        "wind": "total_gen",
+        "demand_net_wind": "demand_net_wind",
+    }
+
     # assert that energy_variable is in ["demand", "wind", "demand_net_wind"]
     assert energy_variable in [
         "demand",
@@ -1693,6 +1700,20 @@ def plot_composite_obs(
 
     # Load the energy df
     energy_df = pd.read_csv(energy_df_path)
+
+    # if "Unnamed: 0" in energy_df.columns:
+    if "Unnamed: 0" in energy_df.columns:
+        # Convert to datetime
+        energy_df["Unnamed: 0"] = pd.to_datetime(energy_df["Unnamed: 0"], format="%Y")
+
+        # Set as the index
+        energy_df.set_index("Unnamed: 0", inplace=True)
+
+        # strptime to just be the year
+        energy_df.index = energy_df.index.strftime("%Y")
+
+        # remove the name of the index
+        energy_df.index.name = None
 
     # print the head of the df
     print(energy_df.head())
