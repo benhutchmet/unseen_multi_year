@@ -1375,6 +1375,271 @@ def plot_mslp_var_model(
     lons = regrid_cube_var.coord("longitude").points
 
     if calc_anoms:
+        # Calculate the anomalies
+        field_var = (regrid_cube_var.data - clim_cubes[0].data) # either temp or wind
+        field_psl = (regrid_cube_psl.data - clim_cubes[1].data) / 100 # convert to hPa
+    else:
+        # Extract the data values
+        field_var = regrid_cube_var.data
+        field_psl = regrid_cube_psl.data / 100
+
+        # if variable is temp
+        if sf_variable in ["temp", "t2m", "tas"]:
+            # convert to celsius
+            field_var -= 273.15
+
+        # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+    # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs_psl = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks_psl = clevs_psl
+
+        # ensure that these are floats
+        clevs_psl = clevs_psl.astype(float)
+        ticks_psl = ticks_psl.astype(float)
+
+        # depending on the variable
+        if variable in ["t2m", "tas"]:
+            # -18 to +18 in 2 degree intervals
+            clevs_var = np.array(
+                [
+                    -5.0,
+                    -4.5,
+                    -4.0,
+                    -3.5,
+                    -3.0,
+                    -2.5,
+                    -2.0,
+                    -1.5,
+                    -1.0,
+                    -0.5,
+                    0.5,
+                    1.0,
+                    1.5,
+                    2.0,
+                    2.5,
+                    3.0,
+                    3.5,
+                    4.0,
+                    4.5,
+                    5.0,
+                ]
+            )
+            ticks_var = clevs_var
+
+            # set up tjhe cmap
+            cmap = "bwr"
+
+            # set the cbar label
+            cbar_label = "temperature (°C)"
+        elif variable in ["u10", "v10", "sfcWind", "si10"]:
+            # 0 to 20 in 2 m/s intervals
+            clevs_var = np.array(
+                [
+                    -1.4,
+                    -1.2,
+                    -1.0,
+                    -0.8,
+                    -0.6,
+                    -0.4,
+                    -0.2,
+                    0.2,
+                    0.4,
+                    0.6,
+                    0.8,
+                    1.0,
+                    1.2,
+                    1.4,
+                ]
+            )
+            ticks_var = clevs_var
+
+            # set up the cmap
+            cmap = "PRGn_r"
+
+            # set the cbar label
+            cbar_label = "10m wind speed (m/s)"
+        else:
+            raise ValueError(f"Unknown variable {variable}")
+
+    else:
+        # define the contour levels for the variable
+        # should be 19 of them
+        if variable in ["t2m", "tas"]:
+            # -18 to +18 in 2 degree intervals
+            clevs_var = np.array(np.arange(-18, 18 + 1, 2))
+            ticks_var = clevs_var
+
+            # set up tjhe cmap
+            cmap = "bwr"
+
+            # set the cbar label
+            cbar_label = "temperature (°C)"
+
+        elif variable in ["u10", "v10", "sfcWind", "si10"]:
+            # 0 to 20 in 2 m/s intervals
+            clevs_var = np.array(np.arange(0, 12 + 1, 1))
+            ticks_var = clevs_var
+
+            # set up the cmap
+            cmap = "RdPu"
+
+            # set the cbar label
+            cbar_label = "10m wind speed (m/s)"
+        else:
+            raise ValueError(f"Unknown variable {variable}")
+
+        # define the contour levels
+        clevs_psl = np.array(np.arange(988, 1024 + 1, 2))
+        ticks_psl = clevs_psl
+
+        # ensure that these are ints
+        clevs_psl = clevs_psl.astype(int)
+        ticks_psl = ticks_psl.astype(int)
+
+    # print the len of clevs_psl
+    print(f"len of clevs_psl: {len(clevs_psl)}")
+    print(f"len of clevs_var: {len(clevs_var)}")
+
+    # print field_var and field_psl
+    print(f"field_var shape: {field_var.shape}")
+    print(f"field_psl shape: {field_psl.shape}")
+    print(f"field_var values: {field_var}")
+    print(f"field_psl values: {field_psl}")
+
+    # print the field var min and the field var max
+    print(f"field_var min: {field_var.min()}")
+    print(f"field_var max: {field_var.max()}")
+
+    if variable in ["si10", "sfcWind"] and not calc_anoms:
+        # set up the extend
+        extend = "max"
+    else:
+        extend = "both"
+
+    # plot the data
+    mymap = ax.contourf(
+        lons,
+        lats,
+        field_var,
+        clevs_var,
+        transform=ccrs.PlateCarree(),
+        cmap=cmap,
+        extend=extend,
+    )
+
+    # plot the psl contours
+    contours = ax.contour(
+        lons,
+        lats,
+        field_psl,
+        clevs_psl,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs_psl, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs_psl, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"{cbar_label} {climatology_period[0]}-{climatology_period[1]} anomaly",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # # add contour lines to the colorbar
+        # cbar.add_lines(mymap)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label(cbar_label, rotation=0, fontsize=10)
+
+        # # set up invisible contour lines for field_var
+        # contour_var = ax.contour(
+        #     lons,
+        #     lats,
+        #     field_var,
+        #     clevs_var,
+        #     colors="k",
+        #     transform=ccrs.PlateCarree(),
+        #     linewidth=0.2,
+        #     alpha=0.5,
+        # )
+
+        # # add contour lines to the colorbar
+        # cbar.add_lines(contour_var)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks_var)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()
+
+    return None
         
 
 def main():
