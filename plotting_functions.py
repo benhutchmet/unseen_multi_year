@@ -2462,6 +2462,71 @@ def plot_composite_var_obs(
 
     return None
 
+# Write a function which will plot the 95% composite for the model data
+# just plotting the absolute and anomaly MSLP fields in this case
+def plot_composite_model(
+    title: str,
+    energy_variable: str,
+    percentile: float,
+    member: str,
+    months: list[int] = [11, 12, 1, 2, 3],
+    model: str = "HadGEM3-GC31-MM",
+    psl_variable: str = "psl",
+    freq: str = "Amon",
+    experiment: str = "dcppA-hindcast",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    climatology_period: list[int] = [1990, 2020],
+    grid_bounds: list[float] = [-180.0, 180.0, -90.0, 90.0],
+    calc_anoms: bool = False,
+    energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/model_df_NDJFM_wind_demand_1960-2018_dnw.csv",
+    grid_file: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc",
+    files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
+) -> None:
+    """
+    Identifies the percentile threshold for demand, wind power, or demand net
+    wind, and plots a psl composite of the events that exceed this threshold.
+
+    Args:
+        title (str): The title of the plot.
+        energy_variable (str): The energy variable to be used for identifying the percentile threshold.
+        percentile (float): The percentile to be used as the threshold.
+        member (str): The member to be used for the composite plot.
+        months (list[int], optional): The months to be used for the composite plot. Defaults to [11, 12, 1, 2, 3].
+        model (str, optional): The model to be used for the composite plot. Defaults to "HadGEM3-GC31-MM".
+        psl_variable (str, optional): The pressure level variable to be used for the composite plot. Defaults to "psl".
+        freq (str, optional): The frequency of the data. Defaults to "Amon".
+        experiment (str, optional): The experiment to be used for the composite plot. Defaults to "dcppA-hindcast".
+        lat_bounds (list, optional): The latitude boundaries for the plot. Defaults to [30, 80].
+        lon_bounds (list, optional): The longitude boundaries for the plot. Defaults to [-90, 30].
+        climatology_period (list[int], optional): The period to be used for the climatology. Defaults to [1990, 2020].
+        grid_bounds (list[float], optional): The grid boundaries for the plot. Defaults to [-180.0, 180.0, -90.0, 90.0].
+        calc_anoms (bool, optional): Whether to calculate anomalies. Defaults to False.
+        energy_df_path (str, optional): The path to the energy dataframe. Defaults to "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv".
+        grid_file (str, optional): The path to the grid file. Defaults to "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc".
+        files_loc_path (str, optional): The path to the files location file. Defaults to "/home/users/benhutch/unseen_multi_year/paths/paths_20240117
+
+    Returns:
+        None
+    """
+
+    # set up the dictionary for the energy variables
+    energy_dict = {
+        "demand": "United_Kingdom_demand",
+        "wind": "total_gen",
+        "demand_net_wind": "demand_net_wind",
+    }
+
+    # assert that energy_variable is in ["demand", "wind", "demand_net_wind"]
+    assert energy_variable in [
+        "demand",
+        "wind",
+        "demand_net_wind",
+    ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
+
+
+
+
 def main():
     """
     Main function for testing purposes.
