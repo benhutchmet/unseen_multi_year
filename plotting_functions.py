@@ -3091,8 +3091,8 @@ def plot_composite_var_model(
     # set this as an index
     energy_df.set_index("member", append=True, inplace=True)
 
-    # print the head of the energy df
-    print(f"energy_df head: {energy_df.head()}")
+    # # print the head of the energy df
+    # print(f"energy_df head: {energy_df.head()}")
 
     # if the correct column for the specified energy variable is in the df
     if energy_dict[energy_variable] in energy_df.columns:
@@ -3288,7 +3288,7 @@ def plot_composite_var_model(
                         preprocess=lambda ds: preprocess(
                             ds=ds,
                             year=year,
-                            variable=psl_variable,
+                            variable=variable,
                             months=months,
                         ),
                         parallel=False,
