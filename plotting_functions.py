@@ -1128,13 +1128,14 @@ def plot_mslp_anoms_model(
 
     return None
 
+
 # define a function for plotting the temp and wind speed for the model data
 def plot_mslp_var_model(
     start_date: str,
     end_date: str,
     member: str,
     title: str,
-    variable: str,
+    sf_variable: str,
     psl_variable: str = "psl",
     model: str = "HadGEM3-GC31-MM",
     freq: str = "Amon",
@@ -1150,13 +1151,13 @@ def plot_mslp_var_model(
     """
     Grabs the MSLP anomalies, as well as surface variable (e.g. temp, wind)
     data for a given period of interest and plots them.
-    
+
     Args:
         start_date (str): The start date of the period of interest in the format 'YYYY-MM-DD'.
         end_date (str): The end date of the period of interest in the format 'YYYY-MM-DD'.
         member (str): The member of the ensemble to plot.
         title (str): The title of the plot.
-        variable (str): The surface variable to plot (e.g. 'temp', 'wind').
+        sf_variable (str): The surface variable to plot (e.g. 'temp', 'wind').
         psl_variable (str, optional): The pressure variable to use. Defaults to 'psl'.
         model (str, optional): The model to use. Defaults to 'HadGEM3-GC31-MM'.
         freq (str, optional): The frequency of the data. Defaults to 'Amon'.
@@ -1184,7 +1185,7 @@ def plot_mslp_var_model(
     # Check that the csv file exists
     if not os.path.exists(files_loc_path):
         raise FileNotFoundError(f"Cannot find the file {files_loc_path}")
-    
+
     # Load in the csv file
     csv_data = pd.read_csv(files_loc_path)
 
@@ -1198,7 +1199,7 @@ def plot_mslp_var_model(
     model_path_var = csv_data.loc[
         (csv_data["model"] == model)
         & (csv_data["experiment"] == experiment)
-        & (csv_data["variable"] == variable)
+        & (csv_data["variable"] == sf_variable)
         & (csv_data["frequency"] == freq),
         "path",
     ].values[0]
@@ -1214,10 +1215,14 @@ def plot_mslp_var_model(
     ].values[0]
 
     # Assert that theb model path exists
-    assert os.path.exists(model_path_var), f"Cannot find the model path {model_path_var}"
+    assert os.path.exists(
+        model_path_var
+    ), f"Cannot find the model path {model_path_var}"
 
     # assert that the other model path exists
-    assert os.path.exists(model_path_psl), f"Cannot find the model path {model_path_psl}"
+    assert os.path.exists(
+        model_path_psl
+    ), f"Cannot find the model path {model_path_psl}"
 
     # Extract the model_path_root for var
     model_path_root_var = model_path_var.split("/")[1]
@@ -1226,13 +1231,15 @@ def plot_mslp_var_model(
     # Create a list
     model_paths = [model_path_var, model_path_psl]
     model_path_roots = [model_path_root_var, model_path_root_psl]
-    variables = [variable, psl_variable]
+    variables = [sf_variable, psl_variable]
 
     # create an empty list of files
     files_to_extract = []
 
     # Loop over the model path roots
-    for model_path, model_path_root, variable in zip(model_paths, model_path_roots, variables):
+    for model_path, model_path_root, variable in zip(
+        model_paths, model_path_roots, variables
+    ):
         # depending on the model_path_root
         if model_path_root == "work":
             raise NotImplementedError("work path not implemented yet")
@@ -1255,12 +1262,120 @@ def plot_mslp_var_model(
 
             # extract the file
             file = files[0]
-            
+
         elif model_path_root == "badc":
             raise NotImplementedError("home path not implemented yet")
         else:
             raise ValueError(f"Unknown model path root {model_path_root}")
 
+        # append the file to the files to extract
+        files_to_extract.append(file)
+
+    # Load the gridspec file as a cube
+    obs = iris.load_cube(grid_file)
+
+    # Load the model data ad a cube
+    cube_var = iris.load_cube(files_to_extract[0])
+    cube_psl = iris.load_cube(files_to_extract[1])
+
+    # regrid the model data to the obs grid
+    regrid_cube_var = cube_var.regrid(obs, iris.analysis.Linear())
+    regrid_cube_psl = cube_psl.regrid(obs, iris.analysis.Linear())
+
+    # convert the YYYY-MM-DD to cftime objects
+    start_date_cf = cftime.datetime.strptime(start_date, "%Y-%m-%d", calendar="360_day")
+    end_date_cf = cftime.datetime.strptime(end_date, "%Y-%m-%d", calendar="360_day")
+
+    # Slice between the start date and end date
+    regrid_cube_var = regrid_cube_var.extract(
+        iris.Constraint(time=lambda cell: start_date_cf <= cell.point <= end_date_cf)
+    )
+    regrid_cube_psl = regrid_cube_psl.extract(
+        iris.Constraint(time=lambda cell: start_date_cf <= cell.point <= end_date_cf)
+    )
+
+    # take the mean over the time dimension
+    regrid_cube_var = regrid_cube_var.collapsed("time", iris.analysis.MEAN)
+    regrid_cube_psl = regrid_cube_psl.collapsed("time", iris.analysis.MEAN)
+
+    # subset to the region of interest
+    regrid_cube_var = regrid_cube_var.intersection(
+        latitude=(lat_bounds[0], lat_bounds[1]),
+        longitude=(lon_bounds[0], lon_bounds[1]),
+    )
+    regrid_cube_psl = regrid_cube_psl.intersection(
+        latitude=(lat_bounds[0], lat_bounds[1]),
+        longitude=(lon_bounds[0], lon_bounds[1]),
+    )
+
+    # # set up a list of regrid cubes
+    # regrid_cubes = [regrid_cube_var, regrid_cube_psl]
+
+    if calc_anoms:
+        print("Caculating the climatology for the model data")
+
+        # initialise a cube list
+        clim_cubes = []
+
+        # Loop over the cubes
+        for model_path, variable in zip(model_paths, variables):
+            # initialise a cube list
+            ds_list = []
+            # Loop over the years in the climatology period
+            for year in tqdm(range(climatology_period[0], climatology_period[1] + 1)):
+                # Create the path
+                path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{year}-r{member}i*_*_{year}??-*.nc"
+
+                # glob this path
+                files = glob.glob(path)
+
+                # assert that files has length 1
+                assert len(files) == 1, f"files has length {len(files)}"
+
+                # load the observed data using xarray
+                ds = xr.open_dataset(files[0])
+
+                # Set up the yyyy-mm-dd format
+                start_date_this = cftime.datetime.strptime(
+                    f"{year}-{start_date[5:10]}", "%Y-%m-%d", calendar="360_day"
+                )
+                end_date_this = cftime.datetime.strptime(
+                    f"{year + 1}-{end_date[5:10]}", "%Y-%m-%d", calendar="360_day"
+                )
+
+                # slice between the start date and end date
+                ds = ds.sel(time=slice(start_date_this, end_date_this))
+
+                # append the ds to the cube list
+                ds_list.append(ds[variable])
+
+            # Concatenate with a new time dimension using xarray
+            ds_clim = xr.concat(ds_list, dim="time")
+
+            # convert to a cube from xarray
+            cube_clim = ds_clim.to_iris()
+
+            # regrid the model data to the obs grid
+            regrid_cube_clim = cube_clim.regrid(obs, iris.analysis.Linear())
+
+            # subset to the region of interest
+            regrid_cube_clim = regrid_cube_clim.intersection(
+                latitude=(lat_bounds[0], lat_bounds[1]),
+                longitude=(lon_bounds[0], lon_bounds[1]),
+            )
+
+            # calculate the time mean of this
+            regrid_cube_clim = regrid_cube_clim.collapsed("time", iris.analysis.MEAN)
+
+            # append the regrid_cube_clim to the clim_cubes
+            clim_cubes.append(regrid_cube_clim)
+
+    # extract the lats an dlons
+    lats = regrid_cube_var.coord("latitude").points
+    lons = regrid_cube_var.coord("longitude").points
+
+    if calc_anoms:
+        
 
 def main():
     """
