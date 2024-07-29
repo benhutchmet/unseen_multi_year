@@ -1391,7 +1391,7 @@ def plot_mslp_var_model(
             # convert to celsius
             field_var -= 273.15
 
-        # set up the figure
+    # set up the figure
     fig, ax = plt.subplots(
         figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
     )
@@ -2995,6 +2995,634 @@ def plot_composite_model(
 
     return None
 
+# plot composites with the surface variables
+def plot_composite_var_model(
+    title: str,
+    energy_variable: str,
+    percentile: float,
+    months: list[int] = [11, 12, 1, 2, 3],
+    model: str = "HadGEM3-GC31-MM",
+    sf_variable: str = "t2m",
+    psl_variable: str = "psl",
+    freq: str = "Amon",
+    experiment: str = "dcppA-hindcast",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    climatology_period: list[int] = [1988, 2018],
+    grid_bounds: list[float] = [-180.0, 180.0, -90.0, 90.0],
+    calc_anoms: bool = False,
+    energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/model_df_NDJFM_wind_demand_1960-2018_dnw.csv",
+    grid_file: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc",
+    files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
+) -> None:
+    """
+    Identifies the events above/below the percentile threshold for demand, wind power, or demand net
+    wind, and plots a psl composite of the events that exceed this threshold on top of the surface variable contours.
+
+    Args:
+        title (str): The title of the plot.
+        energy_variable (str): The energy variable to be used for identifying the percentile threshold.
+        percentile (float): The percentile to be used as the threshold.
+        months (list[int], optional): The months to be used for the composite plot. Defaults to [11, 12, 1, 2, 3].
+        model (str, optional): The model to be used for the composite plot. Defaults to "HadGEM3-GC31-MM".
+        sf_variable (str, optional): The surface variable to be used for the composite plot. Defaults to "t2m".
+        psl_variable (str, optional): The pressure level variable to be used for the composite plot. Defaults to "psl".
+        freq (str, optional): The frequency of the data. Defaults to "Amon".
+        experiment (str, optional): The experiment to be used for the composite plot. Defaults to "dcppA-hindcast".
+        lat_bounds (list, optional): The latitude boundaries for the plot. Defaults to [30, 80].
+        lon_bounds (list, optional): The longitude boundaries for the plot. Defaults to [-90, 30].
+        climatology_period (list[int], optional): The period to be used for the climatology. Defaults to [1990, 2020].
+        grid_bounds (list[float], optional): The grid boundaries for the plot. Defaults to [-180.0, 180.0, -90.0, 90.0].
+        calc_anoms (bool, optional): Whether to calculate anomalies. Defaults to False.
+        energy_df_path (str, optional): The path to the energy dataframe. Defaults to "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv".
+        grid_file (str, optional): The path to the grid file. Defaults to "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc".
+        files_loc_path (str, optional): The path to the files location file. Defaults to "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv".
+
+    Returns:
+        None
+    """
+
+    # assert that all of the months are integers
+
+    # set up the dictionary for the energy variables
+    energy_dict = {
+        "demand": "United_Kingdom_demand",
+        "wind": "total_gen",
+        "demand_net_wind": "demand_net_wind",
+    }
+
+    # assert that energy_variable is in ["demand", "wind", "demand_net_wind"]
+    assert energy_variable in [
+        "demand",
+        "wind",
+        "demand_net_wind",
+    ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
+
+    # Assert that the energy df path exists
+    assert os.path.exists(
+        energy_df_path
+    ), f"Cannot find the energy df path {energy_df_path}"
+
+    # Load the energy df
+    energy_df = pd.read_csv(energy_df_path)
+
+    # if "Unnamed: 0" in energy_df.columns:
+    if "Unnamed: 0" in energy_df.columns:
+        # Convert to datetime
+        energy_df["Unnamed: 0"] = pd.to_datetime(energy_df["Unnamed: 0"], format="%Y")
+
+        # Set as the index
+        energy_df.set_index("Unnamed: 0", inplace=True)
+
+        # strptime to just be the year
+        energy_df.index = energy_df.index.strftime("%Y")
+
+        # remove the name of the index
+        energy_df.index.name = None
+    else:
+        raise NotImplementedError("Unnamed: 0 not in the columns")
+
+    # format as an int member
+    energy_df["member"] = energy_df["member"].astype(int)
+
+    # extract the unique members
+    unique_members = energy_df["member"].unique()
+
+    # set this as an index
+    energy_df.set_index("member", append=True, inplace=True)
+
+    # print the head of the energy df
+    print(f"energy_df head: {energy_df.head()}")
+
+    # if the correct column for the specified energy variable is in the df
+    if energy_dict[energy_variable] in energy_df.columns:
+        # Subset the df to this column
+        energy_series = energy_df[energy_dict[energy_variable]]
+    else:
+        raise ValueError(
+            f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
+        )
+
+    # Calculate the percentile threshold
+    threshold = energy_series.quantile(percentile)
+
+    if energy_variable != "wind":
+        # identify the number of events above the threshold
+        num_events = len(energy_series[energy_series > threshold])
+        print(f"Number of events above the {percentile} percentile: {num_events}")
+
+        # Find the years of the events above the threshold
+        years_members = energy_series[energy_series > threshold].index
+        print(f"Years of the events above the {percentile} percentile: {years_members}")
+    else:
+        # identify the number of events below the threshold
+        num_events = len(energy_series[energy_series < threshold])
+        print(f"Number of events below the {percentile} percentile: {num_events}")
+
+        # Find the years of the events below the threshold
+        years_members = energy_series[energy_series < threshold].index
+        print(f"Years of the events below the {percentile} percentile: {years_members}")
+
+    # Check that the csv file exits
+    assert os.path.exists(
+        files_loc_path
+    ), f"Cannot find the files location path {files_loc_path}"
+
+    # Load the files location
+    files_loc = pd.read_csv(files_loc_path)
+
+    # print the data we seek
+    print(f"model: {model}")
+    print(f"experiment: {experiment}")
+    print(f"freq: {freq}")
+    print(f"psl_variable: {sf_variable}")
+
+    # extract the model_path_var
+    model_path_var = files_loc.loc[
+        (files_loc["model"] == model)
+        & (files_loc["experiment"] == experiment)
+        & (files_loc["frequency"] == freq)
+        & (files_loc["variable"] == sf_variable)
+    ]["path"].values[0]
+
+    # Extract the path for the given model, experiment, freq, and variable
+    model_path_psl = files_loc.loc[
+        (files_loc["model"] == model)
+        & (files_loc["experiment"] == experiment)
+        & (files_loc["frequency"] == freq)
+        & (files_loc["variable"] == psl_variable)
+    ]["path"].values[0]
+
+    # assert that the model path exists
+    assert os.path.exists(model_path_var), f"Cannot find the model path {model_path_var}"
+
+    # extract the model path psl exists
+    assert os.path.exists(model_path_psl), f"Cannot find the model path {model_path_psl}"
+
+    # extract the model path root
+    model_path_root_var = model_path_var.split("/")[1]
+    model_path_root_psl = model_path_psl.split("/")[1]
+
+    # create a series of lists
+    model_paths = [model_path_var, model_path_psl]
+    model_path_roots = [model_path_root_var, model_path_root_psl]
+    variables = [sf_variable, psl_variable]
+
+    # set up an empty list of files
+    list_files_lists = []
+
+    # loop over the model paths
+    for model_path, model_path_root, variable in zip(model_paths, model_path_roots, variables):
+        # set up an empty list of files
+        files_list = []
+
+        # loop over the multi index
+        for year, member in years_members:
+            # depending on the model_path_root
+            if model_path_root == "work":
+                raise NotImplementedError("work path not implemented yet")
+            elif model_path_root == "gws":
+                # Create the path
+                path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{year}-r{member}i*_*_{year}??-*.nc"
+
+                # glob this path
+                files = glob.glob(path)
+
+                # assert that files has length 1
+                assert len(files) == 1, f"files has length {len(files)}"
+
+                # extract the file
+                file = files[0]
+            elif model_path_root == "badc":
+                raise NotImplementedError("home path not implemented yet")
+            else:
+                raise ValueError(f"Unknown model path root {model_path_root}")
+
+            # append the file to the files_list
+            files_list.append(file)
+
+        # append the files_list to the list_files_lists
+        list_files_lists.append(files_list)
+
+    # create a list of ds_comp_lists
+    regridded_cubes = []
+
+    # load the obs cube
+    cube_obs = iris.load_cube(grid_file)
+
+    # loop over the files list
+    for files_list, variable in tqdm(zip(list_files_lists, variables)):
+        ds_comp_list = []
+        # loop over the files
+        for file, (year, member) in zip(files_list, years_members):
+            # Load the model data
+            ds = xr.open_dataset(file)
+
+            # format the year as an int
+            year = int(year)
+
+            # if the variable is not in the ds
+            if variable not in ds:
+                raise ValueError(f"Cannot find the variable {variable} in the ds")
+
+            # Set up the times to extract
+            start_date_this = cftime.datetime.strptime(
+                f"{year}-{months[0]}-01", "%Y-%m-%d", calendar="360_day"
+            )
+            end_date_this = cftime.datetime.strptime(
+                f"{year + 1}-{months[-1]}-30", "%Y-%m-%d", calendar="360_day"
+            )
+
+            # slice between the start and end dates
+            ds = ds.sel(time=slice(start_date_this, end_date_this))
+
+            # append the ds to the list
+            ds_comp_list.append(ds[variable])
+        
+        # concatenate with a new time dimension using xarray
+        ds_composite = xr.concat(ds_comp_list, dim="time")
+
+        # convert to a cube
+        cube = ds_composite.to_iris()
+
+        # regrid the model data to the obs grid
+        cube_regrid = cube.regrid(cube_obs, iris.analysis.Linear())
+
+        # subset to the region of interest
+        cube_regrid = cube_regrid.intersection(
+            latitude=(lat_bounds[0], lat_bounds[1]),
+            longitude=(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # calculate the time mean of this
+        cube_regrid = cube_regrid.collapsed("time", iris.analysis.MEAN)
+
+        # append the cube_regrid to the list_ds_comp_lists
+        regridded_cubes.append(cube_regrid)
+
+    if calc_anoms:
+        # Set up an empty list for the full ds's
+        climatology_ds_list = []
+
+        # loop over the variables
+        for variable, model_path in zip(variables, model_paths):
+            init_year_list = []
+            for year in tqdm(range(climatology_period[0], climatology_period[1] + 1)):
+                member_list = []
+                for member in unique_members:
+                    path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{year}-r{member}i*_*_{year}??-*.nc"
+
+                    # glob this path
+                    files = glob.glob(path)
+
+                    # assert
+                    assert (
+                        len(files) == 1
+                    ), f"files has length {len(files)} for year {year} and member {member} and path {path}"
+
+                    # open all of the files
+                    member_ds = xr.open_mfdataset(
+                        files[0],
+                        combine="nested",
+                        concat_dim="time",
+                        preprocess=lambda ds: preprocess(
+                            ds=ds,
+                            year=year,
+                            variable=psl_variable,
+                            months=months,
+                        ),
+                        parallel=False,
+                        engine="netcdf4",
+                        coords="minimal",  # expecting identical coords
+                        data_vars="minimal",  # expecting identical vars
+                        compat="override",  # speed up
+                    ).squeeze()
+
+                    # id init year == climatology_period[0]
+                    # and member == unique_members[0]
+                    if year == climatology_period[0] and member == unique_members[0]:
+                        # set the new integer time
+                        member_ds = set_integer_time_axis(
+                            xro=member_ds,
+                            frequency=freq,
+                            first_month_attr=True,
+                        )
+                    else:
+                        # set the new integer time
+                        member_ds = set_integer_time_axis(
+                            xro=member_ds,
+                            frequency=freq,
+                        )
+
+                    # append the member_ds to the member_list
+                    member_list.append(member_ds)
+                # Concatenate with a new member dimension using xarray
+                member_ds = xr.concat(member_list, dim="member")
+                # append the member_ds to the init_year_list
+                init_year_list.append(member_ds)
+            # Concatenate the init_year list along the init dimension
+            # and rename as lead time
+            ds = xr.concat(init_year_list, "init").rename({"time": "lead"})
+
+            # set up the members
+            ds["member"] = unique_members
+            ds["init"] = np.arange(climatology_period[0], climatology_period[1] + 1)
+
+            # extract the variable
+            ds_var = ds[variable]
+
+            # take the mean over lead dimension
+            ds_clim = ds_var.mean(dim="lead")
+
+            # take the mean over member dimension
+            ds_clim = ds_clim.mean(dim="member")
+
+            # take the mean over init dimension
+            ds_clim = ds_clim.mean(dim="init")
+
+            # convert to a cube
+            cube_clim = ds_clim.to_iris()
+
+            # regrid the model data to the obs grid
+            cube_clim_regrid = cube_clim.regrid(cube_obs, iris.analysis.Linear())
+
+            # subset to the region of interest
+            cube_clim_regrid = cube_clim_regrid.intersection(
+                latitude=(lat_bounds[0], lat_bounds[1]),
+                longitude=(lon_bounds[0], lon_bounds[1]),
+            )
+
+            # append the cube_clim_regrid to the climatology_ds_list
+            climatology_ds_list.append(cube_clim_regrid)
+
+    # extract the lats and lons
+    lats = regridded_cubes[0].coord("latitude").points
+    lons = regridded_cubes[0].coord("longitude").points
+
+    # if calc_anoms is True
+    if calc_anoms:
+        field_var = (regridded_cubes[0].data - climatology_ds_list[0].data)
+        field_psl = (regridded_cubes[1].data - climatology_ds_list[1].data) / 100  # convert to hPa
+    else:
+        field_var = regridded_cubes[0].data
+        field_psl = regridded_cubes[1].data / 100
+
+        # if the variable is temp
+        if sf_variable in ["t2m", "tas"]:
+            field_var -= 273.15
+
+    # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+    # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs_psl = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks_psl = clevs_psl
+
+        # ensure that these are floats
+        clevs_psl = clevs_psl.astype(float)
+        ticks_psl = ticks_psl.astype(float)
+
+        # depending on the variable
+        if sf_variable in ["t2m", "tas"]:
+            # -18 to +18 in 2 degree intervals
+            clevs_var = np.array(
+                [
+                    -5.0,
+                    -4.5,
+                    -4.0,
+                    -3.5,
+                    -3.0,
+                    -2.5,
+                    -2.0,
+                    -1.5,
+                    -1.0,
+                    -0.5,
+                    0.5,
+                    1.0,
+                    1.5,
+                    2.0,
+                    2.5,
+                    3.0,
+                    3.5,
+                    4.0,
+                    4.5,
+                    5.0,
+                ]
+            )
+            ticks_var = clevs_var
+
+            # set up tjhe cmap
+            cmap = "bwr"
+
+            # set the cbar label
+            cbar_label = "temperature (°C)"
+        elif sf_variable in ["u10", "v10", "sfcWind", "si10"]:
+            # 0 to 20 in 2 m/s intervals
+            clevs_var = np.array(
+                [
+                    -1.4,
+                    -1.2,
+                    -1.0,
+                    -0.8,
+                    -0.6,
+                    -0.4,
+                    -0.2,
+                    0.2,
+                    0.4,
+                    0.6,
+                    0.8,
+                    1.0,
+                    1.2,
+                    1.4,
+                ]
+            )
+            ticks_var = clevs_var
+
+            # set up the cmap
+            cmap = "PRGn_r"
+
+            # set the cbar label
+            cbar_label = "10m wind speed (m/s)"
+        else:
+            raise ValueError(f"Unknown variable {variable}")
+
+    else:
+        # define the contour levels for the variable
+        # should be 19 of them
+        if sf_variable in ["t2m", "tas"]:
+            # -18 to +18 in 2 degree intervals
+            clevs_var = np.array(np.arange(-18, 18 + 1, 2))
+            ticks_var = clevs_var
+
+            # set up tjhe cmap
+            cmap = "bwr"
+
+            # set the cbar label
+            cbar_label = "temperature (°C)"
+
+        elif sf_variable in ["u10", "v10", "sfcWind", "si10"]:
+            # 0 to 20 in 2 m/s intervals
+            clevs_var = np.array(np.arange(0, 12 + 1, 1))
+            ticks_var = clevs_var
+
+            # set up the cmap
+            cmap = "RdPu"
+
+            # set the cbar label
+            cbar_label = "10m wind speed (m/s)"
+        else:
+            raise ValueError(f"Unknown variable {variable}")
+
+        # define the contour levels
+        clevs_psl = np.array(np.arange(988, 1024 + 1, 2))
+        ticks_psl = clevs_psl
+
+        # ensure that these are ints
+        clevs_psl = clevs_psl.astype(int)
+        ticks_psl = ticks_psl.astype(int)
+
+    # print the len of clevs_psl
+    print(f"len of clevs_psl: {len(clevs_psl)}")
+    print(f"len of clevs_var: {len(clevs_var)}")
+
+    # print field_var and field_psl
+    print(f"field_var shape: {field_var.shape}")
+    print(f"field_psl shape: {field_psl.shape}")
+    print(f"field_var values: {field_var}")
+    print(f"field_psl values: {field_psl}")
+
+    # print the field var min and the field var max
+    print(f"field_var min: {field_var.min()}")
+    print(f"field_var max: {field_var.max()}")
+
+    if variable in ["si10", "sfcWind"] and not calc_anoms:
+        # set up the extend
+        extend = "max"
+    else:
+        extend = "both"
+
+    # plot the data
+    mymap = ax.contourf(
+        lons,
+        lats,
+        field_var,
+        clevs_var,
+        transform=ccrs.PlateCarree(),
+        cmap=cmap,
+        extend=extend,
+    )
+
+    # plot the psl contours
+    contours = ax.contour(
+        lons,
+        lats,
+        field_psl,
+        clevs_psl,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs_psl, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs_psl, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"{cbar_label} {climatology_period[0]}-{climatology_period[1]} anomaly",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # # add contour lines to the colorbar
+        # cbar.add_lines(mymap)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label(cbar_label, rotation=0, fontsize=10)
+
+        # # set up invisible contour lines for field_var
+        # contour_var = ax.contour(
+        #     lons,
+        #     lats,
+        #     field_var,
+        #     clevs_var,
+        #     colors="k",
+        #     transform=ccrs.PlateCarree(),
+        #     linewidth=0.2,
+        #     alpha=0.5,
+        # )
+
+        # # add contour lines to the colorbar
+        # cbar.add_lines(contour_var)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks_var)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()    
+
+    return None
 
 # define a function for preprocessing
 def preprocess(
