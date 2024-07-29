@@ -1376,8 +1376,8 @@ def plot_mslp_var_model(
 
     if calc_anoms:
         # Calculate the anomalies
-        field_var = (regrid_cube_var.data - clim_cubes[0].data) # either temp or wind
-        field_psl = (regrid_cube_psl.data - clim_cubes[1].data) / 100 # convert to hPa
+        field_var = regrid_cube_var.data - clim_cubes[0].data  # either temp or wind
+        field_psl = (regrid_cube_psl.data - clim_cubes[1].data) / 100  # convert to hPa
     else:
         # Extract the data values
         field_var = regrid_cube_var.data
@@ -1641,6 +1641,7 @@ def plot_mslp_var_model(
 
     return None
 
+
 # Write a function for plotting the composites for the observations
 # e.g. identify the 95th %tile of events for demand, wind, or demand-net-wind
 # then print how many events are in the 95th %tile
@@ -1649,12 +1650,13 @@ def plot_composite_obs(
     title: str,
     energy_variable: str,
     percentile: float,
+    months: list[int] = [11, 12, 1, 2, 3],
     psl_variable: str = "msl",
     freq: str = "Amon",
     lat_bounds: list = [30, 80],
     lon_bounds: list = [-90, 30],
     energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv",
-    ERA5_regrid_path: str = "/gws/nopw/j04/cp4cds1_vol1/data/era5/pressure_levels/6hr/native/psl/psl_era5_6hr_native_19790101-20191231.nc",
+    ERA5_regrid_path: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc",
     climatology_period: list[int] = [1990, 2020],
     calc_anoms: bool = False,
 ) -> None:
@@ -1666,6 +1668,7 @@ def plot_composite_obs(
         title (str): The title of the plot.
         energy_variable (str): The energy variable to be used for identifying the percentile threshold.
         percentile (float): The percentile to be used as the threshold.
+        months (list[int], optional): The months to be used for the composite plot. Defaults to [11, 12, 1, 2, 3].
         psl_variable (str, optional): The pressure level variable to be used for the composite plot. Defaults to "msl".
         freq (str, optional): The frequency of the data. Defaults to "Amon".
         lat_bounds (list, optional): The latitude boundaries for the plot. Defaults to [30, 80].
@@ -1719,8 +1722,268 @@ def plot_composite_obs(
     print(energy_df.head())
 
     # if the correct column for the specified energy variable is in the df
+    if energy_dict[energy_variable] in energy_df.columns:
+        # Subset the df to this column
+        energy_series = energy_df[energy_dict[energy_variable]]
+    else:
+        raise ValueError(
+            f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
+        )
+
+    # Calculate the percentile threshold
+    threshold = energy_series.quantile(percentile)
+
+    # identify the number of events above the threshold
+    num_events = len(energy_series[energy_series > threshold])
+    print(f"Number of events above the {percentile} percentile: {num_events}")
+
+    # Find the years of the events above the threshold
+    years = energy_series[energy_series > threshold].index
+    print(f"Years of the events above the {percentile} percentile: {years}")
+
+    # Load the ERA5 regridded data
+    ds = xr.open_mfdataset(
+        ERA5_regrid_path,
+        chunks={"time": 10},
+        combine="by_coords",
+        parallel=False,
+        engine="netcdf4",
+        coords="minimal",
+    )
+
+    # If expver is present in the observations
+    if "expver" in ds.coords:
+        # Combine the first two expver variables
+        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))
+
+    # if the variable is not in the ds
+    if psl_variable not in ds:
+        raise ValueError(f"Cannot find the variable {psl_variable} in the ds")
+
+    # if calc anoms is true
+    if calc_anoms:
+        print("Calculating the climatology for the observations")
+
+        # assert that the months are integers
+        assert all(
+            isinstance(month, int) for month in months
+        ), "Months must be integers"
+
+        # subset the data to the region
+        ds_clim = ds.sel(
+            lat=slice(lat_bounds[0], lat_bounds[1]),
+            lon=slice(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # subset the data to the months
+        ds_clim = ds_clim.sel(time=ds_clim["time.month"].isin(months))
+
+        # Select the years
+        ds_clim = ds_clim.sel(
+            time=slice(
+                f"{climatology_period[0]}-01-01", f"{climatology_period[1]}-12-31"
+            )
+        )
+
+        # Calculate the climatology
+        ds_clim = ds_clim[psl_variable].mean(dim="time")
+
+    # ensure that years is a list of ints
+    years = [int(year) for year in years]
+
+    # set up an empty list
+    ds_list = []
+
+    # loop through the years
+    for year in tqdm(years):
+        # subset the data to the region
+        ds_year = ds.sel(
+            lat=slice(lat_bounds[0], lat_bounds[1]),
+            lon=slice(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # subset the data to the months
+        ds_year = ds_year.sel(time=ds_year["time.month"].isin(months))
+
+        # Select the years
+        ds_year = ds_year.sel(time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31"))
+
+        # print the ds_year
+        print(f"ds_year: {ds_year}")
+
+        # append the ds_year to the ds_list
+        ds_list.append(ds_year[psl_variable])
+
+    # Concatenate with a new time dimension using xarray
+    ds_composite = xr.concat(ds_list, dim="time")
+
+    # take the time mean
+    ds_composite = ds_composite.mean(dim="time")
+
+    # Etract the lat and lon points
+    lats = ds_composite["lat"].values
+    lons = ds_composite["lon"].values
+
+    # if calc_anoms is True
+    if calc_anoms:
+        # Calculate the anomalies
+        field = (ds_composite.values - ds_clim.values) / 100  # convert to hPa
+    else:
+        # Extract the data values
+        field = ds_composite.values / 100 # convert to hPa
+
+    # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+    # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks = clevs
+
+        # ensure that these are floats
+        clevs = clevs.astype(float)
+        ticks = ticks.astype(float)
+    else:
+        # define the contour levels
+        clevs = np.array(np.arange(988, 1024 + 1, 2))
+        ticks = clevs
+
+        # ensure that these are ints
+        clevs = clevs.astype(int)
+        ticks = ticks.astype(int)
+
+    # # print the shape of the inputs
+    # print(f"lons shape: {lons.shape}")
+    # print(f"lats shape: {lats.shape}")
+    # print(f"field shape: {field.shape}")
+    # print(f"clevs shape: {clevs.shape}")
+
+    # # print the field values
+    # print(f"field values: {field}")
+
+    # Define the custom diverging colormap
+    # cs = ["purple", "blue", "lightblue", "lightgreen", "lightyellow", "orange", "red", "darkred"]
+    # cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # custom colormap
+    cs = [
+        "#4D65AD",
+        "#3E97B7",
+        "#6BC4A6",
+        "#A4DBA4",
+        "#D8F09C",
+        "#FFFEBE",
+        "#FFD27F",
+        "#FCA85F",
+        "#F57244",
+        "#DD484C",
+        "#B51948",
+    ]
+    # cs = ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"]
+    cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # plot the data
+    mymap = ax.contourf(
+        lons, lats, field, clevs, transform=ccrs.PlateCarree(), cmap=cmap, extend="both"
+    )
+    contours = ax.contour(
+        lons,
+        lats,
+        field,
+        clevs,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"mean sea level pressure {climatology_period[0]}-{climatology_period[1]} anomaly (hPa)",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label("mean sea level pressure (hPa)", rotation=0, fontsize=10)
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()
 
     return None
+
 
 def main():
     """
