@@ -1815,7 +1815,9 @@ def plot_composite_obs(
         ds_year = ds_year.sel(time=ds_year["time.month"].isin(months))
 
         # Select the years
-        ds_year = ds_year.sel(time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31"))
+        ds_year = ds_year.sel(
+            time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31")
+        )
 
         # # print the ds_year
         # print(f"ds_year: {ds_year}")
@@ -1839,7 +1841,7 @@ def plot_composite_obs(
         field = (ds_composite.values - ds_clim.values) / 100  # convert to hPa
     else:
         # Extract the data values
-        field = ds_composite.values / 100 # convert to hPa
+        field = ds_composite.values / 100  # convert to hPa
 
     # set up the figure
     fig, ax = plt.subplots(
@@ -2006,6 +2008,7 @@ def plot_composite_obs(
 
     return None
 
+
 # define a function to plot the composites for the observations
 # with the MSLP contours and the surface variables
 def plot_composite_var_obs(
@@ -2083,7 +2086,7 @@ def plot_composite_var_obs(
         energy_df.index.name = None
     else:
         raise NotImplementedError("Unnamed: 0 not in the columns")
-    
+
     # if the correct column for the specified energy variable is in the df
     if energy_dict[energy_variable] in energy_df.columns:
         # Subset the df to this column
@@ -2092,7 +2095,7 @@ def plot_composite_var_obs(
         raise ValueError(
             f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
         )
-    
+
     # Calculate the percentile threshold
     threshold = energy_series.quantile(percentile)
 
@@ -2179,7 +2182,9 @@ def plot_composite_var_obs(
         ds_year = ds_year.sel(time=ds_year["time.month"].isin(months))
 
         # Select the years
-        ds_year = ds_year.sel(time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31"))
+        ds_year = ds_year.sel(
+            time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31")
+        )
 
         # append the ds_year to the ds_list
         ds_list_var.append(ds_year[sf_variable])
@@ -2465,6 +2470,7 @@ def plot_composite_var_obs(
 
     return None
 
+
 # Write a function which will plot the 95% composite for the model data
 # just plotting the absolute and anomaly MSLP fields in this case
 def plot_composite_model(
@@ -2478,7 +2484,7 @@ def plot_composite_model(
     experiment: str = "dcppA-hindcast",
     lat_bounds: list = [30, 80],
     lon_bounds: list = [-90, 30],
-    climatology_period: list[int] = [1990, 2020],
+    climatology_period: list[int] = [1988, 2018],
     grid_bounds: list[float] = [-180.0, 180.0, -90.0, 90.0],
     calc_anoms: bool = False,
     energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/model_df_NDJFM_wind_demand_1960-2018_dnw.csv",
@@ -2533,7 +2539,7 @@ def plot_composite_model(
     # Load the energy df
     energy_df = pd.read_csv(energy_df_path)
 
-        # if "Unnamed: 0" in energy_df.columns:
+    # if "Unnamed: 0" in energy_df.columns:
     if "Unnamed: 0" in energy_df.columns:
         # Convert to datetime
         energy_df["Unnamed: 0"] = pd.to_datetime(energy_df["Unnamed: 0"], format="%Y")
@@ -2548,7 +2554,7 @@ def plot_composite_model(
         energy_df.index.name = None
     else:
         raise NotImplementedError("Unnamed: 0 not in the columns")
-    
+
     # format as an int member
     energy_df["member"] = energy_df["member"].astype(int)
 
@@ -2569,7 +2575,7 @@ def plot_composite_model(
         raise ValueError(
             f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
         )
-    
+
     # Calculate the percentile threshold
     threshold = energy_series.quantile(percentile)
 
@@ -2591,7 +2597,9 @@ def plot_composite_model(
         print(f"Years of the events below the {percentile} percentile: {years_members}")
 
     # Check that the csv file exits
-    assert os.path.exists(files_loc_path), f"Cannot find the files location path {files_loc_path}"
+    assert os.path.exists(
+        files_loc_path
+    ), f"Cannot find the files location path {files_loc_path}"
 
     # Load the files location
     files_loc = pd.read_csv(files_loc_path)
@@ -2650,7 +2658,7 @@ def plot_composite_model(
             raise NotImplementedError("home path not implemented yet")
         else:
             raise ValueError(f"Unknown model path root {model_path_root}")
-        
+
         # append the file to the files_list
         files_list.append(file)
 
@@ -2699,7 +2707,8 @@ def plot_composite_model(
 
     # Subset to the region of interest
     cube_regrid = cube_regrid.intersection(
-        latitude=(lat_bounds[0], lat_bounds[1]), longitude=(lon_bounds[0], lon_bounds[1])
+        latitude=(lat_bounds[0], lat_bounds[1]),
+        longitude=(lon_bounds[0], lon_bounds[1]),
     )
 
     # Calculate the time mean of this
@@ -2728,14 +2737,21 @@ def plot_composite_model(
                 files = glob.glob(path)
 
                 # assert that files has length 1
-                assert len(files) == 1, f"files has length {len(files)}"
+                assert (
+                    len(files) == 1
+                ), f"files has length {len(files)} for year {year} and member {member} and path {path}"
 
                 # open all of the files
                 member_ds = xr.open_mfdataset(
                     files[0],
                     combine="nested",
                     concat_dim="time",
-                    preprocess=lambda ds: preprocess(ds),
+                    preprocess=lambda ds: preprocess(
+                        ds=ds,
+                        year=year,
+                        variable=psl_variable,
+                        months=months,
+                    ),
                     parallel=False,
                     engine="netcdf4",
                     coords="minimal",  # expecting identical coords
@@ -2772,10 +2788,213 @@ def plot_composite_model(
         # set up the members
         ds["member"] = unique_members
         ds["init"] = np.arange(climatology_period[0], climatology_period[1] + 1)
-            
 
+        # print ds
+        print(f"ds: {ds}")
+
+        # calculate the climatology
+        # extract the data for the variable
+        ds_psl = ds[psl_variable]
+
+        # take the mean over lead dimension
+        ds_clim = ds_psl.mean(dim="lead")
+
+        # take the mean over member dimension
+        ds_clim = ds_clim.mean(dim="member")
+
+        # take the mean over init dimension
+        ds_clim = ds_clim.mean(dim="init")
+
+        # convert to a cube
+        cube_clim = ds_clim.to_iris()
+
+        # regrid the model data to the obs grid
+        cube_clim_regrid = cube_clim.regrid(cube_obs, iris.analysis.Linear())
+
+        # subset to the region of interest
+        cube_clim_regrid = cube_clim_regrid.intersection(
+            latitude=(lat_bounds[0], lat_bounds[1]),
+            longitude=(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # print the cube_clim_regrid
+        print(f"cube_clim_regrid: {cube_clim_regrid}")
+
+    # extract the lats and lons
+    lats = cube_regrid.coord("latitude").points
+    lons = cube_regrid.coord("longitude").points
+
+    # if calc_anoms is True
+    if calc_anoms:
+        field = (cube_regrid.data - cube_clim_regrid.data) / 100  # convert to hPa
+    else:
+        field = cube_regrid.data / 100
+
+    # set up the figure
+    fig, ax = plt.subplots(
+        figsize=(10, 5), subplot_kw=dict(projection=ccrs.PlateCarree())
+    )
+
+    # if calc_anoms is True
+    if calc_anoms:
+        # clevs = np.linspace(-8, 8, 18)
+        clevs = np.array(
+            [
+                -8.0,
+                -7.0,
+                -6.0,
+                -5.0,
+                -4.0,
+                -3.0,
+                -2.0,
+                -1.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+            ]
+        )
+        ticks = clevs
+
+        # ensure that these are floats
+        clevs = clevs.astype(float)
+        ticks = ticks.astype(float)
+    else:
+        # define the contour levels
+        clevs = np.array(np.arange(988, 1024 + 1, 2))
+        ticks = clevs
+
+        # ensure that these are ints
+        clevs = clevs.astype(int)
+        ticks = ticks.astype(int)
+
+    # # print the shape of the inputs
+    # print(f"lons shape: {lons.shape}")
+    # print(f"lats shape: {lats.shape}")
+    # print(f"field shape: {field.shape}")
+    # print(f"clevs shape: {clevs.shape}")
+
+    # # print the field values
+    # print(f"field values: {field}")
+
+    # Define the custom diverging colormap
+    # cs = ["purple", "blue", "lightblue", "lightgreen", "lightyellow", "orange", "red", "darkred"]
+    # cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # custom colormap
+    cs = [
+        "#4D65AD",
+        "#3E97B7",
+        "#6BC4A6",
+        "#A4DBA4",
+        "#D8F09C",
+        "#FFFEBE",
+        "#FFD27F",
+        "#FCA85F",
+        "#F57244",
+        "#DD484C",
+        "#B51948",
+    ]
+    # cs = ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"]
+    cmap = colors.LinearSegmentedColormap.from_list("custom_cmap", cs)
+
+    # plot the data
+    mymap = ax.contourf(
+        lons, lats, field, clevs, transform=ccrs.PlateCarree(), cmap=cmap, extend="both"
+    )
+    contours = ax.contour(
+        lons,
+        lats,
+        field,
+        clevs,
+        colors="black",
+        transform=ccrs.PlateCarree(),
+        linewidth=0.2,
+        alpha=0.5,
+    )
+    if calc_anoms:
+        ax.clabel(
+            contours, clevs, fmt="%.1f", fontsize=8, inline=True, inline_spacing=0.0
+        )
+    else:
+        ax.clabel(
+            contours, clevs, fmt="%.4g", fontsize=8, inline=True, inline_spacing=0.0
+        )
+
+    # add coastlines
+    ax.coastlines()
+
+    # format the gridlines and labels
+    gl = ax.gridlines(
+        draw_labels=True, linewidth=0.5, color="black", alpha=0.5, linestyle=":"
+    )
+    gl.xlabels_top = False
+    gl.xlocator = mplticker.FixedLocator(np.arange(-180, 180, 30))
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.xlabel_style = {"size": 7, "color": "black"}
+    gl.ylabels_right = False
+    gl.yformatter = LATITUDE_FORMATTER
+    gl.ylabel_style = {"size": 7, "color": "black"}
+
+    # include a textbox in the top left
+    ax.text(
+        0.02,
+        0.95,
+        f"N = {num_events}",
+        verticalalignment="top",
+        horizontalalignment="left",
+        transform=ax.transAxes,
+        color="black",
+        fontsize=10,
+        bbox=dict(facecolor="white", edgecolor="black", boxstyle="round,pad=0.5"),
+    )
+
+    if calc_anoms:
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func_one_decimal),
+        )
+        # add colorbar label
+        cbar.set_label(
+            f"mean sea level pressure {climatology_period[0]}-{climatology_period[1]} anomaly (hPa)",
+            rotation=0,
+            fontsize=10,
+        )
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    else:
+        # add colorbar
+        cbar = plt.colorbar(
+            mymap,
+            orientation="horizontal",
+            shrink=0.7,
+            pad=0.1,
+            format=FuncFormatter(format_func),
+        )
+        cbar.set_label("mean sea level pressure (hPa)", rotation=0, fontsize=10)
+
+        # add contour lines to the colorbar
+        cbar.add_lines(contours)
+    cbar.ax.tick_params(labelsize=7, length=0)
+    # set the ticks
+    cbar.set_ticks(ticks)
+
+    # add title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # make plot look nice
+    plt.tight_layout()
 
     return None
+
 
 # define a function for preprocessing
 def preprocess(
@@ -2786,7 +3005,7 @@ def preprocess(
 ) -> xr.Dataset:
     """
     Preprocesses the model data by subsetting to the months of interest.
-    
+
     Args:
         ds (xr.Dataset): The model dataset to be preprocessed.
         year (int): The year of the data.
@@ -2804,7 +3023,7 @@ def preprocess(
     # if the variable is not in the ds
     if variable not in ds:
         raise ValueError(f"Cannot find the variable {variable} in the ds")
-    
+
     # Set up the times to extract
     start_date_this = cftime.datetime.strptime(
         f"{year}-{months[0]}-01", "%Y-%m-%d", calendar="360_day"
@@ -2816,7 +3035,8 @@ def preprocess(
     # slice between the start and end dates
     ds = ds.sel(time=slice(start_date_this, end_date_this))
 
-    return ds[variable]
+    return ds
+
 
 def set_integer_time_axis(
     xro: Union[xr.DataArray, xr.Dataset],
@@ -2865,6 +3085,7 @@ def set_integer_time_axis(
     xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
     return xro
 
+
 def main():
     """
     Main function for testing purposes.
@@ -2886,7 +3107,7 @@ def main():
         title=title,
         energy_variable=energy_variable,
         percentile=percentile,
-        calc_anoms=False,
+        calc_anoms=True,
     )
 
     # # Call the function
