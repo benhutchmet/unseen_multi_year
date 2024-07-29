@@ -2054,7 +2054,7 @@ def plot_composite_var_obs(
     assert energy_variable in [
         "demand",
         "wind",
-        "demand_net_wind
+        "demand_net_wind",
     ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
 
     # Assert that the energy df path exists
@@ -2161,7 +2161,8 @@ def plot_composite_var_obs(
     years = [int(year) for year in years]
 
     # set up an empty list
-    ds_list = []
+    ds_list_var = []
+    ds_list_psl = []
 
     # Loop over the years
     for year in tqdm(years):
@@ -2178,27 +2179,30 @@ def plot_composite_var_obs(
         ds_year = ds_year.sel(time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31"))
 
         # append the ds_year to the ds_list
-        ds_list.append(ds_year[sf_variable])
+        ds_list_var.append(ds_year[sf_variable])
+        ds_list_psl.append(ds_year[psl_variable])
 
     # Concatenate with a new time dimension using xarray
-    ds_composite = xr.concat(ds_list, dim="time")
+    ds_composite_var = xr.concat(ds_list_var, dim="time")
+    ds_composite_psl = xr.concat(ds_list_psl, dim="time")
 
     # Take the time mean
-    ds_composite = ds_composite.mean(dim="time")
+    ds_composite_var = ds_composite_var.mean(dim="time")
+    ds_composite_psl = ds_composite_psl.mean(dim="time")
 
     # Etract the lat and lon points
-    lats = ds_composite["lat"].values
-    lons = ds_composite["lon"].values
+    lats = ds_composite_var["lat"].values
+    lons = ds_composite_var["lon"].values
 
     # if calc_anoms is True
     if calc_anoms:
         # Calculate the anomalies
-        field_var = ds_composite.values - ds_clim_var.values
-        field_psl = (ds_composite.values - ds_clim_psl.values) / 100
+        field_var = ds_composite_var.values - ds_clim_var.values
+        field_psl = (ds_composite_psl.values - ds_clim_psl.values) / 100
     else:
         # Extract the data values
-        field_var = ds_composite.values
-        field_psl = ds_composite.values / 100
+        field_var = ds_composite_var.values
+        field_psl = ds_composite_psl.values / 100
 
         # if variable is temp
         if sf_variable in ["temp", "t2m", "tas"]:
