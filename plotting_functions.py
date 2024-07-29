@@ -1192,7 +1192,7 @@ def plot_mslp_var_model(
     # Print the data we seek
     print(f"model: {model}")
     print(f"experiment: {experiment}")
-    print(f"variable: {variable}")
+    print(f"variable: {sf_variable}")
     print(f"frequency: {freq}")
 
     # Extract the path for the given model, experiment and variable
@@ -1423,7 +1423,7 @@ def plot_mslp_var_model(
         ticks_psl = ticks_psl.astype(float)
 
         # depending on the variable
-        if variable in ["t2m", "tas"]:
+        if sf_variable in ["t2m", "tas"]:
             # -18 to +18 in 2 degree intervals
             clevs_var = np.array(
                 [
@@ -1456,7 +1456,7 @@ def plot_mslp_var_model(
 
             # set the cbar label
             cbar_label = "temperature (°C)"
-        elif variable in ["u10", "v10", "sfcWind", "si10"]:
+        elif sf_variable in ["u10", "v10", "sfcWind", "si10"]:
             # 0 to 20 in 2 m/s intervals
             clevs_var = np.array(
                 [
@@ -1489,7 +1489,7 @@ def plot_mslp_var_model(
     else:
         # define the contour levels for the variable
         # should be 19 of them
-        if variable in ["t2m", "tas"]:
+        if sf_variable in ["t2m", "tas"]:
             # -18 to +18 in 2 degree intervals
             clevs_var = np.array(np.arange(-18, 18 + 1, 2))
             ticks_var = clevs_var
@@ -1500,7 +1500,7 @@ def plot_mslp_var_model(
             # set the cbar label
             cbar_label = "temperature (°C)"
 
-        elif variable in ["u10", "v10", "sfcWind", "si10"]:
+        elif sf_variable in ["u10", "v10", "sfcWind", "si10"]:
             # 0 to 20 in 2 m/s intervals
             clevs_var = np.array(np.arange(0, 12 + 1, 1))
             ticks_var = clevs_var
