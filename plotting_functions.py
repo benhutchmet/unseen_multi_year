@@ -1730,13 +1730,22 @@ def plot_composite_obs(
     # Calculate the percentile threshold
     threshold = energy_series.quantile(percentile)
 
-    # identify the number of events above the threshold
-    num_events = len(energy_series[energy_series > threshold])
-    print(f"Number of events above the {percentile} percentile: {num_events}")
+    if variable != "wind":
+        # identify the number of events above the threshold
+        num_events = len(energy_series[energy_series > threshold])
+        print(f"Number of events above the {percentile} percentile: {num_events}")
 
-    # Find the years of the events above the threshold
-    years = energy_series[energy_series > threshold].index
-    print(f"Years of the events above the {percentile} percentile: {years}")
+        # Find the years of the events above the threshold
+        years = energy_series[energy_series > threshold].index
+        print(f"Years of the events above the {percentile} percentile: {years}")
+    else:
+        # identify the number of events below the threshold
+        num_events = len(energy_series[energy_series < threshold])
+        print(f"Number of events below the {percentile} percentile: {num_events}")
+
+        # Find the years of the events below the threshold
+        years = energy_series[energy_series < threshold].index
+        print(f"Years of the events below the {percentile} percentile: {years}")
 
     # Load the ERA5 regridded data
     ds = xr.open_mfdataset(
