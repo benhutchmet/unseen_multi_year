@@ -1640,7 +1640,64 @@ def plot_mslp_var_model(
     plt.tight_layout()
 
     return None
-        
+
+# Write a function for plotting the composites for the observations
+# e.g. identify the 95th %tile of events for demand, wind, or demand-net-wind
+# then print how many events are in the 95th %tile
+# then plot the composite psl patterns for these events
+def plot_composite_obs(
+    title: str,
+    energy_variable: str,
+    percentile: float,
+    psl_variable: str = "msl",
+    freq: str = "Amon",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv",
+    ERA5_regrid_path: str = "/gws/nopw/j04/cp4cds1_vol1/data/era5/pressure_levels/6hr/native/psl/psl_era5_6hr_native_19790101-20191231.nc",
+    climatology_period: list[int] = [1990, 2020],
+    calc_anoms: bool = False,
+) -> None:
+    """
+    Identifies the percentile threshold for demand, wind power, or demand net
+    wind, and plots a psl composite of the events that exceed this threshold.
+
+    Args:
+        title (str): The title of the plot.
+        energy_variable (str): The energy variable to be used for identifying the percentile threshold.
+        percentile (float): The percentile to be used as the threshold.
+        psl_variable (str, optional): The pressure level variable to be used for the composite plot. Defaults to "msl".
+        freq (str, optional): The frequency of the data. Defaults to "Amon".
+        lat_bounds (list, optional): The latitude boundaries for the plot. Defaults to [30, 80].
+        lon_bounds (list, optional): The longitude boundaries for the plot. Defaults to [-90, 30].
+        energy_df_path (str, optional): The path to the energy dataframe. Defaults to "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv".
+        ERA5_regrid_path (str, optional): The path to the ERA5 regridded data. Defaults to "/gws/nopw/j04/cp4cds1_vol1/data/era5/pressure_levels/6hr/native/psl/psl_era5_6hr_native_19790101-20191231.nc".
+        climatology_period (list[int], optional): The period to be used for the climatology. Defaults to [1990, 2020].
+        calc_anoms (bool, optional): Whether to calculate anomalies. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    # assert that energy_variable is in ["demand", "wind", "demand_net_wind"]
+    assert energy_variable in [
+        "demand",
+        "wind",
+        "demand_net_wind",
+    ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
+
+    # Assert that the energy df path exists
+    assert os.path.exists(
+        energy_df_path
+    ), f"Cannot find the energy df path {energy_df_path}"
+
+    # Load the energy df
+    energy_df = pd.read_csv(energy_df_path)
+
+    # print the head of the df
+    print(energy_df.head())
+
+    return None
 
 def main():
     """
@@ -1648,10 +1705,23 @@ def main():
     """
 
     # Define the start and end dates
-    start_date = "1965-11-01"
-    end_date = "1966-03-30"
-    member = "2"
-    title = "MSLP Anomalies for November 1965 to March 1966, member r2i1p1f2 HadGEM3-GC31-MM"
+    # start_date = "1965-11-01"
+    # end_date = "1966-03-30"
+    # member = "2"
+    # title = "MSLP Anomalies for November 1965 to March 1966, member r2i1p1f2 HadGEM3-GC31-MM"
+
+    # Set up the constsnats
+    title = "MSLP composites for the 95th percentile of demand-net-wind events, observations"
+    energy_variable = "demand_net_wind"
+    percentile = 0.95
+
+    # Call the function
+    plot_composite_obs(
+        title=title,
+        energy_variable=energy_variable,
+        percentile=percentile,
+        calc_anoms=False,
+    )
 
     # # Call the function
     # plot_mslp_anoms_model(
@@ -1662,13 +1732,13 @@ def main():
     #     calc_anoms=True,
     # )
 
-    # call rthe new obs function
-    plot_mslp_anoms_temp_wind_obs(
-        start_date=start_date,
-        end_date=end_date,
-        title=title,
-        calc_anoms=False,
-    )
+    # # call rthe new obs function
+    # plot_mslp_anoms_temp_wind_obs(
+    #     start_date=start_date,
+    #     end_date=end_date,
+    #     title=title,
+    #     calc_anoms=False,
+    # )
 
     return None
 
