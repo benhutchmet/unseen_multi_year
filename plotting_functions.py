@@ -37,6 +37,9 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib.ticker import FuncFormatter
 from tqdm import tqdm
 
+# Import types
+from typing import Any, Callable, Union, List, Tuple
+
 
 # Formatting functions for 4 significant figures and 1 decimal point
 def format_func(
@@ -2530,10 +2533,337 @@ def plot_composite_model(
     # Load the energy df
     energy_df = pd.read_csv(energy_df_path)
 
+        # if "Unnamed: 0" in energy_df.columns:
+    if "Unnamed: 0" in energy_df.columns:
+        # Convert to datetime
+        energy_df["Unnamed: 0"] = pd.to_datetime(energy_df["Unnamed: 0"], format="%Y")
+
+        # Set as the index
+        energy_df.set_index("Unnamed: 0", inplace=True)
+
+        # strptime to just be the year
+        energy_df.index = energy_df.index.strftime("%Y")
+
+        # remove the name of the index
+        energy_df.index.name = None
+    else:
+        raise NotImplementedError("Unnamed: 0 not in the columns")
+    
+    # format as an int member
+    energy_df["member"] = energy_df["member"].astype(int)
+
+    # extract the unique members
+    unique_members = energy_df["member"].unique()
+
+    # set this as an index
+    energy_df.set_index("member", append=True, inplace=True)
+
     # print the head of the energy df
     print(f"energy_df head: {energy_df.head()}")
 
+    # if the correct column for the specified energy variable is in the df
+    if energy_dict[energy_variable] in energy_df.columns:
+        # Subset the df to this column
+        energy_series = energy_df[energy_dict[energy_variable]]
+    else:
+        raise ValueError(
+            f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
+        )
+    
+    # Calculate the percentile threshold
+    threshold = energy_series.quantile(percentile)
+
+    if energy_variable != "wind":
+        # identify the number of events above the threshold
+        num_events = len(energy_series[energy_series > threshold])
+        print(f"Number of events above the {percentile} percentile: {num_events}")
+
+        # Find the years of the events above the threshold
+        years_members = energy_series[energy_series > threshold].index
+        print(f"Years of the events above the {percentile} percentile: {years_members}")
+    else:
+        # identify the number of events below the threshold
+        num_events = len(energy_series[energy_series < threshold])
+        print(f"Number of events below the {percentile} percentile: {num_events}")
+
+        # Find the years of the events below the threshold
+        years_members = energy_series[energy_series < threshold].index
+        print(f"Years of the events below the {percentile} percentile: {years_members}")
+
+    # Check that the csv file exits
+    assert os.path.exists(files_loc_path), f"Cannot find the files location path {files_loc_path}"
+
+    # Load the files location
+    files_loc = pd.read_csv(files_loc_path)
+
+    # print the data we seek
+    print(f"model: {model}")
+    print(f"experiment: {experiment}")
+    print(f"freq: {freq}")
+    print(f"psl_variable: {psl_variable}")
+
+    # Extract the path for the given model, experiment, freq, and variable
+    model_path = files_loc[
+        (files_loc["model"] == model)
+        & (files_loc["experiment"] == experiment)
+        & (files_loc["frequency"] == freq)
+        & (files_loc["variable"] == psl_variable)
+    ]["path"].values[0]
+
+    # assert that the model path exists
+    assert os.path.exists(model_path), f"Cannot find the model path {model_path}"
+
+    # extract the model path root
+    model_path_root = model_path.split("/")[1]
+
+    # pritn the mdoel path root
+    print(f"model_path_root: {model_path_root}")
+
+    # set up an empty list of files
+    files_list = []
+
+    # loop over the multi index
+    for year, member in years_members:
+        # depending on the model_path_root
+        if model_path_root == "work":
+            raise NotImplementedError("work path not implemented yet")
+        elif model_path_root == "gws":
+            # Create the path
+            path = f"{model_path}/{psl_variable}_{freq}_{model}_{experiment}_s{year}-r{member}i*_*_{year}??-*.nc"
+
+            # # print the path
+            # print(f"path: {path}")
+            # # print("correct path: /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc")
+
+            # glob this path
+            files = glob.glob(path)
+
+            # assert that files has length 1
+            assert len(files) == 1, f"files has length {len(files)}"
+
+            # # print the loaded file
+            # print(f"Loaded file: {files[0]}")
+
+            # extract the file
+            file = files[0]
+        elif model_path_root == "badc":
+            raise NotImplementedError("home path not implemented yet")
+        else:
+            raise ValueError(f"Unknown model path root {model_path_root}")
+        
+        # append the file to the files_list
+        files_list.append(file)
+
+    # # print the files list
+    # print(f"files_list: {files_list}")
+
+    ds_comp_list = []
+
+    # loop over the files list
+    for file, (year, member) in tqdm(zip(files_list, years_members)):
+        # Load the model data
+        ds = xr.open_dataset(file)
+
+        # format the year as an int
+        year = int(year)
+
+        # if the variable is not in the ds
+        if psl_variable not in ds:
+            raise ValueError(f"Cannot find the variable {psl_variable} in the ds")
+
+        # Set up the times to extract
+        start_date_this = cftime.datetime.strptime(
+            f"{year}-{months[0]}-01", "%Y-%m-%d", calendar="360_day"
+        )
+        end_date_this = cftime.datetime.strptime(
+            f"{year + 1}-{months[-1]}-30", "%Y-%m-%d", calendar="360_day"
+        )
+
+        # slice between the start and end dates
+        ds = ds.sel(time=slice(start_date_this, end_date_this))
+
+        # append the ds to the list
+        ds_comp_list.append(ds[psl_variable])
+
+    # Concatenate with a new time dimension using xarray
+    ds_composite = xr.concat(ds_comp_list, dim="time")
+
+    # Convert to a cube
+    cube = ds_composite.to_iris()
+
+    # load the obs cube
+    cube_obs = iris.load_cube(grid_file)
+
+    # regrid the model data to the obs grid
+    cube_regrid = cube.regrid(cube_obs, iris.analysis.Linear())
+
+    # Subset to the region of interest
+    cube_regrid = cube_regrid.intersection(
+        latitude=(lat_bounds[0], lat_bounds[1]), longitude=(lon_bounds[0], lon_bounds[1])
+    )
+
+    # Calculate the time mean of this
+    cube_regrid = cube_regrid.collapsed("time", iris.analysis.MEAN)
+
+    # print cube regrid
+    print(f"cube_regrid: {cube_regrid}")
+
+    if calc_anoms:
+        # assert that all of the months are integers
+        assert all(
+            isinstance(month, int) for month in months
+        ), "Months must be integers"
+
+        init_year_list = []
+
+        # loop over the years
+        for year in tqdm(range(climatology_period[0], climatology_period[1] + 1)):
+            member_list = []
+            # loop over the unique members
+            for member in unique_members:
+                # create the path
+                path = f"{model_path}/{psl_variable}_{freq}_{model}_{experiment}_s{year}-r{member}i*_*_{year}??-*.nc"
+
+                # glob this path
+                files = glob.glob(path)
+
+                # assert that files has length 1
+                assert len(files) == 1, f"files has length {len(files)}"
+
+                # open all of the files
+                member_ds = xr.open_mfdataset(
+                    files[0],
+                    combine="nested",
+                    concat_dim="time",
+                    preprocess=lambda ds: preprocess(ds),
+                    parallel=False,
+                    engine="netcdf4",
+                    coords="minimal",  # expecting identical coords
+                    data_vars="minimal",  # expecting identical vars
+                    compat="override",  # speed up
+                ).squeeze()
+
+                # id init year == climatology_period[0]
+                # and member == unique_members[0]
+                if year == climatology_period[0] and member == unique_members[0]:
+                    # set the new integer time
+                    member_ds = set_integer_time_axis(
+                        xro=member_ds,
+                        frequency=freq,
+                        first_month_attr=True,
+                    )
+                else:
+                    # set the new integer time
+                    member_ds = set_integer_time_axis(
+                        xro=member_ds,
+                        frequency=freq,
+                    )
+
+                # append the member_ds to the member_list
+                member_list.append(member_ds)
+            # Concatenate with a new member dimension using xarray
+            member_ds = xr.concat(member_list, dim="member")
+            # append the member_ds to the init_year_list
+            init_year_list.append(member_ds)
+        # Concatenate the init_year list along the init dimension
+        # and rename as lead time
+        ds = xr.concat(init_year_list, "init").rename({"time": "lead"})
+
+        # set up the members
+        ds["member"] = unique_members
+        ds["init"] = np.arange(climatology_period[0], climatology_period[1] + 1)
+            
+
+
     return None
+
+# define a function for preprocessing
+def preprocess(
+    ds: xr.Dataset,
+    year: int,
+    variable: str,
+    months: list[int] = [11, 12, 1, 2, 3],
+) -> xr.Dataset:
+    """
+    Preprocesses the model data by subsetting to the months of interest.
+    
+    Args:
+        ds (xr.Dataset): The model dataset to be preprocessed.
+        year (int): The year of the data.
+        variable (str): The variable to be preprocessed.
+        months (list[int], optional): The months to be used for the preprocessing. Defaults to [11, 12, 1, 2, 3].
+
+    Returns:
+        xr.Dataset: The preprocessed model dataset.
+    """
+
+    # if year is not an int, format as an int
+    if not isinstance(year, int):
+        year = int(year)
+
+    # if the variable is not in the ds
+    if variable not in ds:
+        raise ValueError(f"Cannot find the variable {variable} in the ds")
+    
+    # Set up the times to extract
+    start_date_this = cftime.datetime.strptime(
+        f"{year}-{months[0]}-01", "%Y-%m-%d", calendar="360_day"
+    )
+    end_date_this = cftime.datetime.strptime(
+        f"{year + 1}-{months[-1]}-30", "%Y-%m-%d", calendar="360_day"
+    )
+
+    # slice between the start and end dates
+    ds = ds.sel(time=slice(start_date_this, end_date_this))
+
+    return ds[variable]
+
+def set_integer_time_axis(
+    xro: Union[xr.DataArray, xr.Dataset],
+    frequency: str = "Amon",
+    offset: int = 1,
+    time_dim: str = "time",
+    first_month_attr: bool = False,
+) -> Union[xr.DataArray, xr.Dataset]:
+    """
+    Set time axis to integers starting from `offset`.
+
+    Used in hindcast preprocessing before the concatenation of `intake-esm` happens.
+
+    Inputs:
+    xro: xr.DataArray or xr.Dataset
+        The input xarray DataArray or Dataset whose time axis is to be modified.
+
+    frequency: str, optional
+        The frequency of the data. Default is "Amon".
+
+    offset: int, optional
+        The starting point for the new integer time axis. Default is 1.
+
+    time_dim: str, optional
+        The name of the time dimension in the input xarray object. Default is "time".
+
+    first_month_attr: bool, optional
+        Whether to include the first month as an attribute in the dataset.
+        Default is False.
+
+    Returns:
+    xr.DataArray or xr.Dataset
+        The input xarray object with the time axis set to integers starting from `offset`.
+    """
+
+    if first_month_attr:
+        # Extract the first forecast year-month pair
+        first_month = xro[time_dim].values[0]
+
+        # Add the first month as an attribute to the dataset
+        xro.attrs["first_month"] = str(first_month)
+
+        # add an attribute for the type of the time axis
+        xro.attrs["time_axis_type"] = type(first_month).__name__
+
+    xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
+    return xro
 
 def main():
     """
