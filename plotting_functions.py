@@ -1718,9 +1718,6 @@ def plot_composite_obs(
         # remove the name of the index
         energy_df.index.name = None
 
-    # print the head of the df
-    print(energy_df.head())
-
     # if the correct column for the specified energy variable is in the df
     if energy_dict[energy_variable] in energy_df.columns:
         # Subset the df to this column
@@ -1808,8 +1805,8 @@ def plot_composite_obs(
         # Select the years
         ds_year = ds_year.sel(time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31"))
 
-        # print the ds_year
-        print(f"ds_year: {ds_year}")
+        # # print the ds_year
+        # print(f"ds_year: {ds_year}")
 
         # append the ds_year to the ds_list
         ds_list.append(ds_year[psl_variable])
@@ -1941,6 +1938,19 @@ def plot_composite_obs(
     gl.ylabels_right = False
     gl.yformatter = LATITUDE_FORMATTER
     gl.ylabel_style = {"size": 7, "color": "black"}
+
+    # include a textbox in the top left
+    ax.text(
+        0.02,
+        0.95,
+        f"N = {num_events}",
+        verticalalignment="top",
+        horizontalalignment="left",
+        transform=ax.transAxes,
+        color="black",
+        fontsize=10,
+        bbox=dict(facecolor="white", edgecolor="black", boxstyle="round,pad=0.5"),
+    )
 
     if calc_anoms:
         cbar = plt.colorbar(
