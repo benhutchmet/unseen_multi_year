@@ -2468,7 +2468,6 @@ def plot_composite_model(
     title: str,
     energy_variable: str,
     percentile: float,
-    member: str,
     months: list[int] = [11, 12, 1, 2, 3],
     model: str = "HadGEM3-GC31-MM",
     psl_variable: str = "psl",
@@ -2491,7 +2490,6 @@ def plot_composite_model(
         title (str): The title of the plot.
         energy_variable (str): The energy variable to be used for identifying the percentile threshold.
         percentile (float): The percentile to be used as the threshold.
-        member (str): The member to be used for the composite plot.
         months (list[int], optional): The months to be used for the composite plot. Defaults to [11, 12, 1, 2, 3].
         model (str, optional): The model to be used for the composite plot. Defaults to "HadGEM3-GC31-MM".
         psl_variable (str, optional): The pressure level variable to be used for the composite plot. Defaults to "psl".
@@ -2524,8 +2522,18 @@ def plot_composite_model(
         "demand_net_wind",
     ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
 
+    # Assert that the energy df path exists
+    assert os.path.exists(
+        energy_df_path
+    ), f"Cannot find the energy df path {energy_df_path}"
 
+    # Load the energy df
+    energy_df = pd.read_csv(energy_df_path)
 
+    # print the head of the energy df
+    print(f"energy_df head: {energy_df.head()}")
+
+    return None
 
 def main():
     """
@@ -2544,7 +2552,7 @@ def main():
     percentile = 0.95
 
     # Call the function
-    plot_composite_obs(
+    plot_composite_model(
         title=title,
         energy_variable=energy_variable,
         percentile=percentile,
