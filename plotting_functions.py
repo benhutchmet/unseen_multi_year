@@ -1128,6 +1128,139 @@ def plot_mslp_anoms_model(
 
     return None
 
+# define a function for plotting the temp and wind speed for the model data
+def plot_mslp_var_model(
+    start_date: str,
+    end_date: str,
+    member: str,
+    title: str,
+    variable: str,
+    psl_variable: str = "psl",
+    model: str = "HadGEM3-GC31-MM",
+    freq: str = "Amon",
+    experiment: str = "dcppA-hindcast",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    climatology_period: list[int] = [1960, 1990],
+    grid_bounds: list[float] = [-180.0, 180.0, -90.0, 90.0],
+    calc_anoms: bool = False,
+    grid_file: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc",
+    files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
+) -> None:
+    """
+    Grabs the MSLP anomalies, as well as surface variable (e.g. temp, wind)
+    data for a given period of interest and plots them.
+    
+    Args:
+        start_date (str): The start date of the period of interest in the format 'YYYY-MM-DD'.
+        end_date (str): The end date of the period of interest in the format 'YYYY-MM-DD'.
+        member (str): The member of the ensemble to plot.
+        title (str): The title of the plot.
+        variable (str): The surface variable to plot (e.g. 'temp', 'wind').
+        psl_variable (str, optional): The pressure variable to use. Defaults to 'psl'.
+        model (str, optional): The model to use. Defaults to 'HadGEM3-GC31-MM'.
+        freq (str, optional): The frequency of the data. Defaults to 'Amon'.
+        experiment (str, optional): The experiment to use. Defaults to 'dcppA-hindcast'.
+        lat_bounds (list, optional): The latitude bounds for the plot. Defaults to [30, 80].
+        lon_bounds (list, optional): The longitude bounds for the plot. Defaults to [-90, 30].
+        climatology_period (list[int], optional): The period to use for the climatology. Defaults to [1960, 1990].
+        grid_bounds (list[float], optional): The bounds for the grid. Defaults to [-180.0, 180.0, -90.0, 90.0].
+        calc_anoms (bool, optional): Whether to calculate anomalies. Defaults to False.
+        grid_file (str, optional): The path to the grid file. Defaults to '/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc'.
+        files_loc_path (str, optional): The path to the file locations. Defaults to '/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv'.
+
+    Returns:
+        None
+    """
+
+    # exract the start year
+    start_year = start_date[:4]
+    end_year = end_date[:4]
+
+    # print the start and end years
+    print(f"start year: {start_year}")
+    print(f"end year: {end_year}")
+
+    # Check that the csv file exists
+    if not os.path.exists(files_loc_path):
+        raise FileNotFoundError(f"Cannot find the file {files_loc_path}")
+    
+    # Load in the csv file
+    csv_data = pd.read_csv(files_loc_path)
+
+    # Print the data we seek
+    print(f"model: {model}")
+    print(f"experiment: {experiment}")
+    print(f"variable: {variable}")
+    print(f"frequency: {freq}")
+
+    # Extract the path for the given model, experiment and variable
+    model_path_var = csv_data.loc[
+        (csv_data["model"] == model)
+        & (csv_data["experiment"] == experiment)
+        & (csv_data["variable"] == variable)
+        & (csv_data["frequency"] == freq),
+        "path",
+    ].values[0]
+
+    # Extract the path for the given model, experiment and variable
+    # for the psl variable
+    model_path_psl = csv_data.loc[
+        (csv_data["model"] == model)
+        & (csv_data["experiment"] == experiment)
+        & (csv_data["variable"] == psl_variable)
+        & (csv_data["frequency"] == freq),
+        "path",
+    ].values[0]
+
+    # Assert that theb model path exists
+    assert os.path.exists(model_path_var), f"Cannot find the model path {model_path_var}"
+
+    # assert that the other model path exists
+    assert os.path.exists(model_path_psl), f"Cannot find the model path {model_path_psl}"
+
+    # Extract the model_path_root for var
+    model_path_root_var = model_path_var.split("/")[1]
+    model_path_root_psl = model_path_psl.split("/")[1]
+
+    # Create a list
+    model_paths = [model_path_var, model_path_psl]
+    model_path_roots = [model_path_root_var, model_path_root_psl]
+    variables = [variable, psl_variable]
+
+    # create an empty list of files
+    files_to_extract = []
+
+    # Loop over the model path roots
+    for model_path, model_path_root, variable in zip(model_paths, model_path_roots, variables):
+        # depending on the model_path_root
+        if model_path_root == "work":
+            raise NotImplementedError("work path not implemented yet")
+        elif model_path_root == "gws":
+            # Create the path
+            path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{start_year}-r{member}i*_*_{start_year}??-*.nc"
+
+            # print the path
+            print(f"path: {path}")
+            # print("correct path: /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc")
+
+            # glob this path
+            files = glob.glob(path)
+
+            # assert that files has length 1
+            assert len(files) == 1, f"files has length {len(files)}"
+
+            # print the loaded file
+            print(f"Loaded file: {files[0]}")
+
+            # extract the file
+            file = files[0]
+            
+        elif model_path_root == "badc":
+            raise NotImplementedError("home path not implemented yet")
+        else:
+            raise ValueError(f"Unknown model path root {model_path_root}")
+
 
 def main():
     """
