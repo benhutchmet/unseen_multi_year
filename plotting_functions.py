@@ -1730,7 +1730,7 @@ def plot_composite_obs(
     # Calculate the percentile threshold
     threshold = energy_series.quantile(percentile)
 
-    if variable != "wind":
+    if energy_variable != "wind":
         # identify the number of events above the threshold
         num_events = len(energy_series[energy_series > threshold])
         print(f"Number of events above the {percentile} percentile: {num_events}")
@@ -2002,6 +2002,195 @@ def plot_composite_obs(
     plt.tight_layout()
 
     return None
+
+# define a function to plot the composites for the observations
+# with the MSLP contours and the surface variables
+def plot_composite_var_obs(
+    title: str,
+    energy_variable: str,
+    percentile: float,
+    months: list[int] = [11, 12, 1, 2, 3],
+    sf_variable: str = "t2m",
+    psl_variable: str = "msl",
+    freq: str = "Amon",
+    lat_bounds: list = [30, 80],
+    lon_bounds: list = [-90, 30],
+    energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv",
+    ERA5_regrid_path: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc",
+    climatology_period: list[int] = [1990, 2020],
+    calc_anoms: bool = False,
+) -> None:
+    """
+    Identifies the percentile threshold for demand, wind power, or demand net
+    wind, and plots a psl composite of the events that exceed this threshold.
+
+    Args:
+        title (str): The title of the plot.
+        energy_variable (str): The energy variable to be used for identifying the percentile threshold.
+        percentile (float): The percentile to be used as the threshold.
+        months (list[int], optional): The months to be used for the composite plot. Defaults to [11, 12, 1, 2, 3].
+        sf_variable (str, optional): The surface variable to be used for the composite plot. Defaults to "t2m".
+        psl_variable (str, optional): The pressure level variable to be used for the composite plot. Defaults to "msl".
+        freq (str, optional): The frequency of the data. Defaults to "Amon".
+        lat_bounds (list, optional): The latitude boundaries for the plot. Defaults to [30, 80].
+        lon_bounds (list, optional): The longitude boundaries for the plot. Defaults to [-90, 30].
+        energy_df_path (str, optional): The path to the energy dataframe. Defaults to "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv".
+        ERA5_regrid_path (str, optional): The path to the ERA5 regridded data. Defaults to "/gws/nopw/j04/cp4cds1_vol1/data/era5/pressure_levels/6hr/native/psl/psl_era5_6hr_native_19790101-20191231.nc".
+        climatology_period (list[int], optional): The period to be used for the climatology. Defaults to [1990, 2020].
+        calc_anoms (bool, optional): Whether to calculate anomalies. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    # set up the dictionary for the energy variables
+    energy_dict = {
+        "demand": "United_Kingdom_demand",
+        "wind": "total_gen",
+        "demand_net_wind": "demand_net_wind",
+    }
+
+    # assert that energy_variable is in ["demand", "wind", "demand_net_wind"]
+    assert energy_variable in [
+        "demand",
+        "wind",
+        "demand_net_wind
+    ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
+
+    # Assert that the energy df path exists
+    assert os.path.exists(
+        energy_df_path
+    ), f"Cannot find the energy df path {energy_df_path}"
+
+    # Load the energy df
+    energy_df = pd.read_csv(energy_df_path)
+
+    # if "Unnamed: 0" in energy_df.columns:
+    if "Unnamed: 0" in energy_df.columns:
+        # Convert to datetime
+        energy_df["Unnamed: 0"] = pd.to_datetime(energy_df["Unnamed: 0"], format="%Y")
+
+        # Set as the index
+        energy_df.set_index("Unnamed: 0", inplace=True)
+
+        # strptime to just be the year
+        energy_df.index = energy_df.index.strftime("%Y")
+
+        # remove the name of the index
+        energy_df.index.name = None
+    else:
+        raise NotImplementedError("Unnamed: 0 not in the columns")
+    
+    # if the correct column for the specified energy variable is in the df
+    if energy_dict[energy_variable] in energy_df.columns:
+        # Subset the df to this column
+        energy_series = energy_df[energy_dict[energy_variable]]
+    else:
+        raise ValueError(
+            f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
+        )
+    
+    # Calculate the percentile threshold
+    threshold = energy_series.quantile(percentile)
+
+    if energy_variable != "wind":
+        # identify the number of events above the threshold
+        num_events = len(energy_series[energy_series > threshold])
+        print(f"Number of events above the {percentile} percentile: {num_events}")
+
+        # Find the years of the events above the threshold
+        years = energy_series[energy_series > threshold].index
+        print(f"Years of the events above the {percentile} percentile: {years}")
+    else:
+        # identify the number of events below the threshold
+        num_events = len(energy_series[energy_series < threshold])
+        print(f"Number of events below the {percentile} percentile: {num_events}")
+
+        # Find the years of the events below the threshold
+        years = energy_series[energy_series < threshold].index
+        print(f"Years of the events below the {percentile} percentile: {years}")
+
+    # Load the ERA5 regridded data
+    ds = xr.open_mfdataset(
+        ERA5_regrid_path,
+        chunks={"time": 10},
+        combine="by_coords",
+        parallel=False,
+        engine="netcdf4",
+        coords="minimal",
+    )
+
+    # If expver is present in the observations
+    if "expver" in ds.coords:
+        # Combine the first two expver variables
+        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))
+
+    # if the variable is not in the ds
+    if psl_variable not in ds:
+        raise ValueError(f"Cannot find the variable {psl_variable} in the ds")
+
+    if calc_anoms:
+        # assert that the months are integers
+        assert all(
+            isinstance(month, int) for month in months
+        ), "Months must be integers"
+
+        # subset the data to the region
+        ds_clim = ds.sel(
+            lat=slice(lat_bounds[0], lat_bounds[1]),
+            lon=slice(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # subset the data to the months
+        ds_clim = ds_clim.sel(time=ds_clim["time.month"].isin(months))
+
+        # Select the years
+        ds_clim = ds_clim.sel(
+            time=slice(
+                f"{climatology_period[0]}-01-01", f"{climatology_period[1]}-12-31"
+            )
+        )
+
+        # Calculate the climatology
+        ds_clim_psl = ds_clim[psl_variable].mean(dim="time")
+
+        # Calculate the variable climatology
+        ds_clim_var = ds_clim[sf_variable].mean(dim="time")
+
+    # ensure that years is a list of ints
+    years = [int(year) for year in years]
+
+    # set up an empty list
+    ds_list = []
+
+    # Loop over the years
+    for year in tqdm(years):
+        # subset the data to the region
+        ds_year = ds.sel(
+            lat=slice(lat_bounds[0], lat_bounds[1]),
+            lon=slice(lon_bounds[0], lon_bounds[1]),
+        )
+
+        # subset the data to the months
+        ds_year = ds_year.sel(time=ds_year["time.month"].isin(months))
+
+        # Select the years
+        ds_year = ds_year.sel(time=slice(f"{year}-{months[0]}-01", f"{year + 1}-{months[-1]}-31"))
+
+        # append the ds_year to the ds_list
+        ds_list.append(ds_year[sf_variable])
+
+    # Concatenate with a new time dimension using xarray
+    ds_composite = xr.concat(ds_list, dim="time")
+
+    # Take the time mean
+    ds_composite = ds_composite.mean(dim="time")
+
+    # Etract the lat and lon points
+    lats = ds_composite
+
+
+
 
 
 def main():
