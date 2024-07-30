@@ -37,6 +37,7 @@ from matplotlib import colors
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib.ticker import FuncFormatter
 from tqdm import tqdm
+from scipy.stats import pearsonr
 
 # Import types
 from typing import Any, Callable, Union, List, Tuple
@@ -3732,6 +3733,10 @@ def plot_nao_ts_obs(
     ERA5_regrid_path: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc",
     azores_grid: dict = {"lon1": -28, "lon2": -20, "lat1": 36, "lat2": 40},
     iceland_grid: dict = {"lon1": -25, "lon2": -16, "lat1": 63, "lat2": 70},
+    standardise_ts: bool = False,
+    invert_predictand: bool = False,
+    vertical_lines: list = None,
+    set_ylims: list = None,
 ) -> None:
     """
     Grabs the mslp data for the observations and the .csv containing the demand,
@@ -3750,6 +3755,10 @@ def plot_nao_ts_obs(
         ERA5_regrid_path (str, optional): The path to the regridded ERA5 data. Defaults to "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc".
         azores_grid (dict, optional): The grid boundaries for the Azores region. Defaults to {"lon1": -28, "lon2": -20, "lat1": 36, "lat2": 40}.
         iceland_grid (dict, optional): The grid boundaries for the Iceland region. Defaults to {"lon1": -25, "lon2": -16, "lat1": 63, "lat2": 70}.
+        standardise_ts (bool, optional): Whether to standardise the time series. Defaults to False.
+        invert_predictand (bool, optional): Whether to invert the predictand. Defaults to False.
+        vertical_lines (list, optional): The vertical lines to be added to the plot. Defaults to None.
+        set_ylims (list, optional): The y limits to be set for the plot. Defaults to None.
 
     Returns:
         None
@@ -3851,6 +3860,9 @@ def plot_nao_ts_obs(
     # if the variable is not in the ds
     if psl_variable not in ds:
         raise ValueError(f"Cannot find the variable {psl_variable} in the ds")
+    else:
+        # extract the variable
+        ds = ds[psl_variable]
 
     # subset the data to the months
     ds = ds.sel(time=ds["time.month"].isin(months))
@@ -3865,17 +3877,145 @@ def plot_nao_ts_obs(
     ds_azores = ds_shifted.sel(
         lat=slice(azores_grid["lat1"], azores_grid["lat2"]),
         lon=slice(azores_grid["lon1"], azores_grid["lon2"]),
-    ).mean(dim=["lat", "lon"])
+    ).mean(dim=["lat", "lon"]) - ds_shifted.sel(
+        lat=slice(azores_grid["lat1"], azores_grid["lat2"]),
+        lon=slice(azores_grid["lon1"], azores_grid["lon2"]),
+    ).mean(dim=["lat", "lon"]).mean(dim="time")
     ds_iceland = ds_shifted.sel(
         lat=slice(iceland_grid["lat1"], iceland_grid["lat2"]),
         lon=slice(iceland_grid["lon1"], iceland_grid["lon2"]),
-    ).mean(dim=["lat", "lon"])
+    ).mean(dim=["lat", "lon"]) - ds_shifted.sel(
+        lat=slice(iceland_grid["lat1"], iceland_grid["lat2"]),
+        lon=slice(iceland_grid["lon1"], iceland_grid["lon2"]),
+    ).mean(dim=["lat", "lon"]).mean(dim="time")
 
     # calculate the NAO as the difference between the azores and iceland regions
-    nao = ds_azores - ds_iceland
+    nao = (ds_azores - ds_iceland) / 100 # convert to hPa
 
     # print the nao values
     print(f"nao values: {nao.values}")
+
+    # remove any Nans
+    nao = nao.dropna(dim="time")
+
+    # extract the obs nao
+    obs_nao = nao.values
+
+    # extract the energy_var
+    energy_var = energy_series.values
+
+    # extract the index
+    index = energy_series.index.values
+    
+    # # print the shape of the obs_nao
+    # print(f"obs_nao shape: {obs_nao.shape}")
+    # print(f"energy_var shape: {energy_var.shape}")
+    # print(f"index shape: {index.shape}")
+
+    # # print the nao values
+    # print(f"nao values: {nao.values}")
+    # print(f"energy_var values: {energy_series.values}")
+    print(f"index values: {energy_series.index.values}")
+
+    # print the type of index
+    print(f"type of index: {type(index[0])}")
+
+    # convert the index to a list of ints
+    index = [int(str(date)[:4]) for date in index]
+
+    # if the length of the obs_nao is not equal to the length of the energy_var
+    if len(obs_nao) != len(energy_var):
+        # subset energy var to [:len(obs_nao) + 1]
+        energy_var = energy_var[:-1]
+        index = index[:-1]
+
+        # assert that the length of the obs_nao is equal to the length of the energy_var
+        assert len(obs_nao) == len(energy_var), "Lengths of obs_nao and energy_var not equal"
+        assert len(obs_nao) == len(index), "Lengths of obs_nao and index not equal"
+
+    # if standardise_ts is True
+    if standardise_ts:
+        # standardise the obs_nao
+        obs_nao = (obs_nao - obs_nao.mean()) / obs_nao.std()
+
+        # standardise the energy_var
+        energy_var = (energy_var - energy_var.mean()) / energy_var.std()
+
+    # set up the figure
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    # set up a horizontal black line at 0
+    ax.axhline(0, color="black")
+
+    # plot the observed nao index
+    ax.plot(index, obs_nao, color="black", label="NAO index")
+
+    if invert_predictand:
+        ax.plot(index, -energy_var, color="red", label=f"inverted {energy_variable}")
+    else:
+        # plot the energy_var
+        ax.plot(index, energy_var, color="red", label=energy_variable)
+
+    # use pearsonr to calculate the r and p values
+    r, p = pearsonr(obs_nao, energy_var)
+    
+    # Include these values in a textbox
+    ax.text(
+        0.05,
+        0.95,
+        (
+            f"r = {r:.2f} (p = {p:.2f})"
+        ),
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        horizontalalignment="left",
+        bbox=dict(facecolor="white", alpha=0.5),
+    )
+
+    # if vertical lines is not none
+    if vertical_lines is not None:
+        # assert that verrtical lines is a list of ints
+        assert all(
+            isinstance(vertical_line, int) for vertical_line in vertical_lines
+        ), f"vertical_lines must all be integers, got {vertical_lines}"
+
+        # loop over the ints
+        for vertical_line in vertical_lines:
+            # add a vertical line
+            ax.axvline(vertical_line, color="hotpink", linestyle="--")
+
+            # include a label
+            ax.text(
+                vertical_line - 0.6,
+                1.5,
+                f"{vertical_line}",
+                rotation=90,
+                verticalalignment="center",
+                horizontalalignment="center",
+                fontsize=10,
+                color="hotpink",
+            )
+
+    # if set_ylims is not None
+    if set_ylims is not None:
+        # assert that set_ylims is a list of ints
+        assert all(isinstance(ylim, int) for ylim in set_ylims), f"set_ylims must all be integers, got {set_ylims}"
+
+        # set the y limits
+        ax.set_ylim(set_ylims)
+
+    # set the title
+    ax.set_title(title, fontsize=12, weight="bold")
+
+    # only plot the xticks every 5 years
+    ax.set_xticks(index[::5])
+
+    # set the ylable
+    ax.set_ylabel("NAO index / energy variable normalised anomalies")
+
+    # include a legend
+    ax.legend(loc="upper right")
 
     return None
 
@@ -3897,7 +4037,7 @@ def main():
 
     # set up the constants
     start_date = "1960-11-01"
-    end_date = "2019-03-31"
+    end_date = "2018-03-31"
     title = "Observed correlations between NDJFM NAO index and demand net wind, UK"
     energy_variable = "demand_net_wind"
 
