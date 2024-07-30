@@ -346,7 +346,14 @@ def plot_mslp_anoms(
 
     # plt.close()
 
-    return None
+    if calc_anoms:
+        print("Returning the climatology")
+        climatology_values = climatology.values
+    else:
+        print("Returning None")
+        climatology_values = None
+
+    return climatology_values
 
 
 # define a function for plotting the temperature/wind contours underneath
@@ -741,7 +748,16 @@ def plot_mslp_anoms_temp_wind_obs(
     # make plot look nice
     plt.tight_layout()
 
-    return None
+    if calc_anoms:
+        print("Returning the climatology")
+        var_climatology_values = var_climatology.values
+        psl_climatology_values = psl_climatology.values
+    else:
+        print("Returning None")
+        var_climatology_values = None
+        psl_climatology_values = None
+
+    return var_climatology_values, psl_climatology_values
 
 
 # Write a function which does the same, but for the model data
@@ -761,6 +777,7 @@ def plot_mslp_anoms_model(
     calc_anoms: bool = False,
     grid_file: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc",
     files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
+    saved_clim_path: str = None,
 ) -> None:
     """
     Grabs the MSLP anomalies for a given period of interest and plots them.
@@ -777,13 +794,18 @@ def plot_mslp_anoms_model(
         lon_bounds (list): The longitude bounds for the plot.
         climatology_period (list): The climatology period.
         calc_anoms (bool): Whether to calculate anomalies.
+        grid_file (str): The path to the grid file.
         files_loc_path (str): The path to the file locations.
+        saved_clim_path (str): The path to the saved climatology.
 
     Returns:
         None
     """
 
-    # Load the paths
+    # if calc_anoms is False and saved_clim_path is not none
+    # raise an error
+    if not calc_anoms and saved_clim_path is not None:
+        raise ValueError("Cannot have saved_clim_path if calc_anoms is False")
 
     # Check that the csv file exists
     if not os.path.exists(files_loc_path):
@@ -899,7 +921,7 @@ def plot_mslp_anoms_model(
         longitude=(lon_bounds[0], lon_bounds[1]),
     )
 
-    if calc_anoms:
+    if calc_anoms and saved_clim_path is None:
         print("Caculating the climatology for the model data")
 
         # initialise a cube list
@@ -965,7 +987,11 @@ def plot_mslp_anoms_model(
 
         # calculate the time mean of this
         regrid_cube_clim = regrid_cube_clim.collapsed("time", iris.analysis.MEAN)
+    elif calc_anoms and saved_clim_path is not None:
+        print("loading saved climatology")
 
+        # load the saved climatology .npy file
+        climatology_array = np.load(saved_clim_path)
     # # print the regridded cube
     # print(f"regridded cube: {regrid_cube}")
 
@@ -973,9 +999,12 @@ def plot_mslp_anoms_model(
     lats = regrid_cube.coord("latitude").points
     lons = regrid_cube.coord("longitude").points
 
-    if calc_anoms:
+    if calc_anoms and saved_clim_path is None:
         # calculate the anomalies
         field = (regrid_cube.data - regrid_cube_clim.data) / 100
+    elif calc_anoms and saved_clim_path is not None:
+        # calculate the anomalies
+        field = (regrid_cube.data - climatology_array) / 100
     else:
         # extract the data values
         field = regrid_cube.data / 100  # convert to hPa
@@ -1152,6 +1181,8 @@ def plot_mslp_var_model(
     calc_anoms: bool = False,
     grid_file: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc",
     files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
+    saved_clim_var_path: str = None,
+    saved_clim_psl_path: str = None,
 ) -> None:
     """
     Grabs the MSLP anomalies, as well as surface variable (e.g. temp, wind)
@@ -1174,10 +1205,20 @@ def plot_mslp_var_model(
         calc_anoms (bool, optional): Whether to calculate anomalies. Defaults to False.
         grid_file (str, optional): The path to the grid file. Defaults to '/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl_first_timestep_msl.nc'.
         files_loc_path (str, optional): The path to the file locations. Defaults to '/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv'.
+        saved_clim_var_path (str, optional): The path to the saved climatology for the variable. Defaults to None.
+        saved_clim_psl_path (str, optional): The path to the saved climatology for the pressure variable. Defaults to None.
 
     Returns:
         None
     """
+
+    if not calc_anoms and (saved_clim_var_path is not None or saved_clim_psl_path is not None):
+        raise ValueError(
+            "Cannot have saved_clim_var_path or saved_clim_psl_path if calc_anoms is False"
+        )
+    
+    # assert that both saved paths are not none
+    assert saved_clim_var_path is not None and saved_clim_psl_path is not None, "Both saved paths must be provided"
 
     # exract the start year
     start_year = start_date[:4]
@@ -1316,7 +1357,7 @@ def plot_mslp_var_model(
     # # set up a list of regrid cubes
     # regrid_cubes = [regrid_cube_var, regrid_cube_psl]
 
-    if calc_anoms:
+    if calc_anoms and saved_clim_var_path is None and saved_clim_psl_path is None:
         print("Caculating the climatology for the model data")
 
         # initialise a cube list
@@ -1374,15 +1415,25 @@ def plot_mslp_var_model(
 
             # append the regrid_cube_clim to the clim_cubes
             clim_cubes.append(regrid_cube_clim)
+    elif calc_anoms and saved_clim_var_path is not None and saved_clim_psl_path is not None:
+        print("loading saved climatology")
+
+        # load the saved climatology .npy file
+        climatology_var_array = np.load(saved_clim_var_path)
+        climatology_psl_array = np.load(saved_clim_psl_path)
 
     # extract the lats an dlons
     lats = regrid_cube_var.coord("latitude").points
     lons = regrid_cube_var.coord("longitude").points
 
-    if calc_anoms:
+    if calc_anoms and saved_clim_var_path is None and saved_clim_psl_path is None:
         # Calculate the anomalies
         field_var = regrid_cube_var.data - clim_cubes[0].data  # either temp or wind
         field_psl = (regrid_cube_psl.data - clim_cubes[1].data) / 100  # convert to hPa
+    elif calc_anoms and saved_clim_var_path is not None and saved_clim_psl_path is not None:
+        # Calculate the anomalies
+        field_var = regrid_cube_var.data - climatology_var_array
+        field_psl = (regrid_cube_psl.data - climatology_psl_array) / 100
     else:
         # Extract the data values
         field_var = regrid_cube_var.data
