@@ -3736,6 +3736,7 @@ def plot_nao_ts_obs(
     standardise_ts: bool = False,
     invert_predictand: bool = False,
     vertical_lines: list = None,
+    percentile_years: bool = False,
     set_ylims: list = None,
 ) -> None:
     """
@@ -3758,6 +3759,7 @@ def plot_nao_ts_obs(
         standardise_ts (bool, optional): Whether to standardise the time series. Defaults to False.
         invert_predictand (bool, optional): Whether to invert the predictand. Defaults to False.
         vertical_lines (list, optional): The vertical lines to be added to the plot. Defaults to None.
+        percentile_years: (bool, optional): Whether to calculate the percentile years. Defaults to False.
         set_ylims (list, optional): The y limits to be set for the plot. Defaults to None.
 
     Returns:
@@ -3973,29 +3975,115 @@ def plot_nao_ts_obs(
         bbox=dict(facecolor="white", alpha=0.5),
     )
 
-    # if vertical lines is not none
-    if vertical_lines is not None:
-        # assert that verrtical lines is a list of ints
-        assert all(
-            isinstance(vertical_line, int) for vertical_line in vertical_lines
-        ), f"vertical_lines must all be integers, got {vertical_lines}"
+    # if percentile years is True
+    if percentile_years:
+        # set up the percentile
+        percentile = 5
+
+        # find the NAo years beneath the 5th percentile
+        nao_percentile = np.percentile(obs_nao, percentile)
+
+        # find the years where the NAO is beneath the 5th percentile
+        nao_percentile_years = np.where(obs_nao < nao_percentile)[0]
+
+        # apply this to the index
+        index_percentile_nao = [index[year] for year in nao_percentile_years]
+
+        # print the index_percentile_nao
+        print(f"index_percentile_nao: {index_percentile_nao}")
+
+        # find the 1 - percentile for the energy variable (if not wind)
+        if energy_variable != "wind":
+            print(f"variable is not wind, calculating the {100 - percentile} percentile")
+
+            # print energy var min and max
+            print(f"energy_var min: {energy_var.min()}")
+            print(f"energy_var max: {energy_var.max()}")
+
+            # find the energy variable percentile
+            energy_percentile = np.percentile(energy_var, 100 - percentile)
+
+            # print the energy_percentile
+            print(f"energy_percentile: {energy_percentile}")
+
+            # find the years where the energy variable is beneath the 1 - percentile
+            energy_percentile_years = np.where(energy_var > energy_percentile)[0]
+
+            # apply this to the index
+            index_percentile_energy = [index[year] for year in energy_percentile_years]
+
+            # print the index_percentile_energy
+            print(f"index_percentile_energy: {index_percentile_energy}")
+        else:
+            # find the energy variable percentile
+            energy_percentile = np.percentile(energy_var, percentile)
+
+            # print the energy_percentile
+            print(f"energy_percentile: {energy_percentile}")
+
+            # find the years where the energy variable is beneath the 1 - percentile
+            energy_percentile_years = np.where(energy_var < energy_percentile)[0]
+
+            # apply this to the index
+            index_percentile_energy = [index[year] for year in energy_percentile_years]
+
+            # print the index_percentile_energy
+            print(f"index_percentile_energy: {index_percentile_energy}")
 
         # loop over the ints
-        for vertical_line in vertical_lines:
+        for nao_year, energy_year in zip(index_percentile_nao, index_percentile_energy):
             # add a vertical line
-            ax.axvline(vertical_line, color="hotpink", linestyle="--")
+            ax.axvline(nao_year, color="blue", linestyle="--")
+            ax.axvline(energy_year, color="hotpink", linestyle="-.")
 
             # include a label
             ax.text(
-                vertical_line - 0.6,
+                nao_year - 0.6,
                 1.5,
-                f"{vertical_line}",
+                f"{nao_year}",
+                rotation=90,
+                verticalalignment="center",
+                horizontalalignment="center",
+                fontsize=10,
+                color="blue",
+            )
+
+            # include a label
+            ax.text(
+                energy_year - 0.6,
+                1.5,
+                f"{energy_year}",
                 rotation=90,
                 verticalalignment="center",
                 horizontalalignment="center",
                 fontsize=10,
                 color="hotpink",
             )
+
+    else:
+        # if vertical lines is not none
+        if vertical_lines is not None:
+            # assert that verrtical lines is a list of ints
+            assert all(
+                isinstance(vertical_line, int) for vertical_line in vertical_lines
+            ), f"vertical_lines must all be integers, got {vertical_lines}"
+
+            # loop over the ints
+            for vertical_line in vertical_lines:
+                # add a vertical line
+                ax.axvline(vertical_line, color="hotpink", linestyle="--")
+
+                # include a label
+                ax.text(
+                    vertical_line - 0.6,
+                    1.5,
+                    f"{vertical_line}",
+                    rotation=90,
+                    verticalalignment="center",
+                    horizontalalignment="center",
+                    fontsize=10,
+                    color="hotpink",
+                )
 
     # if set_ylims is not None
     if set_ylims is not None:
