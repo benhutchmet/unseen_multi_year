@@ -19,6 +19,7 @@ import os
 import sys
 import glob
 import time
+import re
 
 # Third-party libraries
 import numpy as np
@@ -3713,6 +3714,170 @@ def set_integer_time_axis(
     xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
     return xro
 
+# Define a function which plots the time series for one of:
+# * Demand
+# * Wind power
+# * Demand net wind
+# along with the NAO time series
+# For the observations in the first instance, then move onto the model
+def plot_nao_ts_obs(
+    start_date: str,
+    end_date: str,
+    title: str,
+    energy_variable: str,
+    months: list[int] = [11, 12, 1, 2, 3],
+    psl_variable: str = "msl",
+    freq: str = "Amon",
+    energy_df_path: str = "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv",
+    ERA5_regrid_path: str = "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc",
+    azores_grid: dict = {"lon1": -28, "lon2": -20, "lat1": 36, "lat2": 40},
+    iceland_grid: dict = {"lon1": -25, "lon2": -16, "lat1": 63, "lat2": 70},
+) -> None:
+    """
+    Grabs the mslp data for the observations and the .csv containing the demand,
+    wind power, or demand net wind data and plots the time series for the given
+    energy variable alongside the NAO time series.
+
+    Args:
+        start_date (str): The start date of the time series. Format: "YYYY-MM-DD".
+        end_date (str): The end date of the time series. Format: "YYYY-MM-DD".
+        title (str): The title of the plot.
+        energy_variable (str): The energy variable to be used for the time series.
+        months (list[int], optional): The months to be used for the time series. Defaults to [11, 12, 1, 2, 3].
+        psl_variable (str, optional): The pressure level variable to be used for the time series. Defaults to "msl".
+        freq (str, optional): The frequency of the data. Defaults to "Amon".
+        energy_df_path (str, optional): The path to the energy dataframe. Defaults to "/home/users/benhutch/unseen_multi_year/dfs/obs_df_NDJFM_wind_demand_1960-2018_dnw.csv".
+        ERA5_regrid_path (str, optional): The path to the regridded ERA5 data. Defaults to "/gws/nopw/j04/canari/users/benhutch/ERA5/global_regrid_sel_region_psl.nc".
+        azores_grid (dict, optional): The grid boundaries for the Azores region. Defaults to {"lon1": -28, "lon2": -20, "lat1": 36, "lat2": 40}.
+        iceland_grid (dict, optional): The grid boundaries for the Iceland region. Defaults to {"lon1": -25, "lon2": -16, "lat1": 63, "lat2": 70}.
+
+    Returns:
+        None
+    """
+
+    # assert that the start date is formatted in the correct way
+    assert re.match(
+        r"\d{4}-\d{2}-\d{2}", start_date
+    ), f"Start date {start_date} not formatted correctly"
+
+    # assert that the end date is formatted in the correct way
+    assert re.match(
+        r"\d{4}-\d{2}-\d{2}", end_date
+    ), f"End date {end_date} not formatted correctly"
+
+    # extract the start year
+    start_year = int(start_date.split("-")[0])
+    end_year = int(end_date.split("-")[0])
+
+    # Set up the dictionary for the energy variables
+    energy_dict = {
+        "demand": "United_Kingdom_demand",
+        "wind": "total_gen",
+        "demand_net_wind": "demand_net_wind",
+    }
+
+    # assert that energy_variable is in ["demand", "wind", "demand_net_wind"]
+    assert energy_variable in [
+        "demand",
+        "wind",
+        "demand_net_wind",
+    ], f"Unknown energy variable {energy_variable}, must be in ['demand', 'wind', 'demand_net_wind']"
+
+    # Assert that the energy df path exists
+    assert os.path.exists(
+        energy_df_path
+    ), f"Cannot find the energy df path {energy_df_path}"
+
+    # assert that the ERA5 regrid path exists
+    assert os.path.exists(
+        ERA5_regrid_path
+    ), f"Cannot find the ERA5 regrid path {ERA5_regrid_path}"
+
+    # assert all of the months are integers
+    assert all(
+        isinstance(month, int) for month in months
+    ), f"months must all be integers, got {months}"
+
+    # Load the energy df
+    energy_df = pd.read_csv(energy_df_path)
+
+    # if "Unnamed: 0" in energy_df.columns:
+    if "Unnamed: 0" in energy_df.columns:
+        # Convert to datetime
+        energy_df["Unnamed: 0"] = pd.to_datetime(energy_df["Unnamed: 0"], format="%Y")
+
+        # Set as the index
+        energy_df.set_index("Unnamed: 0", inplace=True)
+
+        # strptime to just be the year
+        energy_df.index = energy_df.index.strftime("%Y")
+
+        # remove the name of the index
+        energy_df.index.name = None
+
+    # if start year and end year are both part of the index
+    if str(start_year) in energy_df.index and str(end_year) in energy_df.index:
+        # Subset the df to the start and end years
+        energy_df = energy_df.loc[str(start_year) : str(end_year)]
+    else:
+        raise ValueError(
+            f"Cannot find the start year {start_year} and end year {end_year} in the energy df"
+        )
+
+    # if the correct column for the specified energy variable is in the df
+    if energy_dict[energy_variable] in energy_df.columns:
+        # Subset the df to this column
+        energy_series = energy_df[energy_dict[energy_variable]]
+    else:
+        raise ValueError(
+            f"Cannot find the column {energy_dict[energy_variable]} in the energy df"
+        )
+
+    # Load the ERA5 regridded data
+    ds = xr.open_mfdataset(
+        ERA5_regrid_path,
+        chunks={"time": 10},
+        combine="by_coords",
+        parallel=False,
+        engine="netcdf4",
+        coords="minimal",
+    )
+
+    # If expver is present in the observations
+    if "expver" in ds.coords:
+        # Combine the first two expver variables
+        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))    
+
+    # if the variable is not in the ds
+    if psl_variable not in ds:
+        raise ValueError(f"Cannot find the variable {psl_variable} in the ds")
+
+    # subset the data to the months
+    ds = ds.sel(time=ds["time.month"].isin(months))
+
+    # Subset to the start and end dates
+    ds = ds.sel(time=slice(start_date, end_date))
+
+    # shift time back by int(months[-1]) and resample to take the annual mean
+    ds_shifted = ds.shift(time=-int(months[-1])).resample(time="A").mean()
+
+    # subset to the azores and iceland regions
+    ds_azores = ds_shifted.sel(
+        lat=slice(azores_grid["lat1"], azores_grid["lat2"]),
+        lon=slice(azores_grid["lon1"], azores_grid["lon2"]),
+    ).mean(dim=["lat", "lon"])
+    ds_iceland = ds_shifted.sel(
+        lat=slice(iceland_grid["lat1"], iceland_grid["lat2"]),
+        lon=slice(iceland_grid["lon1"], iceland_grid["lon2"]),
+    ).mean(dim=["lat", "lon"])
+
+    # calculate the NAO as the difference between the azores and iceland regions
+    nao = ds_azores - ds_iceland
+
+    # print the nao values
+    print(f"nao values: {nao.values}")
+
+    return None
 
 def main():
     """
@@ -3726,17 +3891,31 @@ def main():
     # title = "MSLP Anomalies for November 1965 to March 1966, member r2i1p1f2 HadGEM3-GC31-MM"
 
     # Set up the constsnats
-    title = "MSLP composites for the 95th percentile of demand-net-wind events, observations"
-    energy_variable = "demand_net_wind"
-    percentile = 0.95
+    # title = "MSLP composites for the 95th percentile of demand-net-wind events, observations"
+    # energy_variable = "demand_net_wind"
+    # percentile = 0.95
 
-    # Call the function
-    plot_composite_model(
+    # set up the constants
+    start_date = "1960-11-01"
+    end_date = "2019-03-31"
+    title = "Observed correlations between NDJFM NAO index and demand net wind, UK"
+    energy_variable = "demand_net_wind"
+
+    # call the functions
+    plot_nao_ts_obs(
+        start_date=start_date,
+        end_date=end_date,
         title=title,
         energy_variable=energy_variable,
-        percentile=percentile,
-        calc_anoms=True,
     )
+
+    # Call the function
+    # plot_composite_model(
+    #     title=title,
+    #     energy_variable=energy_variable,
+    #     percentile=percentile,
+    #     calc_anoms=True,
+    # )
 
     # # Call the function
     # plot_mslp_anoms_model(
