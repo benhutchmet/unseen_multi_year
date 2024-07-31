@@ -1183,6 +1183,7 @@ def plot_mslp_var_model(
     files_loc_path: str = "/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv",
     saved_clim_var_path: str = None,
     saved_clim_psl_path: str = None,
+    use_bc_fields: bool = False,
 ) -> None:
     """
     Grabs the MSLP anomalies, as well as surface variable (e.g. temp, wind)
@@ -1207,18 +1208,27 @@ def plot_mslp_var_model(
         files_loc_path (str, optional): The path to the file locations. Defaults to '/home/users/benhutch/unseen_multi_year/paths/paths_20240117T122513.csv'.
         saved_clim_var_path (str, optional): The path to the saved climatology for the variable. Defaults to None.
         saved_clim_psl_path (str, optional): The path to the saved climatology for the pressure variable. Defaults to None.
+        use_bc_fields (bool, optional): Whether to use the bias corrected fields. Defaults to False.
 
     Returns:
         None
     """
 
-    if not calc_anoms and (saved_clim_var_path is not None or saved_clim_psl_path is not None):
+    if not calc_anoms and (
+        saved_clim_var_path is not None or saved_clim_psl_path is not None
+    ):
         raise ValueError(
             "Cannot have saved_clim_var_path or saved_clim_psl_path if calc_anoms is False"
         )
-    
+
+    # if use_bc_fields is True
+    if use_bc_fields:
+        print("Only implemented for specific time period, not climatology")
+
     # assert that both saved paths are not none
-    assert saved_clim_var_path is not None and saved_clim_psl_path is not None, "Both saved paths must be provided"
+    assert (
+        saved_clim_var_path is not None and saved_clim_psl_path is not None
+    ), "Both saved paths must be provided"
 
     # exract the start year
     start_year = start_date[:4]
@@ -1279,6 +1289,7 @@ def plot_mslp_var_model(
     model_path_roots = [model_path_root_var, model_path_root_psl]
     variables = [sf_variable, psl_variable]
 
+    print("Using non-bias corrected fields directly from /badc/ archive")
     # create an empty list of files
     files_to_extract = []
 
@@ -1357,6 +1368,24 @@ def plot_mslp_var_model(
     # # set up a list of regrid cubes
     # regrid_cubes = [regrid_cube_var, regrid_cube_psl]
 
+    # if use the bias corrected fields
+    if use_bc_fields:
+        print(
+            "Quantifying the anomalies as the difference between the bc fields for a given period and non-bc climatology"
+        )
+
+        # Set ip the directory in which the files are stored
+        bc_files_dir = "/work/scratch-nopw2/benhutch/test_nc/"
+
+        # set up the lead
+        lead = 1
+        init = "1960-2018"
+
+        # Create the path
+        # sfcWind_bias_correction_HadGEM3-GC31-MM_lead1_month12_init1960-2018.nc
+        bc_path = os.path.join(bc_files_dir, f"{sf_variable}_bias_correction_{model}_*.nc")
+
+
     if calc_anoms and saved_clim_var_path is None and saved_clim_psl_path is None:
         print("Caculating the climatology for the model data")
 
@@ -1415,7 +1444,11 @@ def plot_mslp_var_model(
 
             # append the regrid_cube_clim to the clim_cubes
             clim_cubes.append(regrid_cube_clim)
-    elif calc_anoms and saved_clim_var_path is not None and saved_clim_psl_path is not None:
+    elif (
+        calc_anoms
+        and saved_clim_var_path is not None
+        and saved_clim_psl_path is not None
+    ):
         print("loading saved climatology")
 
         # load the saved climatology .npy file
@@ -1430,7 +1463,11 @@ def plot_mslp_var_model(
         # Calculate the anomalies
         field_var = regrid_cube_var.data - clim_cubes[0].data  # either temp or wind
         field_psl = (regrid_cube_psl.data - clim_cubes[1].data) / 100  # convert to hPa
-    elif calc_anoms and saved_clim_var_path is not None and saved_clim_psl_path is not None:
+    elif (
+        calc_anoms
+        and saved_clim_var_path is not None
+        and saved_clim_psl_path is not None
+    ):
         # Calculate the anomalies
         field_var = regrid_cube_var.data - climatology_var_array
         field_psl = (regrid_cube_psl.data - climatology_psl_array) / 100
@@ -3048,6 +3085,7 @@ def plot_composite_model(
 
     return None
 
+
 # plot composites with the surface variables
 def plot_composite_var_model(
     title: str,
@@ -3207,10 +3245,14 @@ def plot_composite_var_model(
     ]["path"].values[0]
 
     # assert that the model path exists
-    assert os.path.exists(model_path_var), f"Cannot find the model path {model_path_var}"
+    assert os.path.exists(
+        model_path_var
+    ), f"Cannot find the model path {model_path_var}"
 
     # extract the model path psl exists
-    assert os.path.exists(model_path_psl), f"Cannot find the model path {model_path_psl}"
+    assert os.path.exists(
+        model_path_psl
+    ), f"Cannot find the model path {model_path_psl}"
 
     # extract the model path root
     model_path_root_var = model_path_var.split("/")[1]
@@ -3225,7 +3267,9 @@ def plot_composite_var_model(
     list_files_lists = []
 
     # loop over the model paths
-    for model_path, model_path_root, variable in zip(model_paths, model_path_roots, variables):
+    for model_path, model_path_root, variable in zip(
+        model_paths, model_path_roots, variables
+    ):
         # set up an empty list of files
         files_list = []
 
@@ -3291,7 +3335,7 @@ def plot_composite_var_model(
 
             # append the ds to the list
             ds_comp_list.append(ds[variable])
-        
+
         # concatenate with a new time dimension using xarray
         ds_composite = xr.concat(ds_comp_list, dim="time")
 
@@ -3414,8 +3458,10 @@ def plot_composite_var_model(
 
     # if calc_anoms is True
     if calc_anoms:
-        field_var = (regridded_cubes[0].data - climatology_ds_list[0].data)
-        field_psl = (regridded_cubes[1].data - climatology_ds_list[1].data) / 100  # convert to hPa
+        field_var = regridded_cubes[0].data - climatology_ds_list[0].data
+        field_psl = (
+            regridded_cubes[1].data - climatology_ds_list[1].data
+        ) / 100  # convert to hPa
     else:
         field_var = regridded_cubes[0].data
         field_psl = regridded_cubes[1].data / 100
@@ -3673,9 +3719,10 @@ def plot_composite_var_model(
     ax.set_title(title, fontsize=12, weight="bold")
 
     # make plot look nice
-    plt.tight_layout()    
+    plt.tight_layout()
 
     return None
+
 
 # define a function for preprocessing
 def preprocess(
@@ -3765,6 +3812,7 @@ def set_integer_time_axis(
 
     xro[time_dim] = np.arange(offset, offset + xro[time_dim].size)
     return xro
+
 
 # Define a function which plots the time series for one of:
 # * Demand
@@ -3908,7 +3956,7 @@ def plot_nao_ts_obs(
     # If expver is present in the observations
     if "expver" in ds.coords:
         # Combine the first two expver variables
-        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))    
+        ds = ds.sel(expver=1).combine_first(ds.sel(expver=5))
 
     # if the variable is not in the ds
     if psl_variable not in ds:
@@ -3933,17 +3981,25 @@ def plot_nao_ts_obs(
     ).mean(dim=["lat", "lon"]) - ds_shifted.sel(
         lat=slice(azores_grid["lat1"], azores_grid["lat2"]),
         lon=slice(azores_grid["lon1"], azores_grid["lon2"]),
-    ).mean(dim=["lat", "lon"]).mean(dim="time")
+    ).mean(
+        dim=["lat", "lon"]
+    ).mean(
+        dim="time"
+    )
     ds_iceland = ds_shifted.sel(
         lat=slice(iceland_grid["lat1"], iceland_grid["lat2"]),
         lon=slice(iceland_grid["lon1"], iceland_grid["lon2"]),
     ).mean(dim=["lat", "lon"]) - ds_shifted.sel(
         lat=slice(iceland_grid["lat1"], iceland_grid["lat2"]),
         lon=slice(iceland_grid["lon1"], iceland_grid["lon2"]),
-    ).mean(dim=["lat", "lon"]).mean(dim="time")
+    ).mean(
+        dim=["lat", "lon"]
+    ).mean(
+        dim="time"
+    )
 
     # calculate the NAO as the difference between the azores and iceland regions
-    nao = (ds_azores - ds_iceland) / 100 # convert to hPa
+    nao = (ds_azores - ds_iceland) / 100  # convert to hPa
 
     # print the nao values
     print(f"nao values: {nao.values}")
@@ -3959,7 +4015,7 @@ def plot_nao_ts_obs(
 
     # extract the index
     index = energy_series.index.values
-    
+
     # # print the shape of the obs_nao
     # print(f"obs_nao shape: {obs_nao.shape}")
     # print(f"energy_var shape: {energy_var.shape}")
@@ -3983,7 +4039,9 @@ def plot_nao_ts_obs(
         index = index[:-1]
 
         # assert that the length of the obs_nao is equal to the length of the energy_var
-        assert len(obs_nao) == len(energy_var), "Lengths of obs_nao and energy_var not equal"
+        assert len(obs_nao) == len(
+            energy_var
+        ), "Lengths of obs_nao and energy_var not equal"
         assert len(obs_nao) == len(index), "Lengths of obs_nao and index not equal"
 
     # if standardise_ts is True
@@ -4011,14 +4069,12 @@ def plot_nao_ts_obs(
 
     # use pearsonr to calculate the r and p values
     r, p = pearsonr(obs_nao, energy_var)
-    
+
     # Include these values in a textbox
     ax.text(
         0.05,
         0.95,
-        (
-            f"r = {r:.2f} (p = {p:.2f})"
-        ),
+        (f"r = {r:.2f} (p = {p:.2f})"),
         transform=ax.transAxes,
         fontsize=10,
         verticalalignment="top",
@@ -4045,7 +4101,9 @@ def plot_nao_ts_obs(
 
         # find the 1 - percentile for the energy variable (if not wind)
         if energy_variable != "wind":
-            print(f"variable is not wind, calculating the {100 - percentile} percentile")
+            print(
+                f"variable is not wind, calculating the {100 - percentile} percentile"
+            )
 
             # print energy var min and max
             print(f"energy_var min: {energy_var.min()}")
@@ -4139,7 +4197,9 @@ def plot_nao_ts_obs(
     # if set_ylims is not None
     if set_ylims is not None:
         # assert that set_ylims is a list of ints
-        assert all(isinstance(ylim, int) for ylim in set_ylims), f"set_ylims must all be integers, got {set_ylims}"
+        assert all(
+            isinstance(ylim, int) for ylim in set_ylims
+        ), f"set_ylims must all be integers, got {set_ylims}"
 
         # set the y limits
         ax.set_ylim(set_ylims)
@@ -4157,6 +4217,7 @@ def plot_nao_ts_obs(
     ax.legend(loc="upper right")
 
     return None
+
 
 def main():
     """
