@@ -12,6 +12,9 @@ wget*.sh
 paths/*.csv
 *.status
 
+# Saved netcdf files
+saved_nc/*.nc
+
 # Distribution / packaging
 .Python
 build/
