@@ -14,6 +14,8 @@ paths/*.csv
 
 # Saved netcdf files
 saved_nc/*.nc
+power_system/*.nc
+power_system/*.parquet
 
 # Distribution / packaging
 .Python
