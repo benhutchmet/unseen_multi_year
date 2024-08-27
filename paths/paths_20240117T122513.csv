@@ -35,3 +35,4 @@ psl,Amon,dcppA-hindcast,NorCPM1,/work/scratch-nopw2/benhutch/psl/NorCPM1/global/
 sfcWind,day,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast
 tas,day,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast
 rsds,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/rsds/HadGEM3-GC31-MM/merged_files/
+psl,day,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast
