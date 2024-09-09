@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=sub-proc-unseen
 #SBATCH --partition=high-mem
-#SBATCH --mem=150000
+#SBATCH --mem=200000
 #SBATCH --time=1000:00
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/sub-proc-unseen-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/sub-proc-unseen-%A_%a.err
