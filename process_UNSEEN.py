@@ -171,14 +171,17 @@ def main():
             parallel=False,
         )
 
-        # Get the size of the model data in bytes
-        size_in_bytes = model_ds[args.variable].size * model_ds[args.variable].dtype.itemsize
+        # print that we have loaded the model data
+        print("Loaded the model data")
 
-        # Convert bytes to gigabytes
-        size_in_gb = size_in_bytes / (1024 ** 3)
+        # # Get the size of the model data in bytes
+        # size_in_bytes = model_ds[args.variable].size * model_ds[args.variable].dtype.itemsize
 
-        # Print the size
-        print(f"Model data size: {size_in_gb} GB")
+        # # Convert bytes to gigabytes
+        # size_in_gb = size_in_bytes / (1024 ** 3)
+
+        # # Print the size
+        # print(f"Model data size: {size_in_gb} GB")
 
         # Modify member coordiante before conbersion to iris
         model_ds['member'] = model_ds['member'].str[1:-6].astype(int)
@@ -202,14 +205,14 @@ def main():
             # Combine the first two expver variables
             obs_ds = obs_ds.sel(expver=1).combine_first(obs_ds.sel(expver=5))
 
-        # Get the size of the observed data in bytes
-        size_in_bytes = obs_ds[obs_var].size * obs_ds[obs_var].dtype.itemsize
+        # # Get the size of the observed data in bytes
+        # size_in_bytes = obs_ds[obs_var].size * obs_ds[obs_var].dtype.itemsize
 
-        # Convert bytes to gigabytes
-        size_in_gb = size_in_bytes / (1024 ** 3)
+        # # Convert bytes to gigabytes
+        # size_in_gb = size_in_bytes / (1024 ** 3)
 
-        # Print the size
-        print(f"Observed data size: {size_in_gb} GB")
+        # # Print the size
+        # print(f"Observed data size: {size_in_gb} GB")
 
         # convert to an iris cube
         obs_cube = obs_ds[obs_var].squeeze().to_iris()
