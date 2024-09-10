@@ -223,6 +223,10 @@ def main():
             # regrid the obs cube to the model cube
             obs_cube = obs_cube.regrid(model_cube, iris.analysis.Linear())
 
+        # make sure the cubes are correct in -180 to 180 lons
+        obs_cube = obs_cube.intersection(longitude=(-180, 180))
+        model_cube = model_cube.intersection(longitude=(-180, 180))
+
         # create the mask
         MASK_MATRIX = funcs.create_masked_matrix(
             country=args.country,
