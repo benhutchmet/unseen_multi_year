@@ -14,7 +14,7 @@ resulting plot to the output directory.
 Usage:
 ------
 
-    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014
+    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1
 
 Arguments:
 ----------
@@ -33,6 +33,11 @@ Arguments:
 
     --last_year: int
         The last year of the period (e.g. 2014).
+
+    --model_fcst_year: int
+        The forecast year of the model data to extract the season from (e.g.
+        for first NDJFM from s1960 initialization, set to 0). First complete 
+        ONDJFM season starts in 1961, so set to 1.
 
 Returns:
 --------
@@ -76,6 +81,7 @@ def main():
     parser.add_argument("--season", type=str, help="The season name (e.g. ONDJFM).")
     parser.add_argument("--first_year", type=int, help="The first year of the period (e.g. 1960).")
     parser.add_argument("--last_year", type=int, help="The last year of the period (e.g. 2014).")
+    parser.add_argument("--model_fcst_year", type=int, help="The forecast year of the model data to extract the season from (e.g. for first NDJFM from s1960 initialization, set to 0). First complete ONDJFM season starts in 1961, so set to 1.")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -86,6 +92,7 @@ def main():
     print(f"Season: {args.season}")
     print(f"First year: {args.first_year}")
     print(f"Last year: {args.last_year}")
+    print(f"Model forecast year: {args.model_fcst_year}")
 
     # if country contains a _
     # e.g. United_Kingdom
@@ -112,6 +119,8 @@ def main():
         months = [9, 10, 11]
     elif args.season == "ONDJFM":
         months = [10, 11, 12, 1, 2, 3]
+    elif args.season == "NDJFM":
+        months = [11, 12, 1, 2, 3]
     else:
         raise ValueError("Season not recognised")
 
@@ -119,6 +128,15 @@ def main():
     model = "HadGEM3-GC31-MM"
     experiment = "dcppA-hindcast"
     freq = "Amon"
+
+    # Depending on the model forecast year
+    # set the leads to extract from the model
+    if args.model_fcst_year == 0 and args.season == "NDJFM":
+        leads = [1, 2, 3, 4, 5]
+    elif args.model_fcst_year == 1 and args.season == "ONDJFM":
+        leads = [12, 13, 14, 15, 16, 17]
+    else:
+        raise ValueError("Model forecast year and season combination not recognised")
 
     # Set up the output directory for the dfs
     output_dir_dfs = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs"
@@ -361,7 +379,7 @@ def main():
             # subset to lead values [12, 13, 14, 15, 16, 17] and take the mean
             # first complete ONDJFM season
             # FIXME: Hardcoded for now
-            model_data = model_data[model_data['lead'].isin([12, 13, 14, 15, 16, 17])]
+            model_data = model_data[model_data['lead'].isin(leads)]
 
             mean_data = model_data['data'].mean()
 
@@ -398,7 +416,7 @@ def main():
         nboot=10000,
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_first_ONDJFM",
+        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}",
     )
 
     print("----------------")
