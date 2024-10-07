@@ -39,6 +39,13 @@ Arguments:
         for first NDJFM from s1960 initialization, set to 0). First complete 
         ONDJFM season starts in 1961, so set to 1.
 
+    --lead_years: int
+        The specific initialization year to extract the model data from.
+        Default is 9999, which means all initialization years are extracted.
+        1 will only extract the first lead year
+        10 will only extract the 10th lead year
+        1-10 will extract the first 10 lead years.
+
 Returns:
 --------
 
@@ -82,6 +89,7 @@ def main():
     parser.add_argument("--first_year", type=int, help="The first year of the period (e.g. 1960).")
     parser.add_argument("--last_year", type=int, help="The last year of the period (e.g. 2014).")
     parser.add_argument("--model_fcst_year", type=int, help="The forecast year of the model data to extract the season from (e.g. for first NDJFM from s1960 initialization, set to 0). First complete ONDJFM season starts in 1961, so set to 1.")
+    parser.add_argument("--lead_year", type=str, default="9999", help="The specific initialization year to extract the model data from. Default is '9999', which means all initialization years are extracted.")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -93,6 +101,7 @@ def main():
     print(f"First year: {args.first_year}")
     print(f"Last year: {args.last_year}")
     print(f"Model forecast year: {args.model_fcst_year}")
+    print(f"Lead year: {args.lead_year}")
 
     # if country contains a _
     # e.g. United_Kingdom
@@ -132,9 +141,9 @@ def main():
     # Depending on the model forecast year
     # set the leads to extract from the model
     if args.model_fcst_year == 0 and args.season == "NDJFM":
-        leads = [1, 2, 3, 4, 5]
+        lead_months = [1, 2, 3, 4, 5]
     elif args.model_fcst_year == 1 and args.season == "ONDJFM":
-        leads = [12, 13, 14, 15, 16, 17]
+        lead_months = [12, 13, 14, 15, 16, 17]
     else:
         raise ValueError("Model forecast year and season combination not recognised")
 
@@ -370,29 +379,97 @@ def main():
     # create a new model df for subsetting to first ONDJFM
     model_df_ondjfm = pd.DataFrame()
 
+    # turn leads into a list of ints
+    if args.lead_year != "9999":
+        if "-" in args.lead_year:
+            leads = list(range(int(args.lead_year.split("-")[0]), int(args.lead_year.split("-")[1]) + 1))
+        else:
+            leads = [int(args.lead_year)]
+
+        # print the leads to extract
+        print(f"Leads to extract: {leads}")
+    elif args.lead_year == "9999":
+        # Set up the leads to extract list range 1-10
+        leads = list(range(1, 11))
+    else:
+        raise ValueError("Lead year not recognised")
+
+    # print the leads
+    print("leads:", leads)
+
+    # print the len of lead months
+    print("lead months length:", len(lead_months))
+
     # loop over the unique init years and members in model_df
     for init_year in model_df['init_year'].unique():
         for member in model_df['member'].unique():
-            # extract the model data
-            model_data = model_df[(model_df['init_year'] == init_year) & (model_df['member'] == member)]
+            for l in leads:
+                # extract the model data
+                model_data = model_df[(model_df['init_year'] == init_year) & (model_df['member'] == member)]
 
-            # subset to lead values [12, 13, 14, 15, 16, 17] and take the mean
-            # first complete ONDJFM season
-            # FIXME: Hardcoded for now
-            model_data = model_data[model_data['lead'].isin(leads)]
+                # create the list of lead months to extract
+                lead_months_year_base = [l * lead_months[0] for lm in lead_months]
 
-            mean_data = model_data['data'].mean()
+                # # print the lead months year base
+                # print("lead months year base:", lead_months_year_base)
 
-            # create a dataframe this
-            model_data_this = pd.DataFrame(
-                {
-                    'init_year': [init_year],
-                    'member': [member],
-                    'data': [mean_data]
-                }
-            )
+                # create the list of lead months to extract
+                for i in range(len(lead_months_year_base)):
+                    lead_months_year_base[i] = lead_months_year_base[i] + i
 
-            model_df_ondjfm = pd.concat([model_df_ondjfm, model_data_this])
+                # # print the lead months year base
+                # print("lead months year base:", lead_months_year_base)
+
+                # subset to lead values [12, 13, 14, 15, 16, 17] and take the mean
+                # first complete ONDJFM season
+                # FIXME: Hardcoded for now
+                model_data = model_data[model_data['lead'].isin(lead_months_year_base)]
+
+                mean_data = model_data['data'].mean()
+
+                # create a dataframe this
+                model_data_this = pd.DataFrame(
+                    {
+                        'init_year': [init_year],
+                        'member': [member],
+                        'lead': [l],
+                        'data': [mean_data]
+                    }
+                )
+
+                model_df_ondjfm = pd.concat([model_df_ondjfm, model_data_this])
+
+    # print the head of the model df
+    print(model_df_ondjfm.head())
+
+    # print the tail of the model df
+    print(model_df_ondjfm.tail())
+
+    # print the shape of the model df
+    print(model_df_ondjfm.shape)
+
+    # if the args.lead_year is not 9999 
+    if args.lead_year != "9999":
+        if "-" in args.lead_year:
+            # subset to the range of lead years
+            model_df_ondjfm = model_df_ondjfm[model_df_ondjfm['lead'].isin(leads)]
+        elif args.lead_year.isdigit():
+            # subset to the lead year
+            model_df_ondjfm = model_df_ondjfm[model_df_ondjfm['lead'] == int(args.lead_year)]
+
+    # print the head of the model df
+    print(model_df_ondjfm.head())
+
+    # print the tail of the model df
+    print(model_df_ondjfm.tail())
+
+    # print the shape of the model df
+    print(model_df_ondjfm.shape)
+
+    # # if the init_year is not 9999
+    # if args.lead_year != 9999:
+    #     # subset to the init year
+    #     model_df_ondjfm = model_df_ondjfm[model_df_ondjfm['init_year'] == args.lea
 
     # # print the head of the model df
     # print(model_df_ondjfm.head())
@@ -416,7 +493,7 @@ def main():
         nboot=10000,
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}",
+        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
     )
 
     print("----------------")
@@ -424,6 +501,10 @@ def main():
     print(f"Time taken to load model data: {time.time() - start}")
     print("----------------")
     print("Script complete")
+
+    print("----------------")
+    print("exiting")
+    sys.exit()
 
 # Run the main function
 if __name__ == "__main__":
