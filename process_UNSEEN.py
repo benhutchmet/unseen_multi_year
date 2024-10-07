@@ -489,12 +489,27 @@ def main():
         obs_time_name="time",
         model_time_name="init_year",
         model_member_name="member",
-        model_lead_name=None,
+        model_lead_name="lead",
         nboot=10000,
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
         fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
     )
+
+    # if "-" in args.lead_year:
+    if "-" in args.lead_year:
+        # print that we are plotting the stability
+        print("Plotting the stability for multiple leads")
+
+        # Call the function
+        funcs.stability_density(
+            ensemble=model_df_ondjfm,
+            var_name="data",
+            label=args.variable,
+            cmap="Blues",
+            lead_name="lead",
+            fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+        )
 
     print("----------------")
     # print the amount of time taken
