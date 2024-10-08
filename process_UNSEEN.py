@@ -480,21 +480,21 @@ def main():
     # # print the shape of the model df
     # print(model_df_ondjfm.shape)
 
-    # plot the fidelity testing
-    funcs.plot_fidelity(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name="obs",
-        model_val_name="data",
-        obs_time_name="time",
-        model_time_name="init_year",
-        model_member_name="member",
-        model_lead_name="lead",
-        nboot=10000,
-        figsize=(10, 8),
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-    )
+    # # plot the fidelity testing
+    # funcs.plot_fidelity(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name="obs",
+    #     model_val_name="data",
+    #     obs_time_name="time",
+    #     model_time_name="init_year",
+    #     model_member_name="member",
+    #     model_lead_name="lead",
+    #     nboot=10000,
+    #     figsize=(10, 8),
+    #     save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+    #     fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+    # )
 
     # if "-" in args.lead_year:
     if "-" in args.lead_year:
@@ -509,6 +509,15 @@ def main():
             cmap="Blues",
             lead_name="lead",
             fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+        )
+
+        # Call the function for the stability as boxplots
+        funcs.plot_stability_boxplots(
+            ensemble=model_df_ondjfm,
+            var_name="data",
+            label=args.variable,
+            lead_name="lead",
+            fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
         )
 
     print("----------------")
