@@ -1165,9 +1165,10 @@ def plot_mslp_anoms_model(
 
 # define a function for plotting the temp and wind speed for the model data
 def plot_mslp_var_model(
-    start_date: str,
-    end_date: str,
-    member: str,
+    init_year: int,
+    months: list,
+    lead_year: int,
+    member: int,
     title: str,
     sf_variable: str,
     psl_variable: str = "psl",
@@ -1190,9 +1191,10 @@ def plot_mslp_var_model(
     data for a given period of interest and plots them.
 
     Args:
-        start_date (str): The start date of the period of interest in the format 'YYYY-MM-DD'.
-        end_date (str): The end date of the period of interest in the format 'YYYY-MM-DD'.
+        init_year (int): The initial year of the period of interest.
+        months (list): The months of interest.
         member (str): The member of the ensemble to plot.
+        lead_year (int): The lead year of the period of interest.
         title (str): The title of the plot.
         sf_variable (str): The surface variable to plot (e.g. 'temp', 'wind').
         psl_variable (str, optional): The pressure variable to use. Defaults to 'psl'.
@@ -1225,18 +1227,18 @@ def plot_mslp_var_model(
     if use_bc_fields:
         print("Only implemented for specific time period, not climatology")
 
-    # assert that both saved paths are not none
-    assert (
-        saved_clim_var_path is not None and saved_clim_psl_path is not None
-    ), "Both saved paths must be provided"
+    # # assert that both saved paths are not none
+    # assert (
+    #     saved_clim_var_path is not None and saved_clim_psl_path is not None
+    # ), "Both saved paths must be provided"
 
     # exract the start year
-    start_year = start_date[:4]
-    end_year = end_date[:4]
+    # start_year = start_date[:4]
+    # end_year = end_date[:4]
 
-    # print the start and end years
-    print(f"start year: {start_year}")
-    print(f"end year: {end_year}")
+    # # print the start and end years
+    # print(f"start year: {start_year}")
+    # print(f"end year: {end_year}")
 
     # Check that the csv file exists
     if not os.path.exists(files_loc_path):
@@ -1302,7 +1304,7 @@ def plot_mslp_var_model(
             raise NotImplementedError("work path not implemented yet")
         elif model_path_root == "gws":
             # Create the path
-            path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{start_year}-r{member}i*_*_{start_year}??-*.nc"
+            path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{init_year}-r{member}i*_*_{init_year}??-*.nc"
 
             # print the path
             print(f"path: {path}")
@@ -1338,6 +1340,14 @@ def plot_mslp_var_model(
     # regrid the model data to the obs grid
     regrid_cube_var = cube_var.regrid(obs, iris.analysis.Linear())
     regrid_cube_psl = cube_psl.regrid(obs, iris.analysis.Linear())
+
+    # if the months are ONDJFM
+    if months == [10, 11, 12, 1, 2, 3]:
+        # set up the start and end dates
+        start_date = f"{init_year + lead_year}-10-01"
+        end_date = f"{init_year + lead_year + 1}-03-30"
+    else:
+        raise ValueError("Only implemented for ONDJFM")
 
     # convert the YYYY-MM-DD to cftime objects
     start_date_cf = cftime.datetime.strptime(start_date, "%Y-%m-%d", calendar="360_day")
@@ -1415,7 +1425,7 @@ def plot_mslp_var_model(
                     f"{year}-{start_date[5:10]}", "%Y-%m-%d", calendar="360_day"
                 )
                 end_date_this = cftime.datetime.strptime(
-                    f"{year + 1}-{end_date[5:10]}", "%Y-%m-%d", calendar="360_day"
+                    f"{year + 10}-{end_date[5:10]}", "%Y-%m-%d", calendar="360_day"
                 )
 
                 # slice between the start date and end date
@@ -1572,7 +1582,7 @@ def plot_mslp_var_model(
             ticks_var = clevs_var
 
             # set up the cmap
-            cmap = "PRGn_r"
+            cmap = "PRGn"
 
             # set the cbar label
             cbar_label = "10m wind speed (m/s)"
