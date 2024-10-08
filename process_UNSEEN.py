@@ -508,6 +508,7 @@ def main():
             label=args.variable,
             cmap="Blues",
             lead_name="lead",
+            fig_size=(6, 6),
             fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
         )
 
@@ -517,6 +518,7 @@ def main():
             var_name="data",
             label=args.variable,
             lead_name="lead",
+            fig_size=(6, 6),
             fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
         )
 
