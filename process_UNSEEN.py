@@ -460,8 +460,14 @@ def main():
     # print the head of the model df
     print(model_df_ondjfm.head())
 
-    # print the tail of the model df
-    print(model_df_ondjfm.tail())
+    # # print the tail of the model df
+    # print(model_df_ondjfm.tail())
+
+    # print the shape of the model df
+    print(model_df_ondjfm.shape)
+
+    # print the head of the obs df
+    print(obs_df.head())
 
     # print the shape of the model df
     print(model_df_ondjfm.shape)
@@ -480,21 +486,43 @@ def main():
     # # print the shape of the model df
     # print(model_df_ondjfm.shape)
 
+    # Plot the distributions
+    funcs.plot_distribution(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
+        obs_val_name="obs",
+        model_val_name="data",
+        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+    )
+
+
+    print("----------------")
+    # print the amount of time taken
+    print(f"Time taken to load model data: {time.time() - start}")
+    print("----------------")
+    print("Script complete")
+
+    print("----------------")
+    print("exiting")
+    sys.exit()
+
     # # plot the fidelity testing
-    # funcs.plot_fidelity(
-    #     obs_df=obs_df,
-    #     model_df=model_df_ondjfm,
-    #     obs_val_name="obs",
-    #     model_val_name="data",
-    #     obs_time_name="time",
-    #     model_time_name="init_year",
-    #     model_member_name="member",
-    #     model_lead_name="lead",
-    #     nboot=10000,
-    #     figsize=(10, 8),
-    #     save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-    #     fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-    # )
+    funcs.plot_fidelity(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name="obs",
+        model_val_name="data",
+        obs_time_name="time",
+        model_time_name="init_year",
+        model_member_name="member",
+        model_lead_name="lead",
+        nboot=10000,
+        figsize=(10, 8),
+        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+    )
 
     # if "-" in args.lead_year:
     if "-" in args.lead_year:
@@ -521,16 +549,6 @@ def main():
             fig_size=(6, 6),
             fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
         )
-
-    print("----------------")
-    # print the amount of time taken
-    print(f"Time taken to load model data: {time.time() - start}")
-    print("----------------")
-    print("Script complete")
-
-    print("----------------")
-    print("exiting")
-    sys.exit()
 
 # Run the main function
 if __name__ == "__main__":

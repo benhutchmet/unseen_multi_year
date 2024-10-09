@@ -762,9 +762,10 @@ def plot_mslp_anoms_temp_wind_obs(
 
 # Write a function which does the same, but for the model data
 def plot_mslp_anoms_model(
-    start_date: str,
-    end_date: str,
-    member: str,
+    init_year: int,
+    months: list,
+    lead_year: int,
+    member: int,
     title: str,
     model: str = "HadGEM3-GC31-MM",
     variable: str = "psl",
@@ -848,19 +849,19 @@ def plot_mslp_anoms_model(
     # /gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/HadGEM3-GC31-MM/psl_Amon_HadGEM3-GC31-MM_dcppA-hindcast_s1965-r2i1_gn_196511-197603.nc
 
     # Extract the year from the start and end dates
-    start_year = start_date[:4]
-    end_year = end_date[:4]
+    # start_year = start_date[:4]
+    # end_year = end_date[:4]
 
-    # print the start and end years
-    print(f"start year: {start_year}")
-    print(f"end year: {end_year}")
+    # # print the start and end years
+    # print(f"start year: {start_year}")
+    # print(f"end year: {end_year}")
 
     # depending on the model_path_root
     if model_path_root == "work":
         raise NotImplementedError("work path not implemented yet")
     elif model_path_root == "gws":
         # Create the path
-        path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{start_year}-r{member}i*_*_{start_year}??-*.nc"
+        path = f"{model_path}/{variable}_{freq}_{model}_{experiment}_s{init_year}-r{member}i*_*_{init_year}??-*.nc"
 
         # print the path
         print(f"path: {path}")
@@ -902,6 +903,14 @@ def plot_mslp_anoms_model(
 
     # # print the regridded cube
     # print(f"regridded cube: {regrid_cube}")
+
+    # if the months are ONDJFM
+    if months == [10, 11, 12, 1, 2, 3]:
+        # set up the start and end dates
+        start_date = f"{init_year + lead_year}-10-01"
+        end_date = f"{init_year + lead_year + 1}-03-30"
+    else:
+        raise ValueError("Only implemented for ONDJFM")
 
     # convert the YYYY-MM-DD to cftime objects
     start_date_cf = cftime.datetime.strptime(start_date, "%Y-%m-%d", calendar="360_day")
@@ -957,8 +966,10 @@ def plot_mslp_anoms_model(
             start_date_this = cftime.datetime.strptime(
                 f"{year}-{start_date[5:10]}", "%Y-%m-%d", calendar="360_day"
             )
+
+            # Use all of the lead years
             end_date_this = cftime.datetime.strptime(
-                f"{year + 1}-{end_date[5:10]}", "%Y-%m-%d", calendar="360_day"
+                f"{year + 10}-{end_date[5:10]}", "%Y-%m-%d", calendar="360_day"
             )
 
             # Slice between the start date and end date and take the mean
