@@ -490,6 +490,7 @@ def main():
     funcs.plot_distribution(
         obs_df=obs_df,
         model_df=model_df_ondjfm,
+        nbins=30,
         title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
         obs_val_name="obs",
         model_val_name="data",
