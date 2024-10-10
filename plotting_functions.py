@@ -588,7 +588,7 @@ def plot_mslp_anoms_temp_wind_obs(
             ticks_var = clevs_var
 
             # set up the cmap
-            cmap = "PRGn_r"
+            cmap = "PRGn"
 
             # set the cbar label
             cbar_label = "10m wind speed (m/s)"
