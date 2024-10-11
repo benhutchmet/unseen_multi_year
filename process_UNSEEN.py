@@ -14,7 +14,7 @@ resulting plot to the output directory.
 Usage:
 ------
 
-    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True
+    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True --bias_correct None
 
 Arguments:
 ----------
@@ -49,6 +49,10 @@ Arguments:
     --detrend: bool
         Whether to detrend the data before performing the fidelity testing.
         Default is True.
+
+    --bias_correct: str
+        Whether to bias correct the data before performing the fidelity testing.
+        Default is None.
 
 Returns:
 --------
@@ -95,6 +99,7 @@ def main():
     parser.add_argument("--model_fcst_year", type=int, help="The forecast year of the model data to extract the season from (e.g. for first NDJFM from s1960 initialization, set to 0). First complete ONDJFM season starts in 1961, so set to 1.")
     parser.add_argument("--lead_year", type=str, default="9999", help="The specific initialization year to extract the model data from. Default is '9999', which means all initialization years are extracted.")
     parser.add_argument("--detrend", type=str, default="false", help="Whether to detrend the data before performing the fidelity testing. Default is True.")
+    parser.add_argument("--bias_correct", type=str, default="None", help="Whether to bias correct the data before performing the fidelity testing. Default is None.")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -108,6 +113,7 @@ def main():
     print(f"Model forecast year: {args.model_fcst_year}")
     print(f"Lead year: {args.lead_year}")
     print(f"Detrend: {args.detrend}")
+    print(f"Bias correct: {args.bias_correct}")
 
     # turn the detrend into a boolean
     if args.detrend.lower() == "true":
@@ -501,8 +507,8 @@ def main():
     # print(model_df_ondjfm.shape)
 
     # if the detrend is True
-    if args.detrend:
-        print("Detrending the data")
+    if args.detrend and args.bias_correct == "None":
+        print("Detrending the data, no bias correction")
 
         # apply the function to detrend the data
         obs_df, model_df_ondjfm = funcs.apply_detrend(
@@ -516,96 +522,118 @@ def main():
             model_lead_name="lead",
         )
 
-        # Plot the detrended distribution
-        funcs.plot_distribution(
-            obs_df=obs_df,
-            model_df=model_df_ondjfm,
-            xlabel="Temperature (K)",
-            nbins=30,
-            title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year} (Detrended)",
-            obs_val_name="obs_dt", # Use the detrended data
-            model_val_name="data_dt", # Use the detrended data
-            fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
-            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        )
+        # Set up the name for the obs val name
+        obs_val_name = "obs_dt"
+        model_val_name = "data_dt"
+    elif args.bias_correct != "None" and not args.detrend:
+        print("Bias correcting the data, no detrending")
 
-        # plot the fidelity testing
-        funcs.plot_fidelity(
-            obs_df=obs_df,
-            model_df=model_df_ondjfm,
-            obs_val_name="obs_dt",
-            model_val_name="data_dt",
-            obs_time_name="time",
-            model_time_name="init_year",
-            model_member_name="member",
-            model_lead_name="lead",
-            nboot=10000,
-            figsize=(10, 8),
-            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-            fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
-        )
+        # if the bias correction is linear_scaling
+        if args.bias_correct == "linear_scaling":
+            # apply the function to bias correct the data
+            model_df_ondjfm = funcs.bc_linear_scaling(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs",
+                model_val_name="data",
+            )
+        else:
+            print(f"Bias correction method {args.bias_correct} not recognised")
 
-        # plot the extreme events for the given variable
-        funcs.plot_events_ts(
-            obs_df=obs_df,
-            model_df=model_df_ondjfm,
-            obs_val_name="obs_dt",
-            model_val_name="data_dt",
-            ylabel="Temperature (C, detrended)",
-            obs_time_name="time",
-            model_time_name="init_year",
-            delta_shift_bias=False,
-            do_detrend=False,
-            figsize=(12, 6),
-            fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended"
-        )
+        # Set up the name for the obs val name
+        obs_val_name = "obs"
+        model_val_name = "data_bc"
+    elif args.bias_correct != "None" and args.detrend:
+        print("Bias correcting the data and detrending")
 
+        if args.bias_correct == "linear_scaling":
+
+            # apply the function to detrend the data
+            obs_df, model_df_ondjfm = funcs.apply_detrend(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs",
+                model_val_name="data",
+                obs_time_name="time",
+                model_time_name="init_year",
+                model_member_name="member",
+                model_lead_name="lead",
+            )
+
+            # apply the function to bias correct the data
+            model_df_ondjfm = funcs.bc_linear_scaling(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs_dt",
+                model_val_name="data_dt",
+            )
+
+            # print the mean of model data
+            print("Mean of model data after detrending:", model_df_ondjfm["data_dt_bc"].mean())
+
+            # print the mean of obs data
+            print("Mean of obs data after detrending:", obs_df["obs_dt"].mean())
+
+            # Set up the name for the obs val name
+            obs_val_name = "obs_dt"
+            model_val_name = "data_dt_bc"
     else:
-        print("No detrending applied")
+        obs_val_name = "obs"
+        model_val_name = "data"
 
-        # Plot the distributions
-        funcs.plot_distribution(
-            obs_df=obs_df,
-            model_df=model_df_ondjfm,
-            xlabel="Temperature (K)",
-            nbins=30,
-            title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
-            obs_val_name="obs",
-            model_val_name="data",
-            fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        )
+    # assert that the obs_val_name exists in the obs_df
+    assert obs_val_name in obs_df.columns, f"{obs_val_name} not in obs_df columns"
+    assert model_val_name in model_df_ondjfm.columns, f"{model_val_name} not in model_df_ondjfm columns"
 
-        # plot the fidelity testing
-        funcs.plot_fidelity(
-            obs_df=obs_df,
-            model_df=model_df_ondjfm,
-            obs_val_name="obs",
-            model_val_name="data",
-            obs_time_name="time",
-            model_time_name="init_year",
-            model_member_name="member",
-            model_lead_name="lead",
-            nboot=10000,
-            figsize=(10, 8),
-            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-            fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-        )
+    # print the obs val name being used
+    print("----------------")
+    print(f"Obs val name: {obs_val_name}")
+    print(f"Model val name: {model_val_name}")
+    print("----------------")
 
-        # plot the extreme events for the given variable
-        funcs.plot_events_ts(
-            obs_df=obs_df,
-            model_df=model_df_ondjfm,
-            obs_val_name="obs",
-            model_val_name="data",
-            ylabel="Temperature (C)",
-            obs_time_name="time",
-            model_time_name="init_year",
-            delta_shift_bias=False,
-            do_detrend=False,
-            figsize=(12, 6),
-            fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}"
-        )
+    # Plot the distributions
+    funcs.plot_distribution(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        xlabel="Temperature (K)",
+        nbins=30,
+        title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}",
+        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+    )
+
+    # plot the fidelity testing
+    funcs.plot_fidelity(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        obs_time_name="time",
+        model_time_name="init_year",
+        model_member_name="member",
+        model_lead_name="lead",
+        nboot=10000,
+        figsize=(10, 8),
+        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}",
+    )
+
+    # plot the extreme events for the given variable
+    funcs.plot_events_ts(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        ylabel="Temperature (C)",
+        obs_time_name="time",
+        model_time_name="init_year",
+        delta_shift_bias=False,
+        do_detrend=False,
+        figsize=(12, 6),
+        fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}",
+    )
 
 
     # if "-" in args.lead_year:
@@ -613,48 +641,26 @@ def main():
         # print that we are plotting the stability
         print("Plotting the stability for multiple leads")
 
-        if not args.detrend:
-            # Call the function
-            funcs.stability_density(
-                ensemble=model_df_ondjfm,
-                var_name="data",
-                label=args.variable,
-                cmap="Blues",
-                lead_name="lead",
-                fig_size=(6, 6),
-                fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-            )
+        # Call the function
+        funcs.stability_density(
+            ensemble=model_df_ondjfm,
+            var_name=model_val_name,
+            label=args.variable,
+            cmap="Blues",
+            lead_name="lead",
+            fig_size=(6, 6),
+            fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}",
+        )
 
-            # Call the function for the stability as boxplots
-            funcs.plot_stability_boxplots(
-                ensemble=model_df_ondjfm,
-                var_name="data",
-                label=args.variable,
-                lead_name="lead",
-                fig_size=(6, 6),
-                fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-            )
-        else:
-            # Call the function
-            funcs.stability_density(
-                ensemble=model_df_ondjfm,
-                var_name="data_dt",
-                label=args.variable,
-                cmap="Blues",
-                lead_name="lead",
-                fig_size=(6, 6),
-                fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
-            )
-
-            # Call the function for the stability as boxplots
-            funcs.plot_stability_boxplots(
-                ensemble=model_df_ondjfm,
-                var_name="data_dt",
-                label=args.variable,
-                lead_name="lead",
-                fig_size=(6, 6),
-                fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
-            )
+        # Call the function for the stability as boxplots
+        funcs.plot_stability_boxplots(
+            ensemble=model_df_ondjfm,
+            var_name=model_val_name,
+            label=args.variable,
+            lead_name="lead",
+            fig_size=(6, 6),
+            fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}",
+        )
 
     print("----------------")
     # print the amount of time taken
