@@ -14,7 +14,7 @@ resulting plot to the output directory.
 Usage:
 ------
 
-    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1
+    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True
 
 Arguments:
 ----------
@@ -45,6 +45,10 @@ Arguments:
         1 will only extract the first lead year
         10 will only extract the 10th lead year
         1-10 will extract the first 10 lead years.
+
+    --detrend: bool
+        Whether to detrend the data before performing the fidelity testing.
+        Default is True.
 
 Returns:
 --------
@@ -90,6 +94,7 @@ def main():
     parser.add_argument("--last_year", type=int, help="The last year of the period (e.g. 2014).")
     parser.add_argument("--model_fcst_year", type=int, help="The forecast year of the model data to extract the season from (e.g. for first NDJFM from s1960 initialization, set to 0). First complete ONDJFM season starts in 1961, so set to 1.")
     parser.add_argument("--lead_year", type=str, default="9999", help="The specific initialization year to extract the model data from. Default is '9999', which means all initialization years are extracted.")
+    parser.add_argument("--detrend", type=str, default="false", help="Whether to detrend the data before performing the fidelity testing. Default is True.")
 
     # Parse the arguments
     args = parser.parse_args()
@@ -102,6 +107,15 @@ def main():
     print(f"Last year: {args.last_year}")
     print(f"Model forecast year: {args.model_fcst_year}")
     print(f"Lead year: {args.lead_year}")
+    print(f"Detrend: {args.detrend}")
+
+    # turn the detrend into a boolean
+    if args.detrend.lower() == "true":
+        args.detrend = True
+    elif args.detrend.lower() == "false":
+        args.detrend = False
+    else:
+        raise ValueError("Detrend argument not recognised")
 
     # if country contains a _
     # e.g. United_Kingdom
@@ -486,18 +500,161 @@ def main():
     # # print the shape of the model df
     # print(model_df_ondjfm.shape)
 
-    # Plot the distributions
-    funcs.plot_distribution(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        nbins=30,
-        title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
-        obs_val_name="obs",
-        model_val_name="data",
-        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-    )
+    # if the detrend is True
+    if args.detrend:
+        print("Detrending the data")
 
+        # apply the function to detrend the data
+        obs_df, model_df_ondjfm = funcs.apply_detrend(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            obs_val_name="obs",
+            model_val_name="data",
+            obs_time_name="time",
+            model_time_name="init_year",
+            model_member_name="member",
+            model_lead_name="lead",
+        )
+
+        # Plot the detrended distribution
+        funcs.plot_distribution(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            xlabel="Temperature (K)",
+            nbins=30,
+            title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year} (Detrended)",
+            obs_val_name="obs_dt", # Use the detrended data
+            model_val_name="data_dt", # Use the detrended data
+            fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
+            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        )
+
+        # plot the fidelity testing
+        funcs.plot_fidelity(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            obs_val_name="obs_dt",
+            model_val_name="data_dt",
+            obs_time_name="time",
+            model_time_name="init_year",
+            model_member_name="member",
+            model_lead_name="lead",
+            nboot=10000,
+            figsize=(10, 8),
+            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+            fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
+        )
+
+        # plot the extreme events for the given variable
+        funcs.plot_events_ts(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            obs_val_name="obs_dt",
+            model_val_name="data_dt",
+            ylabel="Temperature (C, detrended)",
+            obs_time_name="time",
+            model_time_name="init_year",
+            delta_shift_bias=False,
+            do_detrend=False,
+            figsize=(12, 6),
+            fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended"
+        )
+
+    else:
+        print("No detrending applied")
+
+        # Plot the distributions
+        funcs.plot_distribution(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            xlabel="Temperature (K)",
+            nbins=30,
+            title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
+            obs_val_name="obs",
+            model_val_name="data",
+            fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        )
+
+        # plot the fidelity testing
+        funcs.plot_fidelity(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            obs_val_name="obs",
+            model_val_name="data",
+            obs_time_name="time",
+            model_time_name="init_year",
+            model_member_name="member",
+            model_lead_name="lead",
+            nboot=10000,
+            figsize=(10, 8),
+            save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+            fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+        )
+
+        # plot the extreme events for the given variable
+        funcs.plot_events_ts(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            obs_val_name="obs",
+            model_val_name="data",
+            ylabel="Temperature (C)",
+            obs_time_name="time",
+            model_time_name="init_year",
+            delta_shift_bias=False,
+            do_detrend=False,
+            figsize=(12, 6),
+            fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}"
+        )
+
+
+    # if "-" in args.lead_year:
+    if "-" in args.lead_year:
+        # print that we are plotting the stability
+        print("Plotting the stability for multiple leads")
+
+        if not args.detrend:
+            # Call the function
+            funcs.stability_density(
+                ensemble=model_df_ondjfm,
+                var_name="data",
+                label=args.variable,
+                cmap="Blues",
+                lead_name="lead",
+                fig_size=(6, 6),
+                fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+            )
+
+            # Call the function for the stability as boxplots
+            funcs.plot_stability_boxplots(
+                ensemble=model_df_ondjfm,
+                var_name="data",
+                label=args.variable,
+                lead_name="lead",
+                fig_size=(6, 6),
+                fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
+            )
+        else:
+            # Call the function
+            funcs.stability_density(
+                ensemble=model_df_ondjfm,
+                var_name="data_dt",
+                label=args.variable,
+                cmap="Blues",
+                lead_name="lead",
+                fig_size=(6, 6),
+                fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
+            )
+
+            # Call the function for the stability as boxplots
+            funcs.plot_stability_boxplots(
+                ensemble=model_df_ondjfm,
+                var_name="data_dt",
+                label=args.variable,
+                lead_name="lead",
+                fig_size=(6, 6),
+                fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_detrended",
+            )
 
     print("----------------")
     # print the amount of time taken
@@ -508,48 +665,6 @@ def main():
     print("----------------")
     print("exiting")
     sys.exit()
-
-    # # plot the fidelity testing
-    funcs.plot_fidelity(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name="obs",
-        model_val_name="data",
-        obs_time_name="time",
-        model_time_name="init_year",
-        model_member_name="member",
-        model_lead_name="lead",
-        nboot=10000,
-        figsize=(10, 8),
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-    )
-
-    # if "-" in args.lead_year:
-    if "-" in args.lead_year:
-        # print that we are plotting the stability
-        print("Plotting the stability for multiple leads")
-
-        # Call the function
-        funcs.stability_density(
-            ensemble=model_df_ondjfm,
-            var_name="data",
-            label=args.variable,
-            cmap="Blues",
-            lead_name="lead",
-            fig_size=(6, 6),
-            fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-        )
-
-        # Call the function for the stability as boxplots
-        funcs.plot_stability_boxplots(
-            ensemble=model_df_ondjfm,
-            var_name="data",
-            label=args.variable,
-            lead_name="lead",
-            fig_size=(6, 6),
-            fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}",
-        )
 
 # Run the main function
 if __name__ == "__main__":
