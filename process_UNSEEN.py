@@ -92,14 +92,39 @@ def main():
     # Set up the argument parser
     parser = argparse.ArgumentParser(description="Process UNSEEN data.")
     parser.add_argument("--variable", type=str, help="The variable name (e.g. tas).")
-    parser.add_argument("--country", type=str, help="The country name (e.g. United Kingdom).")
+    parser.add_argument(
+        "--country", type=str, help="The country name (e.g. United Kingdom)."
+    )
     parser.add_argument("--season", type=str, help="The season name (e.g. ONDJFM).")
-    parser.add_argument("--first_year", type=int, help="The first year of the period (e.g. 1960).")
-    parser.add_argument("--last_year", type=int, help="The last year of the period (e.g. 2014).")
-    parser.add_argument("--model_fcst_year", type=int, help="The forecast year of the model data to extract the season from (e.g. for first NDJFM from s1960 initialization, set to 0). First complete ONDJFM season starts in 1961, so set to 1.")
-    parser.add_argument("--lead_year", type=str, default="9999", help="The specific initialization year to extract the model data from. Default is '9999', which means all initialization years are extracted.")
-    parser.add_argument("--detrend", type=str, default="false", help="Whether to detrend the data before performing the fidelity testing. Default is True.")
-    parser.add_argument("--bias_correct", type=str, default="None", help="Whether to bias correct the data before performing the fidelity testing. Default is None.")
+    parser.add_argument(
+        "--first_year", type=int, help="The first year of the period (e.g. 1960)."
+    )
+    parser.add_argument(
+        "--last_year", type=int, help="The last year of the period (e.g. 2014)."
+    )
+    parser.add_argument(
+        "--model_fcst_year",
+        type=int,
+        help="The forecast year of the model data to extract the season from (e.g. for first NDJFM from s1960 initialization, set to 0). First complete ONDJFM season starts in 1961, so set to 1.",
+    )
+    parser.add_argument(
+        "--lead_year",
+        type=str,
+        default="9999",
+        help="The specific initialization year to extract the model data from. Default is '9999', which means all initialization years are extracted.",
+    )
+    parser.add_argument(
+        "--detrend",
+        type=str,
+        default="false",
+        help="Whether to detrend the data before performing the fidelity testing. Default is True.",
+    )
+    parser.add_argument(
+        "--bias_correct",
+        type=str,
+        default="None",
+        help="Whether to bias correct the data before performing the fidelity testing. Default is None.",
+    )
 
     # Parse the arguments
     args = parser.parse_args()
@@ -130,7 +155,12 @@ def main():
         args.country = args.country.replace("_", " ")
 
     # list of valid bias corrections
-    valid_bias_corrections = ["None", "linear_scaling", "variance_scaling"]
+    valid_bias_corrections = [
+        "None",
+        "linear_scaling",
+        "variance_scaling",
+        "quantile_mapping",
+    ]
 
     # if the bias correction is not in the valid bias corrections
     if args.bias_correct not in valid_bias_corrections:
@@ -143,7 +173,7 @@ def main():
         obs_var = "si10"
     else:
         raise ValueError("Variable not recognised")
-    
+
     # Set up the months depending on the season
     if args.season == "DJF":
         months = [12, 1, 2]
@@ -190,11 +220,11 @@ def main():
     # if the obs df exists and the model df exists
     if os.path.exists(obs_df_path) and os.path.exists(model_df_path):
         print("Loading the observed and model dfs")
-        
+
         # load the dfs
         obs_df = pd.read_csv(obs_df_path)
         model_df = pd.read_csv(model_df_path)
-        
+
         # print("Loaded the dfs")
         # print("----------------")
         # print("Script complete")
@@ -203,13 +233,15 @@ def main():
         # if the variable is tas
         if args.variable == "tas":
             # already regridded!
-            obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/t2m_ERA5_regrid_HadGEM.nc"
+            obs_path = (
+                "/gws/nopw/j04/canari/users/benhutch/ERA5/t2m_ERA5_regrid_HadGEM.nc"
+            )
         # if the variable is sfcWind
         elif args.variable == "sfcWind":
             # needs regridding
             obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/surface_wind_ERA5.nc"
         else:
-            raise ValueError("Variable not recognised") 
+            raise ValueError("Variable not recognised")
 
         # Load the model ensemble
         model_ds = funcs.load_model_data_xarray(
@@ -238,7 +270,7 @@ def main():
         # print(f"Model data size: {size_in_gb} GB")
 
         # Modify member coordiante before conbersion to iris
-        model_ds['member'] = model_ds['member'].str[1:-6].astype(int)
+        model_ds["member"] = model_ds["member"].str[1:-6].astype(int)
 
         # convert to an iris cube
         model_cube = model_ds[args.variable].squeeze().to_iris()
@@ -252,7 +284,12 @@ def main():
         )
 
         # Restrict the time to the region we are interested in
-        obs_ds = obs_ds.sel(time=slice(f"{int(args.first_year)}-{months[0]}-01", f"{int(args.last_year) + 1}-{months[-1]}-31"))
+        obs_ds = obs_ds.sel(
+            time=slice(
+                f"{int(args.first_year)}-{months[0]}-01",
+                f"{int(args.last_year) + 1}-{months[-1]}-31",
+            )
+        )
 
         # If expver is present in the observations
         if "expver" in obs_ds.coords:
@@ -272,7 +309,11 @@ def main():
         obs_cube = obs_ds[obs_var].squeeze().to_iris()
 
         # if the lats and lons are not the same
-        if not model_cube.coord("latitude").shape == obs_cube.coord("latitude").shape or not model_cube.coord("longitude").shape == obs_cube.coord("longitude").shape:
+        if (
+            not model_cube.coord("latitude").shape == obs_cube.coord("latitude").shape
+            or not model_cube.coord("longitude").shape
+            == obs_cube.coord("longitude").shape
+        ):
             print("Regridding model data")
             # regrid the obs cube to the model cube
             obs_cube = obs_cube.regrid(model_cube, iris.analysis.Linear())
@@ -312,7 +353,9 @@ def main():
         obs_time_points = obs_cube.coord("time").points
 
         # convert to obs datetimes
-        obs_datetimes = [ref_time_obs + timedelta(hours=int(tp)) for tp in obs_time_points]
+        obs_datetimes = [
+            ref_time_obs + timedelta(hours=int(tp)) for tp in obs_time_points
+        ]
 
         # Set up a dataframe for the observations
         obs_df = pd.DataFrame(
@@ -336,14 +379,14 @@ def main():
                 for l, lead_time in enumerate(lead_times):
                     # get the model data
                     model_data = model_values[i, m, l]
-                    
+
                     # set up the model df this
                     model_df_this = pd.DataFrame(
                         {
-                            'init_year': [init_year],
-                            'member': [member],
-                            'lead': [lead_time],
-                            'data': [model_data],
+                            "init_year": [init_year],
+                            "member": [member],
+                            "lead": [lead_time],
+                            "data": [model_data],
                         },
                     )
 
@@ -373,7 +416,7 @@ def main():
     # constrain the obs df to only months 10, 11, 12, 1, 2, 3
     # esnure that the time is a datetime
     obs_df["time"] = pd.to_datetime(obs_df["time"])
-    
+
     # set the time as the index for the obs df
     obs_df.set_index("time", inplace=True)
 
@@ -409,7 +452,12 @@ def main():
     # turn leads into a list of ints
     if args.lead_year != "9999":
         if "-" in args.lead_year:
-            leads = list(range(int(args.lead_year.split("-")[0]), int(args.lead_year.split("-")[1]) + 1))
+            leads = list(
+                range(
+                    int(args.lead_year.split("-")[0]),
+                    int(args.lead_year.split("-")[1]) + 1,
+                )
+            )
         else:
             leads = [int(args.lead_year)]
 
@@ -428,11 +476,14 @@ def main():
     print("lead months length:", len(lead_months))
 
     # loop over the unique init years and members in model_df
-    for init_year in model_df['init_year'].unique():
-        for member in model_df['member'].unique():
+    for init_year in model_df["init_year"].unique():
+        for member in model_df["member"].unique():
             for l in leads:
                 # extract the model data
-                model_data = model_df[(model_df['init_year'] == init_year) & (model_df['member'] == member)]
+                model_data = model_df[
+                    (model_df["init_year"] == init_year)
+                    & (model_df["member"] == member)
+                ]
 
                 # create the list of lead months to extract
                 lead_months_year_base = [l * lead_months[0] for lm in lead_months]
@@ -450,17 +501,17 @@ def main():
                 # subset to lead values [12, 13, 14, 15, 16, 17] and take the mean
                 # first complete ONDJFM season
                 # FIXME: Hardcoded for now
-                model_data = model_data[model_data['lead'].isin(lead_months_year_base)]
+                model_data = model_data[model_data["lead"].isin(lead_months_year_base)]
 
-                mean_data = model_data['data'].mean()
+                mean_data = model_data["data"].mean()
 
                 # create a dataframe this
                 model_data_this = pd.DataFrame(
                     {
-                        'init_year': [init_year],
-                        'member': [member],
-                        'lead': [l],
-                        'data': [mean_data]
+                        "init_year": [init_year],
+                        "member": [member],
+                        "lead": [l],
+                        "data": [mean_data],
                     }
                 )
 
@@ -475,14 +526,16 @@ def main():
     # print the shape of the model df
     print(model_df_ondjfm.shape)
 
-    # if the args.lead_year is not 9999 
+    # if the args.lead_year is not 9999
     if args.lead_year != "9999":
         if "-" in args.lead_year:
             # subset to the range of lead years
-            model_df_ondjfm = model_df_ondjfm[model_df_ondjfm['lead'].isin(leads)]
+            model_df_ondjfm = model_df_ondjfm[model_df_ondjfm["lead"].isin(leads)]
         elif args.lead_year.isdigit():
             # subset to the lead year
-            model_df_ondjfm = model_df_ondjfm[model_df_ondjfm['lead'] == int(args.lead_year)]
+            model_df_ondjfm = model_df_ondjfm[
+                model_df_ondjfm["lead"] == int(args.lead_year)
+            ]
 
     # print the head of the model df
     print(model_df_ondjfm.head())
@@ -552,6 +605,16 @@ def main():
                 obs_val_name="obs",
                 model_val_name="data",
             )
+        elif args.bias_correct == "quantile_mapping":
+            # Plot the CDFs
+            funcs.bc_quantile_mapping(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs",
+                model_val_name="data",
+                save_prefix=f"quantile_mapping_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-obs_model-data_bc-{args.bias_correct}",
+                save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+            )
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
@@ -560,7 +623,16 @@ def main():
         model_val_name = "data_bc"
 
         # print the mean bias
-        print("Mean bias:", np.mean(model_df_ondjfm[model_val_name] - obs_df[obs_val_name]))
+        print(
+            "Mean bias:",
+            np.mean(model_df_ondjfm[model_val_name]) - np.mean(obs_df[obs_val_name]),
+        )
+
+        # print the spread bias
+        print(
+            "Spread bias:",
+            np.std(model_df_ondjfm[model_val_name]) - np.std(obs_df[obs_val_name]),
+        )
 
     elif args.bias_correct != "None" and args.detrend:
         print("Bias correcting the data and detrending")
@@ -583,7 +655,6 @@ def main():
         # # print the spread of the model data
         # print("Model data spread before bias correction:", np.std(model_df_ondjfm["data_dt"]))
 
-
         if args.bias_correct == "linear_scaling":
             # apply the function to bias correct the data
             model_df_ondjfm = funcs.bc_linear_scaling(
@@ -599,6 +670,16 @@ def main():
                 model_df=model_df_ondjfm,
                 obs_val_name="obs_dt",
                 model_val_name="data_dt",
+            )
+        elif args.bias_correct == "quantile_mapping":
+            # Plot the CDFs
+            funcs.bc_quantile_mapping(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs_dt",
+                model_val_name="data_dt",
+                save_prefix=f"quantile_mapping_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-obs_dt_model-data_dt_bc-{args.bias_correct}",
+                save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
             )
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
@@ -628,7 +709,9 @@ def main():
 
     # assert that the obs_val_name exists in the obs_df
     assert obs_val_name in obs_df.columns, f"{obs_val_name} not in obs_df columns"
-    assert model_val_name in model_df_ondjfm.columns, f"{model_val_name} not in model_df_ondjfm columns"
+    assert (
+        model_val_name in model_df_ondjfm.columns
+    ), f"{model_val_name} not in model_df_ondjfm columns"
 
     # print the obs val name being used
     print("----------------")
@@ -659,7 +742,7 @@ def main():
         model_time_name="init_year",
         model_member_name="member",
         model_lead_name="lead",
-        nboot=1000, # testing for speed
+        nboot=10000,
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
         fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
@@ -679,7 +762,6 @@ def main():
         figsize=(12, 6),
         fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
-
 
     # if "-" in args.lead_year:
     if "-" in args.lead_year:
@@ -716,6 +798,7 @@ def main():
     print("----------------")
     print("exiting")
     sys.exit()
+
 
 # Run the main function
 if __name__ == "__main__":
