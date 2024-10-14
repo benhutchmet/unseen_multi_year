@@ -129,6 +129,13 @@ def main():
     if "_" in args.country:
         args.country = args.country.replace("_", " ")
 
+    # list of valid bias corrections
+    valid_bias_corrections = ["None", "linear_scaling", "variance_scaling"]
+
+    # if the bias correction is not in the valid bias corrections
+    if args.bias_correct not in valid_bias_corrections:
+        raise ValueError(f"Bias correction {args.bias_correct} not recognised")
+
     # set up the obs variable depending on the variable
     if args.variable == "tas":
         obs_var = "t2m"
@@ -537,29 +544,47 @@ def main():
                 obs_val_name="obs",
                 model_val_name="data",
             )
+        elif args.bias_correct == "variance_scaling":
+            # apply the function to bias correct the data
+            model_df_ondjfm = funcs.bc_variance_scaling(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs",
+                model_val_name="data",
+            )
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
         # Set up the name for the obs val name
         obs_val_name = "obs"
         model_val_name = "data_bc"
+
+        # print the mean bias
+        print("Mean bias:", np.mean(model_df_ondjfm[model_val_name] - obs_df[obs_val_name]))
+
     elif args.bias_correct != "None" and args.detrend:
         print("Bias correcting the data and detrending")
 
+        # apply the function to detrend the data
+        obs_df, model_df_ondjfm = funcs.apply_detrend(
+            obs_df=obs_df,
+            model_df=model_df_ondjfm,
+            obs_val_name="obs",
+            model_val_name="data",
+            obs_time_name="time",
+            model_time_name="init_year",
+            model_member_name="member",
+            model_lead_name="lead",
+        )
+
+        # # print the mean of the model data
+        # print("Model data mean before bias correction:", np.mean(model_df_ondjfm["data_dt"]))
+
+        # # print the spread of the model data
+        # print("Model data spread before bias correction:", np.std(model_df_ondjfm["data_dt"]))
+
+
         if args.bias_correct == "linear_scaling":
-
-            # apply the function to detrend the data
-            obs_df, model_df_ondjfm = funcs.apply_detrend(
-                obs_df=obs_df,
-                model_df=model_df_ondjfm,
-                obs_val_name="obs",
-                model_val_name="data",
-                obs_time_name="time",
-                model_time_name="init_year",
-                model_member_name="member",
-                model_lead_name="lead",
-            )
-
             # apply the function to bias correct the data
             model_df_ondjfm = funcs.bc_linear_scaling(
                 obs_df=obs_df,
@@ -567,16 +592,36 @@ def main():
                 obs_val_name="obs_dt",
                 model_val_name="data_dt",
             )
+        elif args.bias_correct == "variance_scaling":
+            # apply the function to bias correct the data
+            model_df_ondjfm = funcs.bc_variance_scaling(
+                obs_df=obs_df,
+                model_df=model_df_ondjfm,
+                obs_val_name="obs_dt",
+                model_val_name="data_dt",
+            )
+        else:
+            print(f"Bias correction method {args.bias_correct} not recognised")
+            sys.exit()
 
-            # print the mean of model data
-            print("Mean of model data after detrending:", model_df_ondjfm["data_dt_bc"].mean())
+        # # print the mean of the model data
+        # print("Model data mean after bias correction:", np.mean(model_df_ondjfm["data_dt_bc"]))
 
-            # print the mean of obs data
-            print("Mean of obs data after detrending:", obs_df["obs_dt"].mean())
+        # # print the spread of the model data
+        # print("Model data spread after bias correction:", np.std(model_df_ondjfm["data_dt_bc"]))
 
-            # Set up the name for the obs val name
-            obs_val_name = "obs_dt"
-            model_val_name = "data_dt_bc"
+        # # print the observed mean
+        # print("Observed data mean before bias correction:", np.mean(obs_df["obs_dt"]))
+
+        # # print the spread of the observed data
+        # print("Observed data spread before bias correction:", np.std(obs_df["obs_dt"]))
+
+        # sys.exit()
+
+        # Set up the name for the obs val name
+        obs_val_name = "obs_dt"
+        model_val_name = "data_dt_bc"
+
     else:
         obs_val_name = "obs"
         model_val_name = "data"
@@ -600,7 +645,7 @@ def main():
         title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
-        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}",
+        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
     )
 
@@ -614,10 +659,10 @@ def main():
         model_time_name="init_year",
         model_member_name="member",
         model_lead_name="lead",
-        nboot=10000,
+        nboot=1000, # testing for speed
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}",
+        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
 
     # plot the extreme events for the given variable
@@ -632,7 +677,7 @@ def main():
         delta_shift_bias=False,
         do_detrend=False,
         figsize=(12, 6),
-        fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}",
+        fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
 
 
@@ -649,7 +694,7 @@ def main():
             cmap="Blues",
             lead_name="lead",
             fig_size=(6, 6),
-            fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}",
+            fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
         )
 
         # Call the function for the stability as boxplots
@@ -659,7 +704,7 @@ def main():
             label=args.variable,
             lead_name="lead",
             fig_size=(6, 6),
-            fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}",
+            fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
         )
 
     print("----------------")
