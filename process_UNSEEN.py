@@ -233,9 +233,10 @@ def main():
         # if the variable is tas
         if args.variable == "tas":
             # already regridded!
-            obs_path = (
-                "/gws/nopw/j04/canari/users/benhutch/ERA5/t2m_ERA5_regrid_HadGEM.nc"
-            )
+            # obs_path = (
+            #     "/gws/nopw/j04/canari/users/benhutch/ERA5/t2m_ERA5_regrid_HadGEM.nc"
+            # )
+            obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc" # this needs to be regridded to same resolution as model
         # if the variable is sfcWind
         elif args.variable == "sfcWind":
             # needs regridding
