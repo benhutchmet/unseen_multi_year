@@ -193,7 +193,7 @@ def main():
     # set up the hard coded args
     model = "HadGEM3-GC31-MM"
     experiment = "dcppA-hindcast"
-    freq = "Amon"
+    freq = "day" # Test with daily data
 
     # Depending on the model forecast year
     # set the leads to extract from the model
