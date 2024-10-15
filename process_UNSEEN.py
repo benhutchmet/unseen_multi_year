@@ -240,7 +240,8 @@ def main():
         # if the variable is sfcWind
         elif args.variable == "sfcWind":
             # needs regridding
-            obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/surface_wind_ERA5.nc"
+            # obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/surface_wind_ERA5.nc"
+            obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1960_2020.nc" # this needs to be regridded to same resolution as model
         else:
             raise ValueError("Variable not recognised")
 
