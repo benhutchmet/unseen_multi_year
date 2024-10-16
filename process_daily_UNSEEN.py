@@ -50,6 +50,9 @@ import iris
 from tqdm import tqdm
 from datetime import datetime, timedelta
 
+# # Specific imports
+# from ncdata.iris_xarray import cubes_to_xarray, cubes_from_xarray
+
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
 import functions as funcs
@@ -140,6 +143,236 @@ def main():
     # print the model data
     print("Model data:")
     print(model_ds)
+
+    # Modify the member coordinate before conversion to iris
+    # Modify member coordiante before conbersion to iris
+    model_ds["member"] = model_ds["member"].str[1:-6].astype(int)
+
+    # convert to an iris cube
+    model_cube = model_ds[args.variable].squeeze().to_iris()
+
+    # set up the obs variab;e
+    if args.variable == "tas":
+        obs_variable = "t2m"
+    elif args.variable == "sfcWind":
+        obs_variable = "si10"
+    else:
+        raise ValueError("Variable not recognised.")
+    
+    # load the obs cube test
+    obs_cube_test = iris.load_cube(obs_path)
+
+    # constrain to the relevant year
+    obs_cube_test = obs_cube_test.extract(iris.Constraint(time=lambda cell: cell.point.year == args.init_year))
+
+    # perform the intersection
+    obs_cube_test = obs_cube_test.intersection(
+        latitude=(30, 80),
+        longitude=(-40, 30),
+    )
+
+    # print(obs_cube_test.coord('latitude').attributes.get('axis'))
+    # print(obs_cube_test.coord('longitude').attributes.get('axis'))
+
+    # # print the obs cube axis=x
+    # print(obs_cube_test.coord(axis='x'))
+    # print(obs_cube_test.coord(axis='y'))
+
+    # sys.exit()
+
+    # # Load the observed data
+    # obs_ds = xr.open_mfdataset(
+    #     obs_path,
+    #     combine="by_coords",
+    #     parallel=False,
+    #     engine="netcdf4",
+    # )
+
+    # # restrict the observed data to the initialisation year
+    # obs_ds = obs_ds.sel(time=slice(f"{args.init_year}-01-01", f"{args.init_year}-12-31"))
+
+    # # If expver is present in the observations
+    # if "expver" in obs_ds.coords:
+    #     # Combine the first two expver variables
+    #     obs_ds = obs_ds.sel(expver=1).combine_first(obs_ds.sel(expver=5))
+
+
+
+    # # Convert to an iris cube
+    # obs_cube = obs_ds[obs_variable].squeeze().to_iris()
+
+    # # print the obs cube
+    # print("Observed data:")
+    # print(obs_cube)
+
+    # # print the model cube
+    # print("Model data:")
+    # print(model_cube)
+
+    # # print the lats and lons of the obs_cube and model_cube
+    # print("Model cube lats and lons:")
+    # print(model_cube.coord("latitude").points.min())
+    # print(model_cube.coord("latitude").points.max())
+    # print(model_cube.coord("longitude").points.min())
+    # print(model_cube.coord("longitude").points.max())
+    # print("Obs cube lats and lons:")
+    # print(obs_cube.coord("latitude").points.min())
+    # print(obs_cube.coord("latitude").points.max())
+    # print(obs_cube.coord("longitude").points.min())
+    # print(obs_cube.coord("longitude").points.max())
+
+    # # subset the model cube and obs cube to the same region
+    # obs_cube = obs_cube.intersection(
+    #     latitude=(30, 80),
+    #     longitude=(-40, 30),
+    # )
+    model_cube = model_cube.intersection(
+        latitude=(30, 80),
+        longitude=(-40, 30),
+    )
+
+    # print the model cube dimensions
+    print("Model cube dimensions post intersection:")
+    print(model_cube)
+
+    # Select the first member and time from the model cube
+    model_cube_regrid = model_cube[0, 0, :, :]
+
+    # print the model cube regrid dimensions
+    print("Model cube regrid dimensions:")
+    print(model_cube_regrid)
+
+    model_cube_regrid.coord("latitude").units = obs_cube_test[0].coord("latitude").units
+    model_cube_regrid.coord("longitude").units = obs_cube_test[0].coord("longitude").units
+
+    # and for the attributes
+    model_cube_regrid.coord("latitude").attributes = obs_cube_test[0].coord("latitude").attributes
+    model_cube_regrid.coord("longitude").attributes = obs_cube_test[0].coord("longitude").attributes
+
+    # obs_cube.coord("latitude").units = model_cube_regrid.coord("latitude").units
+    # obs_cube.coord("longitude").units = model_cube_regrid.coord("longitude").units
+
+    # # and for the attributes
+    # obs_cube.coord("latitude").attributes = model_cube_regrid.coord("latitude").attributes
+    # obs_cube.coord("longitude").attributes = model_cube_regrid.coord("longitude").attributes
+
+    # print the model cube regrid dimensions
+    print("Model cube regrid dimensions:")
+    print(model_cube_regrid)
+
+    # print the model cube regrid lats and lons
+    print(model_cube_regrid.coord("latitude"))
+    print(model_cube_regrid.coord("longitude"))
+
+    # print the min values
+    print(model_cube_regrid.coord("latitude").points.min())
+    print(model_cube_regrid.coord("latitude").points.max())
+
+    # print the min values
+    print(model_cube_regrid.coord("longitude").points.min())
+    print(model_cube_regrid.coord("longitude").points.max())
+
+    # print the shapes of the model and obs cubes
+    print("Model cube regrid lat shapes:")
+    print(model_cube_regrid.coord("latitude").shape)
+    print("Model cube regrid lon shapes:")
+    print(model_cube_regrid.coord("longitude").shape)
+
+    # # print the obs cube dimensions
+    # print("Obs cube dimensions:")
+    # print(obs_cube[0])
+
+    # # print the shapes of the obs cube
+    # print("Obs cube lat shapes:")
+    # print(obs_cube[0].coord("latitude").shape)
+    # print("Obs cube lon shapes:")
+    # print(obs_cube[0].coord("longitude").shape)
+
+    # # print the min values
+    # print(obs_cube[0].coord("latitude").points.min())
+    # print(obs_cube[0].coord("latitude").points.max())
+
+    # # print the min values
+    # print(obs_cube[0].coord("longitude").points.min())
+    # print(obs_cube[0].coord("longitude").points.max())
+
+    # print(obs_cube.coord('latitude').attributes.get('axis'))
+    # print(obs_cube.coord('longitude').attributes.get('axis'))
+
+    # obs_lat = obs_cube.coord('latitude')
+    # obs_lon = obs_cube.coord('longitude')
+
+    # obs_lat.standard_name = 'latitude'
+    # obs_lat.long_name = 'latitude'
+
+    # # remove the coord from the cube
+    # obs_cube.remove_coord('latitude')
+    # obs_cube.add_dim_coord(obs_lat, 1)
+    # obs_cube.remove_coord('longitude')
+    # obs_cube.add_dim_coord(obs_lon, 2)
+
+    # # if the lats and lons are not the same
+
+    # print(obs_cube.coord('latitude').attributes.get('axis'))
+    # print(obs_cube.coord('longitude').attributes.get('axis'))
+
+    # # print the obs cube axis=x
+    # print(obs_cube.coord(axis='x'))
+    # print(obs_cube.coord(axis='y'))
+
+    # # get the x and y dims for the obs cube
+    LONS,LATS = iris.analysis.cartography.get_xy_grids(obs_cube_test)
+
+    # print these
+    print("Observed data:")
+    print(LONS)
+    print(LATS)
+
+    # get the x and y dims for the model cube
+    LONS_MODEL,LATS_MODEL = iris.analysis.cartography.get_xy_grids(model_cube_regrid)
+
+    # print these
+    print("Model data:")
+    print(LONS_MODEL)
+    print(LATS_MODEL)
+
+    # regrid the obs cube to the model cube
+    obs_cube_regrid = obs_cube_test.regrid(model_cube_regrid, iris.analysis.Linear())
+
+    # print the obs cube
+    print("Observed data regrid:")
+    print(obs_cube_regrid)
+
+    # print the model cube
+    print("Model data:")
+    print(model_cube)
+
+    # create the mask
+    MASK_MATRIX = funcs.create_masked_matrix(
+        country=args.country,
+        cube=model_cube,
+    )
+
+    # Apply the mask to the observed and model data
+    obs_values = obs_cube_regrid.data * MASK_MATRIX
+    model_values = model_cube.data * MASK_MATRIX
+
+    # Where there are zeros we want to set these to NaNs
+    obs_values = np.where(obs_values == 0, np.nan, obs_values)
+    model_values = np.where(model_values == 0, np.nan, model_values)
+
+    # Take the Nanmean of the data
+    # over lat and lon dims
+    obs_mean = np.nanmean(obs_values, axis=(1, 2))
+    model_mean = np.nanmean(model_values, axis=(2, 3))
+
+    # print the times points for the obscube
+    print("Observed data time points:")
+    print(obs_cube_regrid.coord("time").points)
+
+    # print the times points for the modelcube
+    print("Model data time points:")
+    print(model_cube.coord("time").points)
 
     # print that the sctipt is finished
     print("=============================================")
