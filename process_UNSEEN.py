@@ -193,7 +193,7 @@ def main():
     # set up the hard coded args
     model = "HadGEM3-GC31-MM"
     experiment = "dcppA-hindcast"
-    freq = "day" # Test with daily data
+    freq = "Amon" # go back to using monthly data
 
     # Depending on the model forecast year
     # set the leads to extract from the model
@@ -229,6 +229,7 @@ def main():
         # print("----------------")
         # print("Script complete")
     else:
+        print("Creating the observed and model dfs")
         # Set up the path to the ERA5 data
         # if the variable is tas
         if args.variable == "tas":
@@ -429,10 +430,11 @@ def main():
     # constrain to the months
     obs_df = obs_df[obs_df.index.month.isin(months)]
 
+    # NOTE: Not taking ONDJFM averages
     # if months contains 12, 1 in sequence
-    if 12 in months and 1 in months:
-        # shift back by months and take the annual mean
-        obs_df = obs_df.shift(-int(months[-1])).resample("A").mean()
+    # if 12 in months and 1 in months:
+    #     # shift back by months and take the annual mean
+    #     obs_df = obs_df.shift(-int(months[-1])).resample("A").mean()
 
     # if there are any Nans in the obs df, drop them
     obs_df.dropna(inplace=True)
@@ -475,6 +477,12 @@ def main():
     # print the len of lead months
     print("lead months length:", len(lead_months))
 
+    # print the head of the model df
+    print("model df head:", model_df.head())
+
+    # print the tail of the model df
+    print("model df tail:", model_df.tail())
+
     # loop over the unique init years and members in model_df
     for init_year in model_df["init_year"].unique():
         for member in model_df["member"].unique():
@@ -498,24 +506,32 @@ def main():
                 # # print the lead months year base
                 # print("lead months year base:", lead_months_year_base)
 
-                # subset to lead values [12, 13, 14, 15, 16, 17] and take the mean
-                # first complete ONDJFM season
-                # FIXME: Hardcoded for now
-                model_data = model_data[model_data["lead"].isin(lead_months_year_base)]
+                # # subset to lead values [12, 13, 14, 15, 16, 17] and take the mean
+                # # first complete ONDJFM season
+                # # FIXME: Hardcoded for now
+                # model_data = model_data[model_data["lead"].isin(lead_months_year_base)]
 
-                mean_data = model_data["data"].mean()
+                # mean_data = model_data["data"].mean()
+                    
+                # print lead months year base
+                print("lead months year base:", lead_months_year_base)
 
-                # create a dataframe this
-                model_data_this = pd.DataFrame(
-                    {
-                        "init_year": [init_year],
-                        "member": [member],
-                        "lead": [l],
-                        "data": [mean_data],
-                    }
-                )
+                # loop over the lead months
+                for lm in lead_months_year_base:
+                    # subset to the lead month
+                    mean_data = model_data[model_data["lead"] == lm].mean()["data"]
 
-                model_df_ondjfm = pd.concat([model_df_ondjfm, model_data_this])
+                    # create a dataframe this
+                    model_data_this = pd.DataFrame(
+                        {
+                            "init_year": [init_year],
+                            "member": [member],
+                            "lead": [lm],
+                            "data": [mean_data],
+                        }
+                    )
+
+                    model_df_ondjfm = pd.concat([model_df_ondjfm, model_data_this])
 
     # print the head of the model df
     print(model_df_ondjfm.head())
@@ -526,16 +542,17 @@ def main():
     # print the shape of the model df
     print(model_df_ondjfm.shape)
 
-    # if the args.lead_year is not 9999
-    if args.lead_year != "9999":
-        if "-" in args.lead_year:
-            # subset to the range of lead years
-            model_df_ondjfm = model_df_ondjfm[model_df_ondjfm["lead"].isin(leads)]
-        elif args.lead_year.isdigit():
-            # subset to the lead year
-            model_df_ondjfm = model_df_ondjfm[
-                model_df_ondjfm["lead"] == int(args.lead_year)
-            ]
+    # NOTE: Not needed for looking at all of the months
+    # # if the args.lead_year is not 9999
+    # if args.lead_year != "9999":
+    #     if "-" in args.lead_year:
+    #         # subset to the range of lead years
+    #         model_df_ondjfm = model_df_ondjfm[model_df_ondjfm["lead"].isin(leads)]
+    #     elif args.lead_year.isdigit():
+    #         # subset to the lead year
+    #         model_df_ondjfm = model_df_ondjfm[
+    #             model_df_ondjfm["lead"] == int(args.lead_year)
+    #         ]
 
     # print the head of the model df
     print(model_df_ondjfm.head())
@@ -806,7 +823,6 @@ def main():
     print("----------------")
     print("exiting")
     sys.exit()
-
 
 # Run the main function
 if __name__ == "__main__":
