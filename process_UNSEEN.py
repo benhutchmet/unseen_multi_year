@@ -262,6 +262,16 @@ def main():
         # print that we have loaded the model data
         print("Loaded the model data")
 
+        print("----------------")
+        # print the amount of time taken
+        print(f"Time taken to load model data: {time.time() - start}")
+        print("----------------")
+        print("Script complete")
+
+        print("----------------")
+        print("exiting")
+        sys.exit()
+
         # # Get the size of the model data in bytes
         # size_in_bytes = model_ds[args.variable].size * model_ds[args.variable].dtype.itemsize
 
@@ -798,17 +808,6 @@ def main():
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
     )
-
-    print("----------------")
-    # print the amount of time taken
-    print(f"Time taken to load model data: {time.time() - start}")
-    print("----------------")
-    print("Script complete")
-
-    print("----------------")
-    print("exiting")
-    sys.exit()
-
 
 # Run the main function
 if __name__ == "__main__":
