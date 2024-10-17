@@ -736,6 +736,37 @@ def main():
     print(f"Model val name: {model_val_name}")
     print("----------------")
 
+    # plot the cdfs
+    funcs.plot_cdfs(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        save_prefix=f"cdfs_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+    )
+
+    # plot the Q-Q plots
+    funcs.plot_qq(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        save_prefix=f"qq_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+    )
+
+    print("----------------")
+    # print the amount of time taken
+    print(f"Time taken to load model data: {time.time() - start}")
+    print("----------------")
+    print("Script complete")
+
+    print("----------------")
+    print("exiting")
+    sys.exit()
+
+
     # Plot the distributions
     funcs.plot_distribution(
         obs_df=obs_df,
@@ -772,19 +803,9 @@ def main():
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
         variable=args.variable,
-        num_samples=10,
+        num_samples=100,
         save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
-
-    print("----------------")
-    # print the amount of time taken
-    print(f"Time taken to load model data: {time.time() - start}")
-    print("----------------")
-    print("Script complete")
-
-    print("----------------")
-    print("exiting")
-    sys.exit()
 
     # plot the extreme events for the given variable
     funcs.plot_events_ts(
