@@ -749,20 +749,31 @@ def main():
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
     )
 
-    # plot the fidelity testing
-    funcs.plot_fidelity(
+    # # plot the fidelity testing
+    # funcs.plot_fidelity(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     obs_time_name="time",
+    #     model_time_name="init_year",
+    #     model_member_name="member",
+    #     model_lead_name="lead",
+    #     nboot=1000, # 1000 bootstraps for testing
+    #     figsize=(10, 8),
+    #     save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+    #     fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    # )
+
+    # Plot the return period
+    funcs.plot_chance_of_event(
         obs_df=obs_df,
         model_df=model_df_ondjfm,
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
-        obs_time_name="time",
-        model_time_name="init_year",
-        model_member_name="member",
-        model_lead_name="lead",
-        nboot=10000,
-        figsize=(10, 8),
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        variable=args.variable,
+        num_samples=10,
+        save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
 
     print("----------------")
@@ -815,14 +826,6 @@ def main():
             fig_size=(6, 6),
             fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
         )
-
-    # Plot the return period
-    funcs.plot_chance_of_event(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-    )
 
 # Run the main function
 if __name__ == "__main__":
