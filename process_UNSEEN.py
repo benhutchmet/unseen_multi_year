@@ -82,6 +82,7 @@ from datetime import datetime, timedelta
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
 import functions as funcs
+import bias_adjust as ba
 
 
 # Define the main function
@@ -623,15 +624,14 @@ def main():
                 model_val_name="data",
             )
         elif args.bias_correct == "quantile_mapping":
-            # Plot the CDFs
-            funcs.bc_quantile_mapping(
-                obs_df=obs_df,
-                model_df=model_df_ondjfm,
-                obs_val_name="obs",
-                model_val_name="data",
-                save_prefix=f"quantile_mapping_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-obs_model-data_bc-{args.bias_correct}",
-                save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+            # Use James functions to correct the model data
+            qm_adjustment = ba.QMBiasAdjust(
+                obs_data = obs_df["obs"],
+                model_data = model_df_ondjfm["data"],
             )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_bc"] = qm_adjustment.correct()
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
@@ -689,15 +689,14 @@ def main():
                 model_val_name="data_dt",
             )
         elif args.bias_correct == "quantile_mapping":
-            # Plot the CDFs
-            funcs.bc_quantile_mapping(
-                obs_df=obs_df,
-                model_df=model_df_ondjfm,
-                obs_val_name="obs_dt",
-                model_val_name="data_dt",
-                save_prefix=f"quantile_mapping_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-obs_dt_model-data_dt_bc-{args.bias_correct}",
-                save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+            # use James' functions to correct the model data
+            qm_adjustment = ba.QMBiasAdjust(
+                obs_data = obs_df["obs"],
+                model_data = model_df_ondjfm["data"],
             )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_dt_bc"] = qm_adjustment.correct()
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
             sys.exit()
@@ -775,17 +774,8 @@ def main():
         model_df=model_df_ondjfm,
         xlabel=f"{args.variable}",
         months=[10, 11, 12, 1, 2, 3],
+        fname_prefix=f"distribution_months_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
-
-    print("----------------")
-    # print the amount of time taken
-    print(f"Time taken to load model data: {time.time() - start}")
-    print("----------------")
-    print("Script complete")
-
-    print("----------------")
-    print("exiting")
-    sys.exit()
 
     # plot the fidelity testing
     funcs.plot_fidelity(
@@ -797,7 +787,7 @@ def main():
         model_time_name="init_year",
         model_member_name="member",
         model_lead_name="lead",
-        nboot=10000, # 1000 bootstraps for testing
+        nboot=1000, # 1000 bootstraps for testing
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
         fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
@@ -820,40 +810,46 @@ def main():
         model_df=model_df_ondjfm,
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
-        ylabel="Temperature (C)",
+        ylabel=f"{args.variable}",
         obs_time_name="time",
         model_time_name="init_year",
         delta_shift_bias=False,
         do_detrend=False,
         figsize=(12, 6),
         fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        ind_months_flag=True,
     )
 
+    # # if "-" in args.lead_year:
     # if "-" in args.lead_year:
-    if "-" in args.lead_year:
-        # print that we are plotting the stability
-        print("Plotting the stability for multiple leads")
+    #     # print that we are plotting the stability
+    #     print("Plotting the stability for multiple leads")
 
-        # Call the function
-        funcs.stability_density(
-            ensemble=model_df_ondjfm,
-            var_name=model_val_name,
-            label=args.variable,
-            cmap="Blues",
-            lead_name="lead",
-            fig_size=(6, 6),
-            fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
-        )
+    #     # Call the function
+    #     funcs.stability_density(
+    #         ensemble=model_df_ondjfm,
+    #         var_name=model_val_name,
+    #         label=args.variable,
+    #         cmap="Blues",
+    #         lead_name="lead",
+    #         fig_size=(6, 6),
+    #         fname_root=f"stability_density_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     )
 
-        # Call the function for the stability as boxplots
-        funcs.plot_stability_boxplots(
-            ensemble=model_df_ondjfm,
-            var_name=model_val_name,
-            label=args.variable,
-            lead_name="lead",
-            fig_size=(6, 6),
-            fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
-        )
+    #     # Call the function for the stability as boxplots
+    #     funcs.plot_stability_boxplots(
+    #         ensemble=model_df_ondjfm,
+    #         var_name=model_val_name,
+    #         label=args.variable,
+    #         lead_name="lead",
+    #         fig_size=(6, 6),
+    #         fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     )
+
+    # print how long the script took
+    print(f"Script took {time.time() - start} seconds")
+    print("----------------")
+    print("Script complete")
 
 # Run the main function
 if __name__ == "__main__":
