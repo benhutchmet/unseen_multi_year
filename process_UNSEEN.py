@@ -669,12 +669,6 @@ def main():
             # print the tail of the model df
             print(model_df_ondjfm.tail())
 
-
-            # print how long the script took
-            print(f"Script took {time.time() - start} seconds")
-            print("----------------")
-            print("Script complete")
-
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
@@ -864,21 +858,21 @@ def main():
     # print the head of the model df
     print(model_df_ondjfm.head())
 
-    # plot the fidelity testing
-    funcs.plot_fidelity(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        obs_time_name="time",
-        model_time_name="init_year",
-        model_member_name="member",
-        model_lead_name="lead",
-        nboot=1000, # 1000 bootstraps for testing
-        figsize=(10, 8),
-        save_dir=save_dir,
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    )
+    # # plot the fidelity testing
+    # funcs.plot_fidelity(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     obs_time_name="time",
+    #     model_time_name="init_year",
+    #     model_member_name="member",
+    #     model_lead_name="lead",
+    #     nboot=1000, # 1000 bootstraps for testing
+    #     figsize=(10, 8),
+    #     save_dir=save_dir,
+    #     fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    # )
 
 
     # Plot the return period
@@ -892,6 +886,12 @@ def main():
         save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir=save_dir,
     )
+
+
+    # print how long the script took
+    print(f"Script took {time.time() - start} seconds")
+    print("----------------")
+    print("Script complete")
 
     # plot the extreme events for the given variable
     funcs.plot_events_ts(
