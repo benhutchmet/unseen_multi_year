@@ -127,6 +127,14 @@ def main():
         help="Whether to bias correct the data before performing the fidelity testing. Default is None.",
     )
 
+    # set up the save directory
+    save_dir = "/gws/nopw/j04/canari/users/benhutch/plots/unseen"
+
+    # if the save directory does not exist
+    if not os.path.exists(save_dir):
+        # make the directory
+        os.makedirs(save_dir)
+
     # Parse the arguments
     args = parser.parse_args()
 
@@ -161,6 +169,7 @@ def main():
         "linear_scaling",
         "variance_scaling",
         "quantile_mapping",
+        "quantile_delta_mapping",
     ]
 
     # if the bias correction is not in the valid bias corrections
@@ -627,11 +636,20 @@ def main():
             # Use James functions to correct the model data
             qm_adjustment = ba.QMBiasAdjust(
                 obs_data = obs_df["obs"],
-                model_data = model_df_ondjfm["data"],
+                mod_data = model_df_ondjfm["data"],
             )
 
             # assign the corrected data to the model df
             model_df_ondjfm["data_bc"] = qm_adjustment.correct()
+        elif args.bias_correct == "quantile_delta_mapping":
+            # Use James functions to correct the model data
+            qdm_adjustment = ba.QDMBiasAdjust(
+                obs_data = obs_df["obs"],
+                mod_data = model_df_ondjfm["data"],
+            )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_bc"] = qdm_adjustment.correct()
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
@@ -692,11 +710,20 @@ def main():
             # use James' functions to correct the model data
             qm_adjustment = ba.QMBiasAdjust(
                 obs_data = obs_df["obs"],
-                model_data = model_df_ondjfm["data"],
+                mod_data = model_df_ondjfm["data"],
             )
 
             # assign the corrected data to the model df
             model_df_ondjfm["data_dt_bc"] = qm_adjustment.correct()
+        elif args.bias_correct == "quantile_delta_mapping":
+            # Use James functions to correct the model data
+            qdm_adjustment = ba.QDMBiasAdjust(
+                obs_data = obs_df["obs"],
+                mod_data = model_df_ondjfm["data"],
+            )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_bc"] = qdm_adjustment.correct()            
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
             sys.exit()
@@ -742,7 +769,7 @@ def main():
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
         save_prefix=f"cdfs_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        save_dir=save_dir,
     )
 
     # plot the Q-Q plots
@@ -752,7 +779,7 @@ def main():
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
         save_prefix=f"qq_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        save_dir=save_dir,
     )
 
     # Plot the distributions
@@ -765,7 +792,7 @@ def main():
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
         fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        save_dir=save_dir,
     )
 
     # Plot the monthly distributions
@@ -775,7 +802,35 @@ def main():
         xlabel=f"{args.variable}",
         months=[10, 11, 12, 1, 2, 3],
         fname_prefix=f"distribution_months_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
     )
+
+    # print the head of the dataframes
+    print(obs_df.head())
+
+    print(model_df_ondjfm.head())
+
+    # print the tail of the dataframes
+    print(obs_df.tail())
+
+    print(model_df_ondjfm.tail())
+
+    # # assert that there are no Nans in the data_bc column of the model df
+    # assert not model_df_ondjfm[model_val_name].isnull().values.any(), "Nans in model data"
+
+    # assert that there are no Nans in the obs df
+    assert not obs_df[obs_val_name].isnull().values.any(), "Nans in obs data"
+
+    # if the bias correction is quantile mapping
+    if args.bias_correct == "quantile_mapping":
+        print("Removing NaNs from the data")
+        print("Resulting from fitting of CDFs outside of the data range")
+
+        # remove the Nans from the model data
+        model_df_ondjfm.dropna(subset=[model_val_name], inplace=True)
+
+    # print the head of the model df
+    print(model_df_ondjfm.head())
 
     # plot the fidelity testing
     funcs.plot_fidelity(
@@ -789,9 +844,10 @@ def main():
         model_lead_name="lead",
         nboot=1000, # 1000 bootstraps for testing
         figsize=(10, 8),
-        save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
+        save_dir=save_dir,
         fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     )
+
 
     # Plot the return period
     funcs.plot_chance_of_event(
@@ -802,6 +858,7 @@ def main():
         variable=args.variable,
         num_samples=100,
         save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
     )
 
     # plot the extreme events for the given variable
@@ -816,6 +873,7 @@ def main():
         delta_shift_bias=False,
         do_detrend=False,
         figsize=(12, 6),
+        save_dir=save_dir,
         fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         ind_months_flag=True,
     )
