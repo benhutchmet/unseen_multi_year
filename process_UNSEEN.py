@@ -760,7 +760,7 @@ def main():
     funcs.plot_distribution(
         obs_df=obs_df,
         model_df=model_df_ondjfm,
-        xlabel="Temperature (K)",
+        xlabel=f"{args.variable})",
         nbins=30,
         title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
         obs_val_name=obs_val_name,
@@ -768,6 +768,24 @@ def main():
         fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
     )
+
+    # Plot the monthly distributions
+    funcs.plot_distribution_months(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        xlabel=f"{args.variable}",
+        months=[10, 11, 12, 1, 2, 3],
+    )
+
+    print("----------------")
+    # print the amount of time taken
+    print(f"Time taken to load model data: {time.time() - start}")
+    print("----------------")
+    print("Script complete")
+
+    print("----------------")
+    print("exiting")
+    sys.exit()
 
     # plot the fidelity testing
     funcs.plot_fidelity(
@@ -779,7 +797,7 @@ def main():
         model_time_name="init_year",
         model_member_name="member",
         model_lead_name="lead",
-        nboot=1000, # 1000 bootstraps for testing
+        nboot=10000, # 1000 bootstraps for testing
         figsize=(10, 8),
         save_dir="/gws/nopw/j04/canari/users/benhutch/plots/",
         fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
@@ -836,16 +854,6 @@ def main():
             fig_size=(6, 6),
             fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
         )
-
-    print("----------------")
-    # print the amount of time taken
-    print(f"Time taken to load model data: {time.time() - start}")
-    print("----------------")
-    print("Script complete")
-
-    print("----------------")
-    print("exiting")
-    sys.exit()
 
 # Run the main function
 if __name__ == "__main__":
