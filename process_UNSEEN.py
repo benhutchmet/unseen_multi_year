@@ -649,7 +649,32 @@ def main():
             )
 
             # assign the corrected data to the model df
-            model_df_ondjfm["data_bc"] = qdm_adjustment.correct()
+            model_df_ondjfm["data_bc_qdm"] = qdm_adjustment.correct()
+
+            # compare to the quantile mapping adjustment
+            qm_adjustment = ba.QMBiasAdjust(
+                obs_data = obs_df["obs"],
+                mod_data = model_df_ondjfm["data"],
+            )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_bc_qm"] = qm_adjustment.correct()
+
+            # take the difference between the two columns
+            model_df_ondjfm["data_bc_diff"] = model_df_ondjfm["data_bc_qm"] - model_df_ondjfm["data_bc_qdm"]
+
+            # print the head of the model df
+            print(model_df_ondjfm.head())
+
+            # print the tail of the model df
+            print(model_df_ondjfm.tail())
+
+
+            # print how long the script took
+            print(f"Script took {time.time() - start} seconds")
+            print("----------------")
+            print("Script complete")
+
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
@@ -710,7 +735,7 @@ def main():
             # use James' functions to correct the model data
             qm_adjustment = ba.QMBiasAdjust(
                 obs_data = obs_df["obs"],
-                mod_data = model_df_ondjfm["data"],
+                mod_data = model_df_ondjfm["data_dt"],
             )
 
             # assign the corrected data to the model df
@@ -719,11 +744,11 @@ def main():
             # Use James functions to correct the model data
             qdm_adjustment = ba.QDMBiasAdjust(
                 obs_data = obs_df["obs"],
-                mod_data = model_df_ondjfm["data"],
+                mod_data = model_df_ondjfm["data_dt"],
             )
 
             # assign the corrected data to the model df
-            model_df_ondjfm["data_bc"] = qdm_adjustment.correct()            
+            model_df_ondjfm["data_dt_bc"] = qdm_adjustment.correct()           
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
             sys.exit()
@@ -750,17 +775,24 @@ def main():
         obs_val_name = "obs"
         model_val_name = "data"
 
-    # assert that the obs_val_name exists in the obs_df
-    assert obs_val_name in obs_df.columns, f"{obs_val_name} not in obs_df columns"
-    assert (
-        model_val_name in model_df_ondjfm.columns
-    ), f"{model_val_name} not in model_df_ondjfm columns"
+    # # assert that the obs_val_name exists in the obs_df
+    # assert obs_val_name in obs_df.columns, f"{obs_val_name} not in obs_df columns"
+    # assert (
+    #     model_val_name in model_df_ondjfm.columns
+    # ), f"{model_val_name} not in model_df_ondjfm columns"
 
     # print the obs val name being used
     print("----------------")
     print(f"Obs val name: {obs_val_name}")
     print(f"Model val name: {model_val_name}")
     print("----------------")
+
+    # print the head of the model df
+    print(model_df_ondjfm.head())
+
+    # print the tail of the model df
+    print(model_df_ondjfm.tail())
+
 
     # plot the cdfs
     funcs.plot_cdfs(
@@ -822,7 +854,7 @@ def main():
     assert not obs_df[obs_val_name].isnull().values.any(), "Nans in obs data"
 
     # if the bias correction is quantile mapping
-    if args.bias_correct == "quantile_mapping":
+    if args.bias_correct in ["quantile_mapping", "quantile_delta_mapping"]:
         print("Removing NaNs from the data")
         print("Resulting from fitting of CDFs outside of the data range")
 
@@ -903,11 +935,6 @@ def main():
     #         fig_size=(6, 6),
     #         fname_root=f"stability_boxplots_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_model-{model_val_name}_bc-{args.bias_correct}",
     #     )
-
-    # print how long the script took
-    print(f"Script took {time.time() - start} seconds")
-    print("----------------")
-    print("Script complete")
 
 # Run the main function
 if __name__ == "__main__":
