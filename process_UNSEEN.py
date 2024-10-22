@@ -170,6 +170,7 @@ def main():
         "variance_scaling",
         "quantile_mapping",
         "quantile_delta_mapping",
+        "scaled_distribution_mapping",
     ]
 
     # if the bias correction is not in the valid bias corrections
@@ -668,7 +669,16 @@ def main():
 
             # print the tail of the model df
             print(model_df_ondjfm.tail())
+        elif args.bias_correct == "scaled_distribution_mapping":
+            print("Applying scaled distribution mapping")
 
+            sdm_adjustment = ba.SDMBiasAdjust(
+                obs_data = obs_df["obs"],
+                mod_data = model_df_ondjfm["data"],
+            )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_bc"] = sdm_adjustment.correct()
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
 
@@ -742,7 +752,17 @@ def main():
             )
 
             # assign the corrected data to the model df
-            model_df_ondjfm["data_dt_bc"] = qdm_adjustment.correct()           
+            model_df_ondjfm["data_dt_bc"] = qdm_adjustment.correct()
+        elif args.bias_correct == "scaled_distribution_mapping":
+            print("Applying scaled distribution mapping")
+
+            sdm_adjustment = ba.SDMBiasAdjust(
+                obs_data = obs_df["obs"],
+                mod_data = model_df_ondjfm["data_dt"],
+            )
+
+            # assign the corrected data to the model df
+            model_df_ondjfm["data_dt_bc"] = sdm_adjustment.correct()
         else:
             print(f"Bias correction method {args.bias_correct} not recognised")
             sys.exit()
@@ -848,7 +868,7 @@ def main():
     assert not obs_df[obs_val_name].isnull().values.any(), "Nans in obs data"
 
     # if the bias correction is quantile mapping
-    if args.bias_correct in ["quantile_mapping", "quantile_delta_mapping"]:
+    if args.bias_correct in ["quantile_mapping", "quantile_delta_mapping", "scaled_distribution_mapping"]:
         print("Removing NaNs from the data")
         print("Resulting from fitting of CDFs outside of the data range")
 
