@@ -841,6 +841,19 @@ def main():
         save_dir=save_dir,
     )
 
+    # Plot the composites
+    funcs.plot_composite_obs(
+        obs_df=obs_df,
+        obs_val_name=obs_val_name,
+        percentile=10,
+    )
+
+    # print how long the script took
+    print(f"Script took {time.time() - start} seconds")
+    print("----------------")
+    print("Script complete")
+    sys.exit()
+
     # plot the chance of event with time
     funcs.plot_chance_of_event_with_time(
         obs_df=obs_df,
@@ -852,11 +865,6 @@ def main():
         fname_prefix=f"chance_of_event_with_time_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir=save_dir,
     )
-
-    # print how long the script took
-    print(f"Script took {time.time() - start} seconds")
-    print("----------------")
-    print("Script complete")
 
     # Plot the monthly distributions
     funcs.plot_distribution_months(
