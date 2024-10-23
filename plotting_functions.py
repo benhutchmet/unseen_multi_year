@@ -3773,16 +3773,19 @@ def preprocess(
     if variable not in ds:
         raise ValueError(f"Cannot find the variable {variable} in the ds")
 
-    # Set up the times to extract
-    start_date_this = cftime.datetime.strptime(
-        f"{year}-{months[0]}-01", "%Y-%m-%d", calendar="360_day"
-    )
-    end_date_this = cftime.datetime.strptime(
-        f"{year + 1}-{months[-1]}-30", "%Y-%m-%d", calendar="360_day"
-    )
+    # # Set up the times to extract
+    # start_date_this = cftime.datetime.strptime(
+    #     f"{year}-{months[0]}-01", "%Y-%m-%d", calendar="360_day"
+    # )
+    # end_date_this = cftime.datetime.strptime(
+    #     f"{year + 1}-{months[-1]}-30", "%Y-%m-%d", calendar="360_day"
+    # )
 
-    # slice between the start and end dates
-    ds = ds.sel(time=slice(start_date_this, end_date_this))
+    # # slice between the start and end dates
+    # ds = ds.sel(time=slice(start_date_this, end_date_this))
+
+    # extract the specific months
+    ds = ds.sel(time=ds["time.month"].isin(months))
 
     return ds
 
