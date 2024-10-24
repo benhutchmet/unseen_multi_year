@@ -808,67 +808,80 @@ def main():
     print(model_df_ondjfm.tail())
 
 
-    # plot the cdfs
-    funcs.plot_cdfs(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        save_prefix=f"cdfs_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir=save_dir,
-    )
-
-    # plot the Q-Q plots
-    funcs.plot_qq(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        save_prefix=f"qq_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir=save_dir,
-    )
-
-    # Plot the distributions
-    funcs.plot_distribution(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        xlabel=f"{args.variable})",
-        nbins=30,
-        title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir=save_dir,
-    )
-
-    # Plot the composites
-    # funcs.plot_composite_obs(
+    # # plot the cdfs
+    # funcs.plot_cdfs(
     #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
     #     obs_val_name=obs_val_name,
-    #     percentile=1,
-    #     title=f"Composite of 10th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}",
-    #     calc_anoms=True,
-    #     save_prefix=f"composite_obs_10th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}",
+    #     model_val_name=model_val_name,
+    #     save_prefix=f"cdfs_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
     #     save_dir=save_dir,
     # )
 
-    # set up the percentile
-    perc = 10
+    # # plot the Q-Q plots
+    # funcs.plot_qq(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     save_prefix=f"qq_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     save_dir=save_dir,
+    # )
 
-    # set up the anoms
-    calc_anoms = True
+    # # Plot the distributions
+    # funcs.plot_distribution(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     xlabel=f"{args.variable})",
+    #     nbins=30,
+    #     title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     save_dir=save_dir,
+    # )
 
-    # plot the composite SLP events for the model
-    funcs.plot_composite_model(
-        model_df=model_df_ondjfm,
-        model_val_name=model_val_name,
-        percentile=perc,
-        title=f"Composite of {perc}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}-anoms={calc_anoms}",
+    # Plot the composites
+    funcs.plot_composite_obs(
+        obs_df=obs_df,
+        obs_val_name=obs_val_name,
+        percentile=10,
+        title=f"Composite of 10th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}",
         calc_anoms=True,
-        climatology_period=[1990, 2018],
-        save_prefix=f"composite_model_{perc}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+        save_prefix=f"composite_obs_10th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}",
         save_dir=save_dir,
     )
+
+    # set up the percentile
+    # perc = 0.01
+
+    # # set up the anoms
+    # calc_anoms = True
+
+    # # plot the composite model and obs events with stiplling
+    # funcs.plot_composite_obs_model(
+    #     obs_df=obs_df,
+    #     obs_val_name=obs_val_name,
+    #     obs_time_name="time",
+    #     model_df=model_df_ondjfm,
+    #     model_val_name=model_val_name,
+    #     percentile=perc,
+    #     title=f"Composite of {perc}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}-anoms={calc_anoms}",
+    #     nboot=10,
+    #     calc_anoms=calc_anoms,
+    # )
+
+    # # plot the composite SLP events for the model
+    # funcs.plot_composite_model(
+    #     model_df=model_df_ondjfm,
+    #     model_val_name=model_val_name,
+    #     percentile=perc,
+    #     title=f"Composite of {perc}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}-anoms={calc_anoms}",
+    #     calc_anoms=True,
+    #     climatology_period=[1990, 2018],
+    #     save_prefix=f"composite_model_{perc}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+    #     save_dir=save_dir,
+    # )
 
     # print how long the script took
     print(f"Script took {time.time() - start} seconds")
