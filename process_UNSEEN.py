@@ -14,7 +14,7 @@ resulting plot to the output directory.
 Usage:
 ------
 
-    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True --bias_correct None
+    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True --bias_correct None --percentile 10
 
 Arguments:
 ----------
@@ -53,6 +53,9 @@ Arguments:
     --bias_correct: str
         Whether to bias correct the data before performing the fidelity testing.
         Default is None.
+
+    --percentile: float
+        The percentile to use for the composite plots. Default is 10.
 
 Returns:
 --------
@@ -126,6 +129,12 @@ def main():
         default="None",
         help="Whether to bias correct the data before performing the fidelity testing. Default is None.",
     )
+    parser.add_argument(
+        "--percentile",
+        type=float,
+        default=10,
+        help="The percentile to use for the composite plots. Default is 10.",
+    )
 
     # set up the save directory
     save_dir = "/gws/nopw/j04/canari/users/benhutch/plots/unseen"
@@ -148,6 +157,7 @@ def main():
     print(f"Lead year: {args.lead_year}")
     print(f"Detrend: {args.detrend}")
     print(f"Bias correct: {args.bias_correct}")
+    print(f"Percentile: {args.percentile}")
 
     # turn the detrend into a boolean
     if args.detrend.lower() == "true":
@@ -841,35 +851,38 @@ def main():
     #     save_dir=save_dir,
     # )
 
-    # Plot the composites
-    funcs.plot_composite_obs(
-        obs_df=obs_df,
-        obs_val_name=obs_val_name,
-        percentile=10,
-        title=f"Composite of 10th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}",
-        calc_anoms=True,
-        save_prefix=f"composite_obs_10th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}",
-        save_dir=save_dir,
-    )
 
-    # set up the percentile
-    # perc = 0.01
+    # # set up the percentile
+    # perc = 17
 
-    # # set up the anoms
-    # calc_anoms = True
 
-    # # plot the composite model and obs events with stiplling
-    # funcs.plot_composite_obs_model(
+    # # Plot the composites
+    # funcs.plot_composite_obs(
     #     obs_df=obs_df,
     #     obs_val_name=obs_val_name,
-    #     obs_time_name="time",
-    #     model_df=model_df_ondjfm,
-    #     model_val_name=model_val_name,
     #     percentile=perc,
-    #     title=f"Composite of {perc}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}-anoms={calc_anoms}",
-    #     nboot=10,
-    #     calc_anoms=calc_anoms,
+    #     title=f"Composite of {perc}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}",
+    #     calc_anoms=True,
+    #     save_prefix=f"composite_obs_{perc}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}",
+    #     save_dir=save_dir,
     # )
+
+    # set up the anoms
+    calc_anoms = True
+
+    # plot the composite model and obs events with stiplling
+    funcs.plot_composite_obs_model(
+        obs_df=obs_df,
+        obs_val_name=obs_val_name,
+        obs_time_name="time",
+        model_df=model_df_ondjfm,
+        model_val_name=model_val_name,
+        percentile=args.percentile,
+        variable=args.variable,
+        nboot=1000,
+        calc_anoms=calc_anoms,
+        save_prefix=f"composite_obs_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+    )
 
     # # plot the composite SLP events for the model
     # funcs.plot_composite_model(

@@ -8,10 +8,10 @@
 # sbatch ~/unseen_multi_year/submit_process_unseen.bash "sfcWind" "United Kingdom" "ONDJFM" "1960" "1970" "1"
 
 # Set up the usage message
-usage_msg = "Usage: sbatch submit_process_unseen.bash <variable> <country> <season> <start_year> <end_year> <lead_year>"
+usage_msg = "Usage: sbatch submit_process_unseen.bash <variable> <country> <season> <start_year> <end_year> <lead_year> <detrend> <bias_corr>"
 
 # Check the number of arguments
-if [ "$#" -ne 6 ]; then
+if [ "$#" -ne 8 ]; then
     echo "Illegal number of parameters"
     echo $usage_msg
     exit 1
@@ -24,6 +24,8 @@ season=$3
 start_year=$4
 end_year=$5
 lead_year=$6
+detrend=$7
+bias_corr=$8
 
 # Load the required modules
 module load jaspy
@@ -38,6 +40,8 @@ echo "Season: $season"
 echo "Start year: $start_year"
 echo "End year: $end_year"
 echo "Lead year: $lead_year"
+echo "Detrend: $detrend"
+echo "Bias correction: $bias_corr"
 
 # Set up the process script
 process_script="/home/users/benhutch/unseen_multi_year/process_UNSEEN.py"
@@ -50,4 +54,6 @@ python ${process_script} \
     --first_year ${start_year} \
     --last_year ${end_year} \
     --model_fcst_year ${model_fcst_year} \
-    --lead_year ${lead_year}
+    --lead_year ${lead_year} \
+    --detrend ${detrend} \
+    --bias_correct ${bias_corr}
