@@ -817,7 +817,6 @@ def main():
     # print the tail of the model df
     print(model_df_ondjfm.tail())
 
-
     # # plot the cdfs
     # funcs.plot_cdfs(
     #     obs_df=obs_df,
@@ -870,19 +869,19 @@ def main():
     # set up the anoms
     calc_anoms = True
 
-    # plot the composite model and obs events with stiplling
-    funcs.plot_composite_obs_model(
-        obs_df=obs_df,
-        obs_val_name=obs_val_name,
-        obs_time_name="time",
-        model_df=model_df_ondjfm,
-        model_val_name=model_val_name,
-        percentile=args.percentile,
-        variable=args.variable,
-        nboot=1000,
-        calc_anoms=calc_anoms,
-        save_prefix=f"composite_obs_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
-    )
+    # # plot the composite model and obs events with stiplling
+    # funcs.plot_composite_obs_model(
+    #     obs_df=obs_df,
+    #     obs_val_name=obs_val_name,
+    #     obs_time_name="time",
+    #     model_df=model_df_ondjfm,
+    #     model_val_name=model_val_name,
+    #     percentile=args.percentile,
+    #     variable=args.variable,
+    #     nboot=1000,
+    #     calc_anoms=calc_anoms,
+    #     save_prefix=f"composite_obs_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+    # )
 
     # # plot the composite SLP events for the model
     # funcs.plot_composite_model(
@@ -896,33 +895,27 @@ def main():
     #     save_dir=save_dir,
     # )
 
-    # print how long the script took
-    print(f"Script took {time.time() - start} seconds")
-    print("----------------")
-    print("Script complete")
-    sys.exit()
+    # # plot the chance of event with time
+    # funcs.plot_chance_of_event_with_time(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     variable=args.variable,
+    #     num_samples=100,
+    #     fname_prefix=f"chance_of_event_with_time_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     save_dir=save_dir,
+    # )
 
-    # plot the chance of event with time
-    funcs.plot_chance_of_event_with_time(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        variable=args.variable,
-        num_samples=100,
-        fname_prefix=f"chance_of_event_with_time_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir=save_dir,
-    )
-
-    # Plot the monthly distributions
-    funcs.plot_distribution_months(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        xlabel=f"{args.variable}",
-        months=[10, 11, 12, 1, 2, 3],
-        fname_prefix=f"distribution_months_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir=save_dir,
-    )
+    # # Plot the monthly distributions
+    # funcs.plot_distribution_months(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     xlabel=f"{args.variable}",
+    #     months=[10, 11, 12, 1, 2, 3],
+    #     fname_prefix=f"distribution_months_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     save_dir=save_dir,
+    # )
 
     # print the head of the dataframes
     print(obs_df.head())
@@ -951,21 +944,21 @@ def main():
     # print the head of the model df
     print(model_df_ondjfm.head())
 
-    # # plot the fidelity testing
-    funcs.plot_fidelity(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        obs_time_name="time",
-        model_time_name="init_year",
-        model_member_name="member",
-        model_lead_name="lead",
-        nboot=1000, # 1000 bootstraps for testing
-        figsize=(10, 8),
-        save_dir=save_dir,
-        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    )
+    # # # plot the fidelity testing
+    # funcs.plot_fidelity(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     obs_time_name="time",
+    #     model_time_name="init_year",
+    #     model_member_name="member",
+    #     model_lead_name="lead",
+    #     nboot=1000, # 1000 bootstraps for testing
+    #     figsize=(10, 8),
+    #     save_dir=save_dir,
+    #     fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    # )
 
 
     # Plot the return period
@@ -975,10 +968,16 @@ def main():
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
         variable=args.variable,
-        num_samples=100,
+        num_samples=1000,
         save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir=save_dir,
     )
+
+    # print how long the script took
+    print(f"Script took {time.time() - start} seconds")
+    print("----------------")
+    print("Script complete")
+    sys.exit()
 
     # plot the extreme events for the given variable
     funcs.plot_events_ts(
