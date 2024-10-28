@@ -961,15 +961,27 @@ def main():
     # )
 
 
-    # Plot the return period
-    funcs.plot_chance_of_event(
+    # # Plot the return period
+    # funcs.plot_chance_of_event(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     variable=args.variable,
+    #     num_samples=1000,
+    #     save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     save_dir=save_dir,
+    # )
+
+    # # PLot the return period via ranking
+    funcs.plot_chance_of_event_rank(
         obs_df=obs_df,
         model_df=model_df_ondjfm,
         obs_val_name=obs_val_name,
         model_val_name=model_val_name,
         variable=args.variable,
         num_samples=1000,
-        save_prefix=f"return_period_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_prefix=f"return_period_rank_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir=save_dir,
     )
 
