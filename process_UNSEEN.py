@@ -869,19 +869,26 @@ def main():
     # set up the anoms
     calc_anoms = True
 
-    # # plot the composite model and obs events with stiplling
-    # funcs.plot_composite_obs_model(
-    #     obs_df=obs_df,
-    #     obs_val_name=obs_val_name,
-    #     obs_time_name="time",
-    #     model_df=model_df_ondjfm,
-    #     model_val_name=model_val_name,
-    #     percentile=args.percentile,
-    #     variable=args.variable,
-    #     nboot=1000,
-    #     calc_anoms=calc_anoms,
-    #     save_prefix=f"composite_obs_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
-    # )
+    # plot the composite model and obs events with stiplling
+    funcs.plot_composite_obs_model(
+        obs_df=obs_df,
+        obs_val_name=obs_val_name,
+        obs_time_name="time",
+        model_df=model_df_ondjfm,
+        model_val_name=model_val_name,
+        percentile=args.percentile,
+        variable=args.variable,
+        nboot=1000,
+        calc_anoms=calc_anoms,
+        months=[1, 2, 3], # subset to late winter JFM
+        save_prefix=f"composite_obs_model_JFM_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+    )
+
+    # print how long the script took
+    print(f"Script took {time.time() - start} seconds")
+    print("----------------")
+    print("Script complete")
+    sys.exit()
 
     # # plot the composite SLP events for the model
     # funcs.plot_composite_model(
@@ -973,40 +980,35 @@ def main():
     #     save_dir=save_dir,
     # )
 
-    # # PLot the return period via ranking
-    funcs.plot_chance_of_event_rank(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        variable=args.variable,
-        num_samples=1000,
-        save_prefix=f"return_period_rank_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        save_dir=save_dir,
-    )
+    # # # PLot the return period via ranking
+    # funcs.plot_chance_of_event_rank(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     variable=args.variable,
+    #     num_samples=1000,
+    #     save_prefix=f"return_period_rank_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     save_dir=save_dir,
+    # )
 
-    # print how long the script took
-    print(f"Script took {time.time() - start} seconds")
-    print("----------------")
-    print("Script complete")
-    sys.exit()
 
-    # plot the extreme events for the given variable
-    funcs.plot_events_ts(
-        obs_df=obs_df,
-        model_df=model_df_ondjfm,
-        obs_val_name=obs_val_name,
-        model_val_name=model_val_name,
-        ylabel=f"{args.variable}",
-        obs_time_name="time",
-        model_time_name="init_year",
-        delta_shift_bias=False,
-        do_detrend=False,
-        figsize=(12, 6),
-        save_dir=save_dir,
-        fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-        ind_months_flag=True,
-    )
+    # # plot the extreme events for the given variable
+    # funcs.plot_events_ts(
+    #     obs_df=obs_df,
+    #     model_df=model_df_ondjfm,
+    #     obs_val_name=obs_val_name,
+    #     model_val_name=model_val_name,
+    #     ylabel=f"{args.variable}",
+    #     obs_time_name="time",
+    #     model_time_name="init_year",
+    #     delta_shift_bias=False,
+    #     do_detrend=False,
+    #     figsize=(12, 6),
+    #     save_dir=save_dir,
+    #     fname_prefix=f"events_ts_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    #     ind_months_flag=True,
+    # )
 
     # # if "-" in args.lead_year:
     # if "-" in args.lead_year:
