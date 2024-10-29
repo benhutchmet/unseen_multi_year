@@ -68,6 +68,7 @@ import os
 import sys
 import time
 import argparse
+import calendar
 
 # Third-party imports
 import numpy as np
@@ -87,6 +88,9 @@ sys.path.append("/home/users/benhutch/unseen_functions")
 import functions as funcs
 import bias_adjust as ba
 
+# Function to get the last day of the month
+def get_last_day_of_month(year: int, month: int) -> int:
+    return calendar.monthrange(year, month)[1]
 
 # Define the main function
 def main():
@@ -158,7 +162,6 @@ def main():
     print(f"Detrend: {args.detrend}")
     print(f"Bias correct: {args.bias_correct}")
     print(f"Percentile: {args.percentile}")
-    print(f"Months: {args.months}")
 
     # turn the detrend into a boolean
     if args.detrend.lower() == "true":
@@ -229,8 +232,10 @@ def main():
         lead_months = [1, 2, 3, 4, 5]
     elif args.model_fcst_year == 1 and args.season == "ONDJFM":
         lead_months = [12, 13, 14, 15, 16, 17]
+    elif args.model_fcst_year == 1 and args.season in ["OND", "NDJ", "DJF", "JFM"]:
+        lead_months = [12, 13, 14, 15, 16, 17] # include all then subset later
     else:
-        raise ValueError("Model forecast year and season combination not recognised")
+        raise ValueError("Model forecast year and season not recognised")
 
     # Set up the output directory for the dfs
     output_dir_dfs = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs"
@@ -313,12 +318,13 @@ def main():
         )
 
         # Restrict the time to the region we are interested in
-        obs_ds = obs_ds.sel(
-            time=slice(
-                f"{int(args.first_year)}-{months[0]}-01",
-                f"{int(args.last_year) + 1}-{months[-1]}-31",
-            )
-        )
+        start_date = f"{int(args.first_year)}-{months[0]}-01"
+        end_year = int(args.last_year) + 1
+        end_month = months[-1]
+        end_day = get_last_day_of_month(end_year, int(end_month))
+        end_date = f"{end_year}-{end_month}-{end_day}"
+
+        obs_ds = obs_ds.sel(time=slice(start_date, end_date))
 
         # If expver is present in the observations
         if "expver" in obs_ds.coords:
@@ -875,6 +881,10 @@ def main():
 
     # set up the anoms
     calc_anoms = True
+
+    # print the months and season
+    print(f"Months: {months}")
+    print(f"Season: {args.season}")
 
     # # plot the composite model and obs events with stiplling
     funcs.plot_composite_obs_model(
