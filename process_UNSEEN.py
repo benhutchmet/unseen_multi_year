@@ -158,6 +158,7 @@ def main():
     print(f"Detrend: {args.detrend}")
     print(f"Bias correct: {args.bias_correct}")
     print(f"Percentile: {args.percentile}")
+    print(f"Months: {args.months}")
 
     # turn the detrend into a boolean
     if args.detrend.lower() == "true":
@@ -198,6 +199,12 @@ def main():
     # Set up the months depending on the season
     if args.season == "DJF":
         months = [12, 1, 2]
+    elif args.season == "NDJ":
+        months = [11, 12, 1]
+    elif args.season == "OND":
+        months = [10, 11, 12]
+    elif args.season == "JFM":
+        months = [1, 2, 3]
     elif args.season == "MAM":
         months = [3, 4, 5]
     elif args.season == "JJA":
@@ -867,35 +874,35 @@ def main():
     # )
 
     # set up the anoms
-    calc_anoms = False
+    calc_anoms = True
 
     # # plot the composite model and obs events with stiplling
-    # funcs.plot_composite_obs_model(
-    #     obs_df=obs_df,
-    #     obs_val_name=obs_val_name,
-    #     obs_time_name="time",
-    #     model_df=model_df_ondjfm,
-    #     model_val_name=model_val_name,
-    #     percentile=args.percentile,
-    #     variable=args.variable,
-    #     nboot=1000,
-    #     calc_anoms=calc_anoms,
-    #     months=[1, 2, 3], # subset to late winter JFM
-    #     save_prefix=f"composite_obs_model_JFM_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
-    # )
-
-    # # plot the composite SLP events for the model
-    funcs.plot_composite_model(
+    funcs.plot_composite_obs_model(
+        obs_df=obs_df,
+        obs_val_name=obs_val_name,
+        obs_time_name="time",
         model_df=model_df_ondjfm,
         model_val_name=model_val_name,
         percentile=args.percentile,
-        title=f"Composite of {args.percentile}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}-anoms={calc_anoms}",
-        psl_variable="zg",
+        variable=args.variable,
+        nboot=1000,
         calc_anoms=calc_anoms,
-        climatology_period=[1990, 2018],
-        save_prefix=f"composite_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
-        save_dir=save_dir,
+        months=months,
+        save_prefix=f"composite_obs_model_{args.season}_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
     )
+
+    # # # plot the composite SLP events for the model
+    # funcs.plot_composite_model(
+    #     model_df=model_df_ondjfm,
+    #     model_val_name=model_val_name,
+    #     percentile=args.percentile,
+    #     title=f"Composite of {args.percentile}th percentile {args.variable} events {args.country} {args.season} {args.first_year}-{args.last_year}-anoms={calc_anoms}",
+    #     psl_variable="zg",
+    #     calc_anoms=calc_anoms,
+    #     climatology_period=[1990, 2018],
+    #     save_prefix=f"composite_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+    #     save_dir=save_dir,
+    # )
 
     # print how long the script took
     print(f"Script took {time.time() - start} seconds")
