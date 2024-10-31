@@ -13,7 +13,7 @@ tas,Amon,dcppA-hindcast,MPI-ESM1-2-LR,/gws/nopw/j04/canari/users/benhutch/dcppA-
 tas,Amon,dcppA-hindcast,EC-Earth3,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/tas/EC-Earth3/merged_files
 sfcWind,Amon,dcppA-hindcast,BCC-CSM2-MR,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/sfcWind/BCC-CSM2-MR
 sfcWind,Amon,dcppA-hindcast,MPI-ESM1-2-HR,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcWind/MPI-ESM1-2-HR/data
-sfcWind,Amon,dcppA-hindcast,CanESM5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcwind/CanESM5/data
+sfcWind,Amon,dcppA-hindcast,CanESM5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcWind/CanESM5/data/
 sfcWind,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/sfcWind/HadGEM3-GC31-MM/merged_files
 sfcWind,Amon,dcppA-hindcast,FGOALS-f3-L,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcWind/FGOALS-f3-L/data
 sfcWind,Amon,dcppA-hindcast,MIROC6,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcWind/MIROC6/data
