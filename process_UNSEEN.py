@@ -14,7 +14,7 @@ resulting plot to the output directory.
 Usage:
 ------
 
-    $ python process_UNSEEN.py --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True --bias_correct None --percentile 10
+    $ python process_UNSEEN.py --model HadGEM3-GC31-MM --variable tas --country "United Kingdom" --season ONDJFM --first_year 1960 --last_year 2014 --model_fcst_year 1 --lead_year 9999 --detrend True --bias_correct None --percentile 10
 
 Arguments:
 ----------
@@ -99,6 +99,7 @@ def main():
 
     # Set up the argument parser
     parser = argparse.ArgumentParser(description="Process UNSEEN data.")
+    parser.add_argument("--model", type=str, help="The model name (e.g. HadGEM3-GC31-MM).")
     parser.add_argument("--variable", type=str, help="The variable name (e.g. tas).")
     parser.add_argument(
         "--country", type=str, help="The country name (e.g. United Kingdom)."
@@ -140,6 +141,11 @@ def main():
         help="The percentile to use for the composite plots. Default is 10.",
     )
 
+    # # set up the hard coded args
+    # model = "HadGEM3-GC31-MM"
+    experiment = "dcppA-hindcast"
+    freq = "Amon" # go back to using monthly data
+
     # set up the save directory
     save_dir = "/gws/nopw/j04/canari/users/benhutch/plots/unseen"
 
@@ -152,6 +158,7 @@ def main():
     args = parser.parse_args()
 
     # print the arguments
+    print(f"Model: {args.model}")
     print(f"Variable: {args.variable}")
     print(f"Country: {args.country}")
     print(f"Season: {args.season}")
@@ -187,6 +194,10 @@ def main():
         "scaled_distribution_mapping",
     ]
 
+    if model == "CanESM5":
+        # assert that if model is CanESM5, lead year is "1-9"
+        assert args.lead_year == "1-9", "For CanESM5, lead year must be 1-9"
+
     # if the bias correction is not in the valid bias corrections
     if args.bias_correct not in valid_bias_corrections:
         raise ValueError(f"Bias correction {args.bias_correct} not recognised")
@@ -221,21 +232,29 @@ def main():
     else:
         raise ValueError("Season not recognised")
 
-    # set up the hard coded args
-    model = "HadGEM3-GC31-MM"
-    experiment = "dcppA-hindcast"
-    freq = "Amon" # go back to using monthly data
+    # # set up the hard coded args
+    # model = "HadGEM3-GC31-MM"
+    # experiment = "dcppA-hindcast"
+    # freq = "Amon" # go back to using monthly data
 
     # Depending on the model forecast year
     # set the leads to extract from the model
-    if args.model_fcst_year == 0 and args.season == "NDJFM":
-        lead_months = [1, 2, 3, 4, 5]
-    elif args.model_fcst_year == 1 and args.season == "ONDJFM":
-        lead_months = [12, 13, 14, 15, 16, 17]
-    elif args.model_fcst_year == 1 and args.season in ["OND", "NDJ", "DJF", "JFM"]:
-        lead_months = [12, 13, 14, 15, 16, 17] # include all then subset later
+    if args.model == "HadGEM3-GC31-MM":
+        if args.model_fcst_year == 0 and args.season == "NDJFM":
+            lead_months = [1, 2, 3, 4, 5]
+        elif args.model_fcst_year == 1 and args.season == "ONDJFM":
+            lead_months = [12, 13, 14, 15, 16, 17]
+        elif args.model_fcst_year == 1 and args.season in ["OND", "NDJ", "DJF", "JFM", "D"]:
+            lead_months = [12, 13, 14, 15, 16, 17] # include all then subset later
+        else:
+            raise ValueError("Model forecast year and season not recognised")
+    elif args.model == "CanESM5":
+        if args.model_fcst_year == 1 and args.season == "ONDJFM":
+            lead_months = [10, 11, 12, 13, 14, 15]
+        elif args.model_fcst_year == 1 and args.season in ["OND", "NDJ", "DJF", "JFM", "D"]:
+            lead_months = [10, 11, 12, 13, 14, 15]
     else:
-        raise ValueError("Model forecast year and season not recognised")
+        raise ValueError("Model not recognised")
 
     # Set up the output directory for the dfs
     output_dir_dfs = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs"
@@ -244,7 +263,7 @@ def main():
     obs_df_name = f"ERA5_obs_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}.csv"
 
     # Set up the name for the model df
-    model_df_name = f"{model}_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{experiment}_{freq}.csv"
+    model_df_name = f"{args.model}_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{experiment}_{freq}.csv"
 
     # form the full paths for the dfs
     obs_df_path = os.path.join(output_dir_dfs, obs_df_name)
@@ -266,21 +285,21 @@ def main():
         # Set up the path to the ERA5 data
         # if the variable is tas
         if args.variable == "tas":
-            # already regridded!
+            # needs regridding
             obs_path = (
-                "/gws/nopw/j04/canari/users/benhutch/ERA5/t2m_ERA5_regrid_HadGEM.nc"
+                "/gws/nopw/j04/canari/users/benhutch/ERA5/adaptor.mars.internal-1691509121.3261805-29348-4-3a487c76-fc7b-421f-b5be-7436e2eb78d7.nc"
             )
         # if the variable is sfcWind
         elif args.variable == "sfcWind":
             # needs regridding
-            obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/surface_wind_ERA5.nc"
+            obs_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/adaptor.mars.internal-1691509121.3261805-29348-4-3a487c76-fc7b-421f-b5be-7436e2eb78d7.nc"
         else:
             raise ValueError("Variable not recognised")
 
         # Load the model ensemble
         model_ds = funcs.load_model_data_xarray(
             model_variable=args.variable,
-            model=model,
+            model=args.model,
             experiment=experiment,
             start_year=args.first_year,
             end_year=args.last_year,
@@ -500,8 +519,14 @@ def main():
         # print the leads to extract
         print(f"Leads to extract: {leads}")
     elif args.lead_year == "9999":
-        # Set up the leads to extract list range 1-10
-        leads = list(range(1, 11))
+        if args.model == "HadGEM3-GC31-MM":
+            # Set up the leads to extract list range 1-10
+            leads = list(range(1, 11))
+        elif args.model == "CanESM5":
+            # Set up the leads to extract list range 1-6
+            leads = list(range(1, 10))
+        else:
+            raise ValueError("Model not recognised")
     else:
         raise ValueError("Lead year not recognised")
 
@@ -830,38 +855,38 @@ def main():
     # print the tail of the model df
     print(model_df_ondjfm.tail())
 
-    # # plot the cdfs
-    # funcs.plot_cdfs(
-    #     obs_df=obs_df,
-    #     model_df=model_df_ondjfm,
-    #     obs_val_name=obs_val_name,
-    #     model_val_name=model_val_name,
-    #     save_prefix=f"cdfs_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    #     save_dir=save_dir,
-    # )
+    # plot the cdfs
+    funcs.plot_cdfs(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        save_prefix=f"cdfs_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
+    )
 
-    # # plot the Q-Q plots
-    # funcs.plot_qq(
-    #     obs_df=obs_df,
-    #     model_df=model_df_ondjfm,
-    #     obs_val_name=obs_val_name,
-    #     model_val_name=model_val_name,
-    #     save_prefix=f"qq_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    #     save_dir=save_dir,
-    # )
+    # plot the Q-Q plots
+    funcs.plot_qq(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        save_prefix=f"qq_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
+    )
 
-    # # Plot the distributions
-    # funcs.plot_distribution(
-    #     obs_df=obs_df,
-    #     model_df=model_df_ondjfm,
-    #     xlabel=f"{args.variable})",
-    #     nbins=30,
-    #     title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
-    #     obs_val_name=obs_val_name,
-    #     model_val_name=model_val_name,
-    #     fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    #     save_dir=save_dir,
-    # )
+    # Plot the distributions
+    funcs.plot_distribution(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        xlabel=f"{args.variable})",
+        nbins=30,
+        title=f"{args.variable} {args.country} {args.season} {args.first_year}-{args.last_year}",
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        fname_prefix=f"distribution_no_bc_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
+    )
 
 
     # # set up the percentile
@@ -886,20 +911,20 @@ def main():
     print(f"Months: {months}")
     print(f"Season: {args.season}")
 
-    # # plot the composite model and obs events with stiplling
-    funcs.plot_composite_obs_model(
-        obs_df=obs_df,
-        obs_val_name=obs_val_name,
-        obs_time_name="time",
-        model_df=model_df_ondjfm,
-        model_val_name=model_val_name,
-        percentile=args.percentile,
-        variable=args.variable,
-        nboot=1000,
-        calc_anoms=calc_anoms,
-        months=months,
-        save_prefix=f"composite_obs_model_{args.season}_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
-    )
+    # # # plot the composite model and obs events with stiplling
+    # funcs.plot_composite_obs_model(
+    #     obs_df=obs_df,
+    #     obs_val_name=obs_val_name,
+    #     obs_time_name="time",
+    #     model_df=model_df_ondjfm,
+    #     model_val_name=model_val_name,
+    #     percentile=args.percentile,
+    #     variable=args.variable,
+    #     nboot=1000,
+    #     calc_anoms=calc_anoms,
+    #     months=months,
+    #     save_prefix=f"composite_obs_model_{args.season}_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
+    # )
 
     # # # plot the composite SLP events for the model
     # funcs.plot_composite_model(
@@ -913,12 +938,6 @@ def main():
     #     save_prefix=f"composite_model_{args.percentile}th_percentile_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}-anoms={calc_anoms}",
     #     save_dir=save_dir,
     # )
-
-    # print how long the script took
-    print(f"Script took {time.time() - start} seconds")
-    print("----------------")
-    print("Script complete")
-    sys.exit()
 
     # # plot the chance of event with time
     # funcs.plot_chance_of_event_with_time(
@@ -969,21 +988,21 @@ def main():
     # print the head of the model df
     print(model_df_ondjfm.head())
 
-    # # # plot the fidelity testing
-    # funcs.plot_fidelity(
-    #     obs_df=obs_df,
-    #     model_df=model_df_ondjfm,
-    #     obs_val_name=obs_val_name,
-    #     model_val_name=model_val_name,
-    #     obs_time_name="time",
-    #     model_time_name="init_year",
-    #     model_member_name="member",
-    #     model_lead_name="lead",
-    #     nboot=1000, # 1000 bootstraps for testing
-    #     figsize=(10, 8),
-    #     save_dir=save_dir,
-    #     fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    # )
+    # # plot the fidelity testing
+    funcs.plot_fidelity(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        obs_time_name="time",
+        model_time_name="init_year",
+        model_member_name="member",
+        model_lead_name="lead",
+        nboot=1000, # 1000 bootstraps for testing
+        figsize=(10, 8),
+        save_dir=save_dir,
+        fname_root=f"fidelity_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+    )
 
 
     # # Plot the return period
@@ -998,18 +1017,23 @@ def main():
     #     save_dir=save_dir,
     # )
 
-    # # # PLot the return period via ranking
-    # funcs.plot_chance_of_event_rank(
-    #     obs_df=obs_df,
-    #     model_df=model_df_ondjfm,
-    #     obs_val_name=obs_val_name,
-    #     model_val_name=model_val_name,
-    #     variable=args.variable,
-    #     num_samples=1000,
-    #     save_prefix=f"return_period_rank_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
-    #     save_dir=save_dir,
-    # )
+    # # PLot the return period via ranking
+    funcs.plot_chance_of_event_rank(
+        obs_df=obs_df,
+        model_df=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        variable=args.variable,
+        num_samples=1000,
+        save_prefix=f"return_period_rank_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
+    )
 
+    # print how long the script took
+    print(f"Script took {time.time() - start} seconds")
+    print("----------------")
+    print("Script complete")
+    sys.exit()
 
     # # plot the extreme events for the given variable
     # funcs.plot_events_ts(

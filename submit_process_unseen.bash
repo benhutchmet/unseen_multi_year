@@ -8,7 +8,7 @@
 # sbatch ~/unseen_multi_year/submit_process_unseen.bash "sfcWind" "United Kingdom" "ONDJFM" "1960" "1970" "1"
 
 # Set up the usage message
-usage_msg = "Usage: sbatch submit_process_unseen.bash <variable> <country> <season> <start_year> <end_year> <lead_year> <detrend> <bias_corr> <percentile>"
+usage_msg = "Usage: sbatch submit_process_unseen.bash <model> <variable> <country> <season> <start_year> <end_year> <lead_year> <detrend> <bias_corr> <percentile>"
 
 # Check the number of arguments
 if [ "$#" -ne 9 ]; then
@@ -18,15 +18,16 @@ if [ "$#" -ne 9 ]; then
 fi
 
 # Set up the CLI args
-variable=$1
-country=$2
-season=$3
-start_year=$4
-end_year=$5
-lead_year=$6
-detrend=$7
-bias_corr=$8
-percentile=$9
+model=$1
+variable=$2
+country=$3
+season=$4
+start_year=$5
+end_year=$6
+lead_year=$7
+detrend=$8
+bias_corr=$9
+percentile=${10}
 
 # Load the required modules
 module load jaspy
