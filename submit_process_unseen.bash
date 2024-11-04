@@ -6,6 +6,8 @@
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/sub-proc-unseen-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/sub-proc-unseen-%A_%a.err
 # sbatch ~/unseen_multi_year/submit_process_unseen.bash "CanESM5" "tas" "United_Kingdom" "ONDJFM" 1960 2018 "1-9" "True" "None" 10
+# sbatch ~/unseen_multi_year/submit_process_unseen.bash "MPI-ESM1-2-HR" "tas" "United_Kingdom" "ONDJFM" 1960 2018 "1-10" "True" "None" 10
+# sbatch ~/unseen_multi_year/submit_process_unseen.bash "MPI-ESM1-2-HR" "sfcWind" "United_Kingdom" "ONDJFM" 1960 2018 "1-10" "False" "None" 10
 
 # Set up the usage message
 usage_msg = "Usage: sbatch submit_process_unseen.bash <model> <variable> <country> <season> <start_year> <end_year> <lead_year> <detrend> <bias_corr> <percentile>"

@@ -4,7 +4,7 @@ tas,Amon,dcppA-hindcast,NorCPM1,/badc/cmip6/data/CMIP6/DCPP/NCC/NorCPM1/dcppA-hi
 tas,Amon,dcppA-hindcast,IPSL-CM6A-LR,/badc/cmip6/data/CMIP6/DCPP/IPSL/IPSL-CM6A-LR/dcppA-hindcast
 tas,Amon,dcppA-hindcast,MIROC6,/badc/cmip6/data/CMIP6/DCPP/MIROC/MIROC6/dcppA-hindcast
 tas,Amon,dcppA-hindcast,BCC-CSM2-MR,/badc/cmip6/data/CMIP6/DCPP/BCC/BCC-CSM2-MR/dcppA-hindcast
-tas,Amon,dcppA-hindcast,MPI-ESM1-2-HR,/badc/cmip6/data/CMIP6/DCPP/EC-Earth-Consortium/MPI-ESM1-2-HR/dcppA-hindcast
+tas,Amon,dcppA-hindcast,MPI-ESM1-2-HR,/badc/cmip6/data/CMIP6/DCPP/MPI-M/MPI-ESM1-2-HR/dcppA-hindcast
 tas,Amon,dcppA-hindcast,CanESM5,/badc/cmip6/data/CMIP6/DCPP/CCCma/CanESM5/dcppA-hindcast
 tas,Amon,dcppA-hindcast,CMCC-CM2-SR5,/badc/cmip6/data/CMIP6/DCPP/CMCC/CMCC-CM2-SR5/dcppA-hindcast
 tas,Amon,dcppA-hindcast,CESM1-1-CAM5-CMIP5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/tas/CESM1-1-CAM5-CMIP5

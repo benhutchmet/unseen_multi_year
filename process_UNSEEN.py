@@ -197,7 +197,7 @@ def main():
         "scaled_distribution_mapping",
     ]
 
-    if args.model == "CanESM5":
+    if args.model in ["CanESM5", "BCC-CSM2-MR"]:
         # assert that if model is CanESM5, lead year is "1-9"
         assert args.lead_year == "1-9", "For CanESM5, lead year must be 1-9"
 
@@ -242,7 +242,7 @@ def main():
 
     # Depending on the model forecast year
     # set the leads to extract from the model
-    if args.model in ["HadGEM3-GC31-MM", "CESM1-1-CAM5-CMIP5"]:
+    if args.model in ["HadGEM3-GC31-MM", "CESM1-1-CAM5-CMIP5", "MPI-ESM1-2-HR", "BCC-CSM2-MR", "CMCC-CM2-SR5"]:
         if args.model_fcst_year == 0 and args.season == "NDJFM":
             lead_months = [1, 2, 3, 4, 5]
         elif args.model_fcst_year == 1 and args.season == "ONDJFM":
@@ -541,7 +541,7 @@ def main():
         # print the leads to extract
         print(f"Leads to extract: {leads}")
     elif args.lead_year == "9999":
-        if args.model in ["HadGEM3-GC31-MM", "CESM1-1-CAM5-CMIP5"]:
+        if args.model in ["HadGEM3-GC31-MM", "CESM1-1-CAM5-CMIP5", "MPI-ESM1-2-HR"]:
             # Set up the leads to extract list range 1-10
             leads = list(range(1, 11))
         elif args.model == "CanESM5":
