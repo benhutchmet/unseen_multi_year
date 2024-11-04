@@ -19,6 +19,9 @@ Usage:
 Arguments:
 ----------
 
+    --model: str
+        The model name (e.g. "HadGEM3-GC31-MM").
+    
     --variable: str
         The variable name (e.g. "tas").
 
@@ -194,7 +197,7 @@ def main():
         "scaled_distribution_mapping",
     ]
 
-    if model == "CanESM5":
+    if args.model == "CanESM5":
         # assert that if model is CanESM5, lead year is "1-9"
         assert args.lead_year == "1-9", "For CanESM5, lead year must be 1-9"
 
@@ -361,6 +364,25 @@ def main():
 
         # convert to an iris cube
         obs_cube = obs_ds[obs_var].squeeze().to_iris()
+
+        # prinr the obs cube
+        print(f"Obs cube: {obs_cube}")
+
+        # print the model cube
+        print(f"Model cube: {model_cube}")
+
+        # Ensure latitude and longitude coordinates are named consistently
+        obs_cube.coord('latitude').standard_name = 'latitude'
+        obs_cube.coord('longitude').standard_name = 'longitude'
+        model_cube.coord('latitude').standard_name = 'latitude'
+        model_cube.coord('longitude').standard_name = 'longitude'
+
+        # Check if the coordinates are 1D
+        if obs_cube.coord('latitude').ndim != 1 or obs_cube.coord('longitude').ndim != 1:
+            raise ValueError("Observed cube must contain 1D latitude and longitude coordinates.")
+
+        if model_cube.coord('latitude').ndim != 1 or model_cube.coord('longitude').ndim != 1:
+            raise ValueError("Model cube must contain 1D latitude and longitude coordinates.")
 
         # if the lats and lons are not the same
         if (

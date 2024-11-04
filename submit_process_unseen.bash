@@ -36,6 +36,7 @@ module load jaspy
 export model_fcst_year=1
 
 # Echo the CLI args
+echo "Model: $model"
 echo "Variable: $variable"
 echo "Country: $country"
 echo "Season: $season"
@@ -51,6 +52,7 @@ process_script="/home/users/benhutch/unseen_multi_year/process_UNSEEN.py"
 
 # Run the process script
 python ${process_script} \
+    --model ${model} \
     --variable ${variable} \
     --country ${country} \
     --season ${season} \
