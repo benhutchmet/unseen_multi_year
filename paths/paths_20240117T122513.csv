@@ -20,6 +20,7 @@ sfcWind,Amon,dcppA-hindcast,MIROC6,/gws/nopw/j04/canari/users/benhutch/dcppA-hin
 sfcWind,Amon,dcppA-hindcast,IPSL-CM6A-LR,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcWind/IPSL-CM6A-LR/data
 sfcWind,Amon,dcppA-hindcast,CESM1-1-CAM5-CMIP5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/sfcWind/CESM1-1-CAM5-CMIP5
 sfcWind,Amon,dcppA-hindcast,EC-Earth3,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/sfcWind/EC-Earth3/merged_files
+sfcWind,Amon,dcppA-hindcast,CMCC-CM2-SR5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/sfcWind/CMCC-CM2-SR5/
 psl,Amon,dcppA-hindcast,BCC-CSM2-MR,/work/scratch-nopw2/benhutch/psl/BCC-CSM2-MR/global/all_forecast_years/DJFM/outputs
 psl,Amon,dcppA-hindcast,MPI-ESM1-2-HR,/work/scratch-nopw2/benhutch/psl/MPI-ESM1-2-HR/global/all_forecast_years/DJFM/outputs
 psl,Amon,dcppA-hindcast,CanESM5,/work/scratch-nopw2/benhutch/psl/CanESM5/global/all_forecast_years/DJFM/outputs
