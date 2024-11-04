@@ -5,13 +5,13 @@
 #SBATCH --time=1000:00
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/sub-proc-unseen-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/sub-proc-unseen-%A_%a.err
-# sbatch ~/unseen_multi_year/submit_process_unseen.bash "sfcWind" "United Kingdom" "ONDJFM" "1960" "1970" "1"
+# sbatch ~/unseen_multi_year/submit_process_unseen.bash "CanESM5" "tas" "United_Kingdom" "ONDJFM" 1960 2018 "1-9" "True" "None" 10
 
 # Set up the usage message
 usage_msg = "Usage: sbatch submit_process_unseen.bash <model> <variable> <country> <season> <start_year> <end_year> <lead_year> <detrend> <bias_corr> <percentile>"
 
 # Check the number of arguments
-if [ "$#" -ne 9 ]; then
+if [ "$#" -ne 10 ]; then
     echo "Illegal number of parameters"
     echo $usage_msg
     exit 1

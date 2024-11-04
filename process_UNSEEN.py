@@ -242,7 +242,7 @@ def main():
 
     # Depending on the model forecast year
     # set the leads to extract from the model
-    if args.model == "HadGEM3-GC31-MM":
+    if args.model in ["HadGEM3-GC31-MM", "CESM1-1-CAM5-CMIP5"]:
         if args.model_fcst_year == 0 and args.season == "NDJFM":
             lead_months = [1, 2, 3, 4, 5]
         elif args.model_fcst_year == 1 and args.season == "ONDJFM":
@@ -541,7 +541,7 @@ def main():
         # print the leads to extract
         print(f"Leads to extract: {leads}")
     elif args.lead_year == "9999":
-        if args.model == "HadGEM3-GC31-MM":
+        if args.model in ["HadGEM3-GC31-MM", "CESM1-1-CAM5-CMIP5"]:
             # Set up the leads to extract list range 1-10
             leads = list(range(1, 11))
         elif args.model == "CanESM5":
@@ -1048,6 +1048,19 @@ def main():
         variable=args.variable,
         num_samples=1000,
         save_prefix=f"return_period_rank_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
+        save_dir=save_dir,
+    )
+
+    # PLot the return peirod via ranking
+    # in terms of % chance of exceeding most extreme monthly event
+    funcs.plot_chance_of_event_return_levels(
+        obs_df=obs_df,
+        model_df_ondjfm=model_df_ondjfm,
+        obs_val_name=obs_val_name,
+        model_val_name=model_val_name,
+        months=months,
+        num_samples=1000,
+        save_prefix=f"return_period_return_levels_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}_{args.model}_{experiment}_{freq}_fcst_year_{args.model_fcst_year}_lead_year_{args.lead_year}_obs-{obs_val_name}_model-{model_val_name}_bc-{args.bias_correct}",
         save_dir=save_dir,
     )
 
