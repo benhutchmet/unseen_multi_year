@@ -51,6 +51,7 @@ from datetime import datetime, timedelta
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
 from functions import create_masked_matrix
+from unseen_analogs_functions import regrid_obs_to_model
     
 # Define the main function
 def main():
@@ -106,13 +107,13 @@ def main():
     # Set up the path to the observed data
     base_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/"
 
-    test_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/tas/gn/files/d20200417/tas_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
-
     # if the variable is tas
     if args.variable == "tas":
         obs_path = os.path.join(base_path, "ERA5_t2m_daily_1950_2020.nc")
+        test_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/tas/gn/files/d20200417/tas_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
     elif args.variable == "sfcWind":
         obs_path = os.path.join(base_path, "ERA5_wind_daily_1960_2020.nc")
+        test_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/sfcWind/gn/files/d20200417/sfcWind_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
     else:
         raise ValueError("Variable not recognised.")
 
@@ -144,25 +145,48 @@ def main():
     #     longitude=(-40, 30),
     # )
 
-    # print the model cube test dimensions
-    print("Model cube test dimensions:")
-    print(model_cube_test)
+    # # print the model cube test dimensions
+    # print("Model cube test dimensions:")
+    # print(model_cube_test)
 
-    # Select the first member and time from the model cube
-    model_cube_regrid = model_cube_test[0, :, :]
+    # # Select the first member and time from the model cube
+    # model_cube_regrid = model_cube_test[0, :, :]
+
+    # ensure that hadgem is in -180 to 180
+    model_cube_test = model_cube_test.intersection(longitude=(-180, 180), latitude=(0, 90))
+
+    # Europe grid to subset to
+    eu_grid = {
+        "lon1": -40,  # degrees east
+        "lon2": 30,
+        "lat1": 30,  # degrees north
+        "lat2": 80,
+    }
+    
+    # subset the ERA5 data to the EU grid
+    obs_cube_test = obs_cube_test.intersection(
+        longitude=(eu_grid["lon1"], eu_grid["lon2"]),
+        latitude=(eu_grid["lat1"], eu_grid["lat2"]),
+    )
+
+    # subset the HadGEM data to the EU grid
+    model_cube_test = model_cube_test.intersection(
+        longitude=(eu_grid["lon1"], eu_grid["lon2"]),
+        latitude=(eu_grid["lat1"], eu_grid["lat2"]),
+    )
 
     # print the model cube regrid dimensions
-    print("Model cube regrid dimensions:")
-    print(model_cube_regrid)
+    # print("Model cube regrid dimensions:")
+    # print(model_cube_regrid)
 
-    model_cube_regrid.coord("latitude").units = obs_cube_test[0].coord("latitude").units
-    model_cube_regrid.coord("longitude").units = obs_cube_test[0].coord("longitude").units
+    # model_cube_regrid.coord("latitude").units = obs_cube_test[0].coord("latitude").units
+    # model_cube_regrid.coord("longitude").units = obs_cube_test[0].coord("longitude").units
 
-    # and for the attributes
-    model_cube_regrid.coord("latitude").attributes = obs_cube_test[0].coord("latitude").attributes
-    model_cube_regrid.coord("longitude").attributes = obs_cube_test[0].coord("longitude").attributes
+    # # and for the attributes
+    # model_cube_regrid.coord("latitude").attributes = obs_cube_test[0].coord("latitude").attributes
+    # model_cube_regrid.coord("longitude").attributes = obs_cube_test[0].coord("longitude").attributes
 
-    obs_cube_regrid = obs_cube_test.regrid(model_cube_regrid, iris.analysis.Linear())
+    obs_cube_regrid = obs_cube_test.regrid(model_cube_test, iris.analysis.Linear())
 
     # longitude : -45 to 40.219 by 0.2812508 degrees_east
     #  latitude : 89.78487 to 29.92973 by -0.2810101 degrees_north

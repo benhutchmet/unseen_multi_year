@@ -12,6 +12,10 @@ wget*.sh
 paths/*.csv
 *.status
 
+# ignore the plots
+plots/*.png
+plots/*.pdf
+
 # Saved netcdf files
 saved_nc/*.nc
 power_system/*.nc
