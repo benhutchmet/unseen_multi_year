@@ -112,7 +112,7 @@ def main():
         obs_path = os.path.join(base_path, "ERA5_t2m_daily_1950_2020.nc")
         test_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/tas/gn/files/d20200417/tas_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
     elif args.variable == "sfcWind":
-        obs_path = os.path.join(base_path, "ERA5_wind_daily_1960_2020.nc")
+        obs_path = os.path.join(base_path, "ERA5_wind_daily_1952_2020.nc")
         test_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/sfcWind/gn/files/d20200417/sfcWind_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
     else:
         raise ValueError("Variable not recognised.")
