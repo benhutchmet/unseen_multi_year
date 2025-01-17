@@ -23,7 +23,7 @@ members=("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
 
 # set up members as ints 1-10
 members=($(seq 1 10))
-
+    
 module load jaspy
 
 # Set up the process script
