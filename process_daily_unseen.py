@@ -51,6 +51,9 @@ import iris
 from tqdm import tqdm
 from datetime import datetime, timedelta
 
+# load the dictionaries
+import dictionaries as dic
+
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
 from functions import load_model_data_xarray, create_masked_matrix
@@ -163,22 +166,40 @@ def main():
     # Make sure cube is on the correct grid system
     model_cube = model_cube.intersection(longitude=(-180, 180))
 
-    # Create the mask matrix for the UK
-    MASK_MATRIX = create_masked_matrix(
-        country=args.country,
-        cube=model_cube,
-    )
+    # if the country is in "United Kingdom" "United_Kingdom"
+    if args.country == "United Kingdom" or args.country == "United_Kingdom":
+        # Create the mask matrix for the UK
+        MASK_MATRIX = create_masked_matrix(
+            country=args.country,
+            cube=model_cube,
+        )
 
-    model_data = model_cube.data
+        model_data = model_cube.data
 
-    # Apply the mask to the model cube
-    model_values = model_data * MASK_MATRIX
+        # Apply the mask to the model cube
+        model_values = model_data * MASK_MATRIX
 
-    # Where there are zeros in the mask we want to set these to Nans
-    model_values_masked = np.where(MASK_MATRIX == 0, np.nan, model_values)
+        # Where there are zeros in the mask we want to set these to Nans
+        model_values_masked = np.where(MASK_MATRIX == 0, np.nan, model_values)
 
-    # Take the Nanmean of the data
-    model_values = np.nanmean(model_values_masked, axis=(1, 2))
+        # Take the Nanmean of the data
+        model_values = np.nanmean(model_values_masked, axis=(1, 2))
+    elif args.country == "North Sea":
+        print("Taking gridbox average for the North Sea")
+
+        # Set up the gridbox
+        gridbox = dic.north_sea_kay
+
+        # Subset to the north sea region
+        model_cube = model_cube.intersection(
+            longitude=(gridbox["lon1"], gridbox["lon2"]),
+            latitude=(gridbox["lat1"], gridbox["lat2"]),
+        )
+
+        # Take the mean over lat and lon
+        model_values = model_cube.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+    else:
+        raise ValueError("Country not recognised")
 
     model_df = pd.DataFrame()
 
@@ -186,7 +207,6 @@ def main():
     init_years = model_cube.coord("init").points
     members = model_cube.coord("member").points
     lead_times = model_cube.coord("lead").points
-
 
     # loop through the inits, members and leadtimes
     for i, init_year in enumerate(init_years):
