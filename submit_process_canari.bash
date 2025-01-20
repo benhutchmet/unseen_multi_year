@@ -22,6 +22,13 @@ fi
 # Load the jaspy module
 module load jaspy
 
+# set up the members
+# specific to CanARI
+members=()
+for i in {1..40}; do
+  members+=("$i")
+done
+
 # Set up the process script
 process_script="/home/users/benhutch/unseen_multi_year/process_daily_canari.py"
 
@@ -37,12 +44,19 @@ echo "Country: ${country}"
 echo "Year: ${year}"
 echo "Period: ${period}"
 
-# Run the script
-python ${process_script} \
-    --variable ${variable} \
-    --country ${country} \
-    --year ${year} \
-    --period ${period}
+# loop over the months
+for member in "${members[@]}"; do
+    # Echo the member number
+    echo "Member no: ${member}"
+
+    # Run the script
+    python ${process_script} \
+        --variable ${variable} \
+        --country ${country} \
+        --year ${year} \
+        --member ${member} \
+        --period ${period}
+done
 
 # End of file
 echo "End of file"
