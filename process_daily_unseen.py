@@ -157,8 +157,8 @@ def main():
     # print the model ds
     print(f"Dimensions of the model dataset: {model_ds.dims}")
 
-    # convert modify the member coordinate
-    model_ds["member"] = model_ds["member"].str[1:-6].astype(int)
+    # # convert modify the member coordinate
+    # model_ds["member"] = model_ds["member"].str[1:-6].astype(int)
 
     # convert to an iris cube
     model_cube = model_ds[args.variable].squeeze().to_iris()
@@ -195,6 +195,13 @@ def main():
             longitude=(gridbox["lon1"], gridbox["lon2"]),
             latitude=(gridbox["lat1"], gridbox["lat2"]),
         )
+
+        # print the model cube
+        print(model_cube)
+
+        # print the lats and lons of the model cube
+        print(model_cube.coord("latitude").points)
+        print(model_cube.coord("longitude").points)
 
         # Take the mean over lat and lon
         model_values = model_cube.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data

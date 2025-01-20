@@ -1,10 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=sub-process-daily
-#SBATCH --partition=high-mem
-#SBATCH --mem=100000
+#SBATCH --job-name="sub-process-daily"
 #SBATCH --time=500:00
-#SBATCH -o /home/users/benhutch/unseen_functions/logs/sub-process-daily-%A_%a.out
-#SBATCH -e /home/users/benhutch/unseen_functions/logs/sub-process-daily-%A_%a.err
+#SBATCH --mem=100000
+#SBATCH --account=canari
+#SBATCH --partition=highres
+#SBATCH --qos=highres
+#SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.out
+#SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.err
 #SBATCH --array=1960-2018
 
 # Set up the usage messages
