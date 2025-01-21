@@ -7,7 +7,7 @@
 #SBATCH --qos=highres
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_canari-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_canari-%A_%a.err
-#SBATCH --array=1953-2014
+#SBATCH --array=1950-2014
 
 # Set up the usage messages
 usage="Usage: sbatch submit_process_canari.bash <variable> <country>"

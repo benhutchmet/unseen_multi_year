@@ -48,6 +48,9 @@ import iris
 from tqdm import tqdm
 from datetime import datetime, timedelta
 
+# load the dictionaries
+import dictionaries as dic
+
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
 from functions import create_masked_matrix
@@ -192,48 +195,68 @@ def main():
     #  latitude : 89.78487 to 29.92973 by -0.2810101 degrees_north
     # for obs
 
-    # Create the mask matrix for the UK
-    MASK_MATRIX = create_masked_matrix(
-        country=args.country,
-        cube=obs_cube_regrid,
-    )
+    # if the country is in "United Kingdom" "United_Kingdom"
+    if args.country == "United Kingdom" or args.country == "United_Kingdom":
+        # Create the mask matrix for the UK
+        MASK_MATRIX = create_masked_matrix(
+            country=args.country,
+            cube=obs_cube_regrid,
+        )
 
-    obs_data = obs_cube_regrid.data
+        obs_data = obs_cube_regrid.data
 
-    # print the obs data
-    print("Obs data:")
-    print(obs_data)
+        # print the obs data
+        print("Obs data:")
+        print(obs_data)
 
-    # Apply the mask to the observed and model data
-    obs_values = obs_data * MASK_MATRIX
-    # model_values = model_cube.data * MASK_MATRIX
+        # Apply the mask to the observed and model data
+        obs_values = obs_data * MASK_MATRIX
+        # model_values = model_cube.data * MASK_MATRIX
 
-    # print the obs values
-    print("Obs values:")
-    print(obs_values)
+        # print the obs values
+        print("Obs values:")
+        print(obs_values)
 
-    # Where there are zeros we want to set these to NaNs
-    obs_values = np.where(obs_values == 0, np.nan, obs_values)
-    # model_values = np.where(model_values == 0, np.nan, model_values)
+        # Where there are zeros we want to set these to NaNs
+        obs_values = np.where(obs_values == 0, np.nan, obs_values)
+        # model_values = np.where(model_values == 0, np.nan, model_values)
 
-    # prit the obs values
-    print("Obs values:")
-    print(obs_values)
+        # prit the obs values
+        print("Obs values:")
+        print(obs_values)
 
-    # print the obs values shape
-    print("Obs values shape:")
-    print(obs_values.shape)
+        # print the obs values shape
+        print("Obs values shape:")
+        print(obs_values.shape)
 
-    # Take the Nanmean of the data
-    # over lat and lon dims
-    obs_mean = np.nanmean(obs_values, axis=(1, 2))
-    # model_mean = np.nanmean(model_values, axis=(2, 3))
+        # Take the Nanmean of the data
+        # over lat and lon dims
+        obs_mean = np.nanmean(obs_values, axis=(1, 2))
+    elif args.country == "North Sea":
+        print("Taking gridbox average for the North Sea")
+
+        # Set up the gridbox
+        gridbox = dic.north_sea_kay
+
+        # Subset to the north sea region
+        obs_cube_regrid = obs_cube_regrid.intersection(
+            longitude=(gridbox["lon1"], gridbox["lon2"]),
+            latitude=(gridbox["lat1"], gridbox["lat2"]),
+        )
+
+        # print the obs cube regrid
+        print(obs_cube_regrid)
+
+        # print the lats and lons of the obs cube regrid
+        print(obs_cube_regrid.coord("latitude").points)
+        print(obs_cube_regrid.coord("longitude").points)
+
+        # Take the mean over lat and lon
+        obs_mean = obs_cube_regrid.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
 
     # print the obs mean
     print("Obs mean:")
     print(obs_mean)
-
-    # Extract the dates
 
     dates = obs_cube_regrid.coord("time").points
 
