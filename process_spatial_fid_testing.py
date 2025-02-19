@@ -204,8 +204,11 @@ def main():
     # Constrain the obs to the winter
     # FIXME: hardcoded as DJF for now
     obs_data = obs_data.extract(
-        iris.Constraint(time=lambda cell: datetime(args.init_year, 12, 1) <= cell.point <= datetime(args.init_year, 3, 1))
+        iris.Constraint(time=lambda cell: datetime(int(args.init_year), 12, 1) <= cell.point < datetime(int(args.init_year) + 1, 3, 1))
     )
+
+    # print the obs data
+    print(obs_data)
 
     # Set up the leads to extract from the model data
     leads_djf_model = np.arange(31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360))
@@ -288,9 +291,24 @@ def main():
 
     # Set up the obs data array
     obs_data_array = obs_data_box_regrid.data
+    obs_data_array = obs_data_array.filled(np.nan)
 
     # Set up the model data array
     model_data_array = model_cube_box.data
+    model_data_array = model_data_array.filled(np.nan)
+
+    # # print the shape of the data
+    # print("=================================")
+    # print("Shape of the obs data array:")
+    # print(obs_data_array.shape)
+    # print("Shape of model data array:")
+    # print(model_data_array.shape)
+    # print("Values of the obs data array:")
+    # print(obs_data_array)
+    # # print the values of the model data array
+    # print("Values of the model data array:")
+    # print(model_data_array)
+    # print("=================================")
 
     # Save the obs data array
     np.save(obs_array_path, obs_data_array)
