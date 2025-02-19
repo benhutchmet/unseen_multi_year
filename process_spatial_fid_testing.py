@@ -67,6 +67,7 @@ from datetime import datetime, timedelta
 sys.path.append("/home/users/benhutch/unseen_functions")
 import functions as funcs
 
+
 # Define the main function
 def main():
 
@@ -74,20 +75,40 @@ def main():
     start_time = time.time()
 
     # Hard-code the test path
-    test_obs_wind_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1960_1965.nc"
+    test_obs_wind_path = (
+        "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1960_1965.nc"
+    )
     output_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs"
     meta_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata"
-    members_list = ['r10i1p1f2', 'r1i1p1f2', 'r2i1p1f2', 'r3i1p1f2', 'r4i1p1f2', 'r5i1p1f2',
-                'r6i1p1f2', 'r7i1p1f2', 'r8i1p1f2', 'r9i1p1f2']
+    members_list = [
+        "r10i1p1f2",
+        "r1i1p1f2",
+        "r2i1p1f2",
+        "r3i1p1f2",
+        "r4i1p1f2",
+        "r5i1p1f2",
+        "r6i1p1f2",
+        "r7i1p1f2",
+        "r8i1p1f2",
+        "r9i1p1f2",
+    ]
 
     # Define the parser
-    parser = argparse.ArgumentParser(description="Process obs and model data into arrays suitable for performing the spatial fidelity test.")
+    parser = argparse.ArgumentParser(
+        description="Process obs and model data into arrays suitable for performing the spatial fidelity test."
+    )
 
     # Define the arguments
-    parser.add_argument("--variable", type=str, help="variable name (e.g. tas, pr, psl)")
-    parser.add_argument("--region", type=str, help="region name (e.g. UK, France, Germany)")
+    parser.add_argument(
+        "--variable", type=str, help="variable name (e.g. tas, pr, psl)"
+    )
+    parser.add_argument(
+        "--region", type=str, help="region name (e.g. UK, France, Germany)"
+    )
     parser.add_argument("--init_year", type=int, help="initialisation year (e.g. 1960)")
-    parser.add_argument("--season", type=str, help="season name (e.g. DJF, MAM, JJA, SON)")
+    parser.add_argument(
+        "--season", type=str, help="season name (e.g. DJF, MAM, JJA, SON)"
+    )
     parser.add_argument("--winter", type=int, help="winter number (e.g. 1, 2, 3)")
 
     # Parse the arguments
@@ -119,7 +140,7 @@ def main():
         months = [10, 11, 12, 1, 2, 3]
     else:
         raise ValueError("Season must be DJF or ONDJFM")
-    
+
     # Set up the region
     # if the region is UK
     if args.region == "UK":
@@ -133,16 +154,14 @@ def main():
         raise ValueError("Region not recognised")
 
     # set up the array fnames
-    obs_array_fname = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day.npy"
+    obs_array_fname = (
+        f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day.npy"
+    )
     model_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_day.npy"
 
     # set up the full obs and model atrray paths
-    obs_array_path  = os.path.join(
-        output_dir, "obs", obs_array_fname
-    )
-    model_array_path = os.path.join(
-        output_dir, "model", model_array_fname
-    )
+    obs_array_path = os.path.join(output_dir, "obs", obs_array_fname)
+    model_array_path = os.path.join(output_dir, "model", model_array_fname)
 
     # if the obs array already exists, exit with an error
     if os.path.exists(obs_array_path):
@@ -164,12 +183,12 @@ def main():
 
     # loop over the members
     for m, member_this in tqdm(enumerate(members_list)):
-        
+
         # print member this
         print(member_this)
-        
+
         # Load in the data
-        model_ds_this =funcs.load_model_data_xarray(
+        model_ds_this = funcs.load_model_data_xarray(
             model_variable=args.variable,
             model="HadGEM3-GC31-MM",
             experiment="dcppA-hindcast",
@@ -204,14 +223,20 @@ def main():
     # Constrain the obs to the winter
     # FIXME: hardcoded as DJF for now
     obs_data = obs_data.extract(
-        iris.Constraint(time=lambda cell: datetime(int(args.init_year), 12, 1) <= cell.point < datetime(int(args.init_year) + 1, 3, 1))
+        iris.Constraint(
+            time=lambda cell: datetime(int(args.init_year), 12, 1)
+            <= cell.point
+            < datetime(int(args.init_year) + 1, 3, 1)
+        )
     )
 
     # print the obs data
     print(obs_data)
 
     # Set up the leads to extract from the model data
-    leads_djf_model = np.arange(31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360))
+    leads_djf_model = np.arange(
+        31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
+    )
 
     # print the min lead we are extracting
     print("=================================")
@@ -244,22 +269,14 @@ def main():
     obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day_times.npy"
 
     # Set up the paths for the lats and lons
-    lats_array_path = os.path.join(
-        meta_dir, lats_array_fname
-    )
-    lons_array_path = os.path.join(
-        meta_dir, lons_array_fname
-    )
+    lats_array_path = os.path.join(meta_dir, lats_array_fname)
+    lons_array_path = os.path.join(meta_dir, lons_array_fname)
 
     # Set up the path for the members
-    members_path = os.path.join(
-        meta_dir, members
-    )
+    members_path = os.path.join(meta_dir, members)
 
     # Set up the path for the obs times
-    obs_times_path = os.path.join(
-        meta_dir, obs_times
-    )
+    obs_times_path = os.path.join(meta_dir, obs_times)
 
     # if the lats array already exists, exit with an error
     if os.path.exists(lats_array_path):
@@ -323,6 +340,7 @@ def main():
     print(f"Time taken: {end_time - start_time} seconds")
 
     return None
+
 
 if __name__ == "__main__":
     main()
