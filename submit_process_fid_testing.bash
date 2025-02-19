@@ -45,10 +45,10 @@ echo "Year: ${year}"
 # Run the script
 python ${process_script} \
     --variable ${variable} \
-    --country ${country} \
-    --year ${year} \
-    --member ${member} \
-    --period ${period}
+    --region ${region} \
+    --init_year ${year} \
+    --season ${season} \
+    --winter ${winter_year}
 
 # End of file
 echo "End of file"
