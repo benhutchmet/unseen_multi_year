@@ -14,7 +14,8 @@ Usage:
 
     $ python process_spatial_fid_testing.py \
         --variable "sfcWind" \
-        --region "UK" \
+        --r
+        egion "UK" \
         --init_year "1960" \
         --season "DJF" \
         --winter "1"
@@ -76,7 +77,7 @@ def main():
 
     # Hard-code the test path
     test_obs_wind_path = (
-        "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1960_1965.nc"
+        "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1951_2020_daymean.nc"
     )
     output_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs"
     meta_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata"
@@ -128,10 +129,10 @@ def main():
         print("Error: variable must be sfcWind")
         sys.exit()
 
-    # if init year is not 1960, 1961, 1962, 1963, 1964, or 1965, exit with an error
-    if args.init_year not in [1960, 1961, 1962, 1963, 1964, 1965]:
-        print("Error: init year must be 1960, 1961, 1962, 1963, 1964, or 1965")
-        sys.exit()
+    # # if init year is not 1960, 1961, 1962, 1963, 1964, or 1965, exit with an error
+    # if args.init_year not in [1960, 1961, 1962, 1963, 1964, 1965]:
+    #     print("Error: init year must be 1960, 1961, 1962, 1963, 1964, or 1965")
+    #     sys.exit()
 
     # Set up the months depending on the season
     if args.season == "DJF":

@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name="process_fidelity_testing"
-#SBATCH --time=400:00
-#SBATCH --mem=50000
+#SBATCH --time=03:00:00
+#SBATCH --mem=6000M
 #SBATCH --account=canari
 #SBATCH --partition=standard
 #SBATCH --qos=standard
-#SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_fid_testing-%A_%a.out
-#SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_fid_testing-%A_%a.err
-#SBATCH --array=1960-2018
+#SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.out
+#SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.err
+#SBATCH --array=1991-2014
 
 # Set up the usage messages
 usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year>"
