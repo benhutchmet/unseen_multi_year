@@ -14,8 +14,7 @@ Usage:
 
     $ python process_spatial_fid_testing.py \
         --variable "sfcWind" \
-        --r
-        egion "UK" \
+        --region "UK" \
         --init_year "1960" \
         --season "DJF" \
         --winter "1"
@@ -76,9 +75,15 @@ def main():
     start_time = time.time()
 
     # Hard-code the test path
-    test_obs_wind_path = (
-        "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1951_2020_daymean.nc"
+    # test_obs_wind_path = (
+    #     "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
+    # )
+
+    # test obs tas path
+    test_obs_tas_path = (
+        "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc"
     )
+
     output_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs"
     meta_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata"
     members_list = [
@@ -124,10 +129,10 @@ def main():
     print(f"Winter: {args.winter}")
     print("========================================")
 
-    # if the variable is not sfcWind exit with an error
-    if args.variable != "sfcWind":
-        print("Error: variable must be sfcWind")
-        sys.exit()
+    # # if the variable is not sfcWind exit with an error
+    # if args.variable != "sfcWind":
+    #     print("Error: variable must be sfcWind")
+    #     sys.exit()
 
     # # if init year is not 1960, 1961, 1962, 1963, 1964, or 1965, exit with an error
     # if args.init_year not in [1960, 1961, 1962, 1963, 1964, 1965]:
@@ -176,7 +181,8 @@ def main():
 
     # Load the obs data
     # FIXME: Hardcoded for now
-    obs_data = iris.load_cube(test_obs_wind_path, "si10")
+    # obs_data = iris.load_cube(test_obs_wind_path, "si10")
+    obs_data = iris.load_cube(test_obs_tas_path, "t2m")
 
     # Loop over the members list
     # Set up an empty list to store the data

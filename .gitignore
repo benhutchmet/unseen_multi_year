@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# all of the logs files
+logs/*.out
+logs/*.err
+
 # random files
 wget*.sh
 *.csv
