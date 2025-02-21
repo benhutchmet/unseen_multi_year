@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name="submit_download_ERA5"
-#SBATCH --time=20:00:00
+#SBATCH --time=80:00:00
 #SBATCH --mem=10000M
 #SBATCH --account=canari
 #SBATCH --partition=standard
-#SBATCH --qos=standard
+#SBATCH --qos=long
 #SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_download_ERA5-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_download_ERA5-%A_%a.err
-#SBATCH --array=1946-2024
+#SBATCH --array=1940-2024
 
 # Set up the usage message
 usage="Usage: sbatch submit_download_ERA5_jasmin.bashs"
