@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name="process_fidelity_testing"
-#SBATCH --time=03:00:00
-#SBATCH --mem=6000M
+#SBATCH --time=16:00:00
+#SBATCH --mem=10000M
 #SBATCH --account=canari
-#SBATCH --partition=standard
-#SBATCH --qos=standard
+#SBATCH --partition=highres
+#SBATCH --qos=highres
 #SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.err
 #SBATCH --array=1990-2018

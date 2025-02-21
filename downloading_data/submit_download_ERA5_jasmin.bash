@@ -10,7 +10,7 @@
 #SBATCH --array=1940-2024
 
 # Set up the usage message
-usage="Usage: sbatch submit_download_ERA5_jasmin.bashs"
+usage="Usage: sbatch submit_download_ERA5_jasmin.bash"
 
 # Check the number of CLI arguments
 if [ "$#" -ne 0 ]; then
