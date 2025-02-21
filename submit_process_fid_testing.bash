@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name="process_fidelity_testing"
-#SBATCH --time=16:00:00
-#SBATCH --mem=10000M
+#SBATCH --time=10:00:00
+#SBATCH --mem=1000M
 #SBATCH --account=canari
 #SBATCH --partition=highres
 #SBATCH --qos=highres
