@@ -70,8 +70,15 @@ def download_ERA5_to_jasmin(
     #print(str(MONTH))
     y = str(year)
 
+    target = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/ERA5_EU_85000_zg_T_U_V' + str(y) + '_' + str(m) + '.nc'
+
+    # if the file already exists, skip
+    if os.path.exists(target):
+        print(f'File already exists: {target}')
+        return None
+
     client = cdsapi.Client()
-    
+
     dataset = 'reanalysis-era5-pressure-levels' # On pressure levels
     request = {
         'product_type': ['reanalysis'],
@@ -84,8 +91,6 @@ def download_ERA5_to_jasmin(
         'pressure_level': ['850'],
         'data_format': 'netcdf',
     }
-    
-    target = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/ERA5_EU_85000_zg_T_U_V' + str(y) + '_' + str(m) + '.nc'
     
     client.retrieve(dataset, request, target)
     

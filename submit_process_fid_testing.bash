@@ -7,7 +7,7 @@
 #SBATCH --qos=standard
 #SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.err
-#SBATCH --array=1960-2014
+#SBATCH --array=1990-2018
 
 # Set up the usage messages
 usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year>"
