@@ -31,6 +31,40 @@ import os
 import cdsapi
 import argparse
 
+# Define a function to check the files which exist
+def check_files_exist():
+    """
+    Check the files which already exist in the target directory.
+    """
+
+    # Set up the target directory
+    target_dir = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/'
+
+    # Set up the years to check for
+    years = list(range(1940,2024))
+
+    # Set up the months to check for
+    months = list(range(1,13))
+
+    # Set up a list for the missing files
+    missing_files = []
+
+    # Loop over the years and months
+    for year in years:
+        for month in months:
+            # Set up the file name
+            file_name = f'ERA5_EU_85000_zg_T_U_V{year}_{str(month).zfill(2)}.nc'
+
+            # Check if the file exists
+            if os.path.exists(target_dir + file_name):
+                print(f'File exists for year: {year} and month: {month}')
+            else:
+                print(f'File does not exist for year: {year} and month: {month}')
+                missing_files.append(file_name)
+
+    return missing_files
+
+# define the function to download the ERA5 data
 def download_ERA5_to_jasmin(
     year: int,
     month: int,
@@ -113,6 +147,16 @@ def main():
     print(f'Year: {args.year}')
     print(f'Month: {args.month}')
     print('=====================================')
+
+    missing_files = check_files_exist()
+
+    # Print the missing files
+    print('=====================================')
+    print('Missing files:')
+    print(missing_files)
+    print('=====================================')
+
+    return None
 
     # Run the function
     download_ERA5_to_jasmin(

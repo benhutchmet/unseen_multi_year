@@ -7,13 +7,12 @@
 #SBATCH --qos=long
 #SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_download_ERA5-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_download_ERA5-%A_%a.err
-#SBATCH --array=1940-2024
 
 # Set up the usage message
-usage="Usage: sbatch submit_download_ERA5_jasmin.bash"
+usage="Usage: sbatch submit_download_ERA5_jasmin.bash <year>"
 
 # Check the number of CLI arguments
-if [ "$#" -ne 0 ]; then
+if [ "$#" -ne 1 ]; then
     echo "Illegal number of parameters"
     echo $usage
     exit 1
@@ -32,7 +31,7 @@ for i in {1..12}; do
 done
 
 # Set up the year
-year=${SLURM_ARRAY_TASK_ID}
+year=$1
 
 # Set up the process script
 process_script="/home/users/benhutch/unseen_multi_year/downloading_data/download_ERA5_jasmin.py"
