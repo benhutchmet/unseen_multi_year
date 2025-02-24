@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+# data files
+data/*.csv
+data/*.nc
+data/*.dat
+
 # all of the logs files
 logs/*.out
 logs/*.err
