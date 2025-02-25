@@ -148,13 +148,13 @@ def main():
     print(f'Month: {args.month}')
     print('=====================================')
 
-    # missing_files = check_files_exist()
+    missing_files = check_files_exist()
 
-    # # Print the missing files
-    # print('=====================================')
-    # print('Missing files:')
-    # print(missing_files)
-    # print('=====================================')
+    # Print the missing files
+    print('=====================================')
+    print('Missing files:')
+    print(missing_files)
+    print('=====================================')
 
     # return None
 

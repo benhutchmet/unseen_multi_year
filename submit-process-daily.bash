@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name="sub-process-daily"
-#SBATCH --time=500:00
-#SBATCH --mem=100000
+#SBATCH --time=03:00:00
+#SBATCH --mem=500M
 #SBATCH --account=canari
-#SBATCH --partition=highres
-#SBATCH --qos=highres
+#SBATCH --partition=standard
+#SBATCH --qos=standard
+#SBATCH --cpus-per-task=1
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.err
 #SBATCH --array=1960-2018

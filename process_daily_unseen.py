@@ -45,6 +45,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import shapely.geometry
 import cartopy.io.shapereader as shpreader
+import cartopy.crs as ccrs
 import iris
 
 # Specific imports
@@ -110,7 +111,7 @@ def main():
     # if country contains a _
     # e.g. United_Kingdom
     # replace with a space
-    if "_" in args.country:
+    if "_" in args.country and args.country == "United_Kingdom":
         args.country = args.country.replace("_", " ")
 
     # Print the arguyments
@@ -134,7 +135,7 @@ def main():
     # If the df already exists raise an error
     if os.path.exists(os.path.join(output_dir_dfs, df_name)):
         print(f"The dataframe {df_name} already exists.")
-        return
+        # return
 
     # Get the member string
     member_str = get_member_string(args.member, model)
@@ -182,6 +183,44 @@ def main():
         # Where there are zeros in the mask we want to set these to Nans
         model_values_masked = np.where(MASK_MATRIX == 0, np.nan, model_values)
 
+        # extract the model lats
+        # model_lats = model_cube.coord("latitude").points
+        # model_lons = model_cube.coord("longitude").points
+
+        # # set up a figure
+        # fig, ax = plt.subplots()
+
+        # # Set up the projection
+        # ax = plt.axes(projection=ccrs.PlateCarree())
+
+        # # Add the coastlines
+        # ax.coastlines()
+
+        # # Add the gridlines
+        # ax.gridlines(draw_labels=True)
+
+        # # pcolormesh the model values
+        # im = ax.pcolormesh(model_lons, model_lats, model_values_masked[0, :, :], transform=ccrs.PlateCarree())
+
+        # # set the extent
+        # ax.set_extent([-10, 5, 50, 60], crs=ccrs.PlateCarree())
+
+        # # # Add the colorbar
+        # # plt.colorbar(im, ax=ax, orientation="horizontal", label="Model values")
+
+        # # Add the title
+        # plt.title(f"Model values for {args.country}")
+
+        # # Save the figure
+        # plt.savefig(f"/home/users/benhutch/unseen_multi_year/plots/model_values_{args.country}.png")
+
+        # # print that we aree eitin
+        # print("=====================================")
+        # print("Exiting the script")
+        # print("=====================================")
+
+        # sys.exit()
+
         # Take the Nanmean of the data
         model_values = np.nanmean(model_values_masked, axis=(1, 2))
     elif args.country == "North Sea":
@@ -203,6 +242,57 @@ def main():
         print(model_cube.coord("latitude").points)
         print(model_cube.coord("longitude").points)
 
+        # Take the mean over lat and lon
+        model_values = model_cube.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+    elif args.country == "UK_wind_box":
+        print("Taking gridbox average for the UK wind box")
+
+        # Set up the gridbox
+        gridbox = dic.wind_gridbox
+
+        # Subset to the UK wind box region
+        model_cube = model_cube.intersection(
+            longitude=(gridbox["lon1"], gridbox["lon2"]),
+            latitude=(gridbox["lat1"], gridbox["lat2"]),
+        )
+
+        # # extract the model lats
+        # model_lats = model_cube.coord("latitude").points
+        # model_lons = model_cube.coord("longitude").points
+
+        # # set up a figure
+        # fig, ax = plt.subplots()
+
+        # # Set up the projection
+        # ax = plt.axes(projection=ccrs.PlateCarree())
+
+        # # Add the coastlines
+        # ax.coastlines()
+
+        # # Add the gridlines
+        # ax.gridlines(draw_labels=True)
+
+        # # pcolormesh the model values
+        # im = ax.pcolormesh(model_lons, model_lats, model_cube.data[0, :, :], transform=ccrs.PlateCarree())
+
+        # # set the extent
+        # ax.set_extent([-10, 5, 50, 60], crs=ccrs.PlateCarree())
+
+        # # # Add the colorbar
+        # # plt.colorbar(im, ax=ax, orientation="horizontal", label="Model values")
+
+        # # Add the title
+        # plt.title(f"Model values for {args.country}")
+
+        # # Save the figure
+        # plt.savefig(f"/home/users/benhutch/unseen_multi_year/plots/model_values_{args.country}_wind_box.png")
+
+        # # # print that we aree eitin
+        # print("=====================================")
+        # print("Exiting the script")
+        # print("=====================================")
+
+        # sys.exit()
         # Take the mean over lat and lon
         model_values = model_cube.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
     else:

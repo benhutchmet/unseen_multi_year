@@ -8,6 +8,14 @@ uk_grid = {
     'lat2': 60
 }
 
+# Define the UK wind box
+wind_gridbox = {
+    "lat1": 50,
+    "lat2": 59.5,
+    "lon1": -6,
+    "lon2": 2
+}
+
 # define the north sea grid from kay et al. 2023
 north_sea_kay = {
     'lon1': 1, # degrees east
