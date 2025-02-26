@@ -1,8 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=sub-process-daily-obs
-#SBATCH --partition=high-mem
-#SBATCH --mem=200000
-#SBATCH --time=500:00
+#SBATCH --time=03:00:00
+#SBATCH --mem=10000M
+#SBATCH --account=canari
+#SBATCH --partition=standard
+#SBATCH --qos=standard
+#SBATCH --cpus-per-task=1
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/sub-process-daily-obs-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/sub-process-daily-obs-%A_%a.err
 
@@ -17,6 +20,8 @@ if [ "$#" -ne 2 ]; then
 fi
 
 module load jaspy
+
+source activate bens-conda-env2
 
 # Set up the process script
 process_script="/home/users/benhutch/unseen_multi_year/process_obs_daily.py"

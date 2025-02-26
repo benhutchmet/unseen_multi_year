@@ -79,7 +79,7 @@ def main():
     # if country contains a _
     # e.g. United_Kingdom
     # replace with a space
-    if "_" in args.country:
+    if "_" in args.country and args.country == "United_Kingdom":
         args.country = args.country.replace("_", " ")
 
     # Print the arguyments
@@ -253,6 +253,22 @@ def main():
 
         # Take the mean over lat and lon
         obs_mean = obs_cube_regrid.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+    elif args.country == "UK_wind_box":
+        print("Taking gridbox average for the UK wind box")
+
+        # set up the gridbox
+        gridbox = dic.wind_gridbox
+
+        # subset to the wind gridbox
+        obs_cube_regrid = obs_cube_regrid.intersection(
+            longitude=(gridbox["lon1"], gridbox["lon2"]),
+            latitude=(gridbox["lat1"], gridbox["lat2"]),
+        )
+
+        # Take the mean over lat and lon
+        obs_mean = obs_cube_regrid.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+    else:
+        raise ValueError("Country not recognised.")
 
     # print the obs mean
     print("Obs mean:")
