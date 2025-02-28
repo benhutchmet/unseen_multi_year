@@ -103,7 +103,7 @@ def block_min_max_obs(
         )
 
         # Append the new dataframe to the block_df
-        block_df = block_df.append(df_new)
+        block_df = pd.concat([block_df, df_new])
 
     # Return the block_df
     return block_df
