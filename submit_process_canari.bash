@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name="process_canari"
 #SBATCH --time=500:00
-#SBATCH --mem=150000
+#SBATCH --mem=50000
 #SBATCH --account=canari
-#SBATCH --partition=highres
-#SBATCH --qos=highres
+#SBATCH --partition=standard
+#SBATCH --qos=standard
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_canari-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_canari-%A_%a.err
 #SBATCH --array=1950-2014

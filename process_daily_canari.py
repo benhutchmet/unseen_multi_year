@@ -366,6 +366,33 @@ def main():
             # Take the Nanmean of the data
             model_values_u = np.nanmean(model_data_u, axis=(1, 2))
             model_values_v = np.nanmean(model_data_v, axis=(1, 2))
+        elif args.country == "UK wind box":
+            print("Taking gridbox average for the UK wind box")
+
+            # Set up the gridbox
+            gridbox = dic.wind_gridbox
+
+            # Subset to the north sea region
+            model_cube_u = model_cube_u.intersection(
+                longitude=(gridbox["lon1"], gridbox["lon2"]),
+                latitude=(gridbox["lat1"], gridbox["lat2"]),
+            )
+
+            model_cube_v = model_cube_v.intersection(
+                longitude=(gridbox["lon1"], gridbox["lon2"]),
+                latitude=(gridbox["lat1"], gridbox["lat2"]),
+            )
+
+            # print the dimensions of modeul cube u
+            print(model_cube_u.shape)
+
+            # Extract the model data
+            model_data_u = model_cube_u.data
+            model_data_v = model_cube_v.data
+
+            # Take the Nanmean of the data
+            model_values_u = np.nanmean(model_data_u, axis=(1, 2))
+            model_values_v = np.nanmean(model_data_v, axis=(1, 2))
         else:
             raise ValueError("Country not recognised")
 
