@@ -79,6 +79,7 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import pandas as pd
 import shapely.geometry
+import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
 import iris
 
@@ -309,6 +310,7 @@ def main():
             first_fcst_year=int(args.first_year) + 1,
             last_fcst_year=int(args.first_year) + 2,
             months=months,
+            member="r1i1p1f2",
             frequency=freq,
             parallel=False,
         )
@@ -325,8 +327,8 @@ def main():
         # # Print the size
         # print(f"Model data size: {size_in_gb} GB")
 
-        # Modify member coordiante before conbersion to iris
-        model_ds["member"] = model_ds["member"].str[1:-6].astype(int)
+        # # Modify member coordiante before conbersion to iris
+        # model_ds["member"] = model_ds["member"].str[1:-6].astype(int)
 
         # convert to an iris cube
         model_cube = model_ds[args.variable].squeeze().to_iris()
@@ -417,6 +419,66 @@ def main():
         # Where there are zeros in the mask we want to set these to Nans
         obs_values_masked = np.where(MASK_MATRIX == 0, np.nan, obs_values)
         model_values_masked = np.where(MASK_MATRIX == 0, np.nan, model_values)
+
+        # Set up a figure with Cartopy projection
+        fig, axs = plt.subplots(1, 2, figsize=(10, 5), subplot_kw={'projection': ccrs.PlateCarree()})
+
+        # Extract the model lats and lons
+        model_lats = model_cube.coord("latitude").points
+        model_lons = model_cube.coord("longitude").points
+
+        # Extract the obs lats and lons
+        obs_lats = obs_cube.coord("latitude").points
+        obs_lons = obs_cube.coord("longitude").points
+
+        # assert that these are the same
+        assert np.allclose(model_lats, obs_lats), "Lats are not the same"
+        assert np.allclose(model_lons, obs_lons), "Lons are not the same"
+
+        # set up the extent
+        extent = [-10, 20, 45, 70]
+
+        # Create meshgrid for lats and lons
+        lon_mesh, lat_mesh = np.meshgrid(model_lons, model_lats)
+
+        # plot the obs data using pcolormesh
+        im = axs[0].pcolormesh(
+            lon_mesh,
+            lat_mesh,
+            obs_values_masked[0],
+            transform=ccrs.PlateCarree(),
+            shading='auto'
+        )
+
+        # plot the model data using pcolormesh
+        im = axs[1].pcolormesh(
+            lon_mesh,
+            lat_mesh,
+            model_values_masked[0],
+            transform=ccrs.PlateCarree(),
+            shading='auto'
+        )
+
+        # add coastlines
+        axs[0].coastlines()
+        axs[1].coastlines()
+
+        # Set up the extent
+        axs[0].set_extent(extent)
+        axs[1].set_extent(extent)
+
+        # add a colorbar
+        fig.colorbar(im, ax=axs, orientation="horizontal", label="Temperature (K)")
+
+        # save the figure
+        plt.savefig(
+            f"/home/users/benhutch/unseen_multi_year/plots/{args.model}_{args.variable}_{args.country}_{args.season}_{args.first_year}_{args.last_year}.png"
+        )
+
+        print("----------------")
+        print("Exiting")
+        print("----------------")
+        sys.exit()
 
         # Take the Nanmean of the data
         obs_values = np.nanmean(obs_values_masked, axis=(1, 2))

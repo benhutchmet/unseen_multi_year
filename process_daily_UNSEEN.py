@@ -65,7 +65,7 @@ def main():
     # Set up the hard-coded args
     model = "HadGEM3-GC31-MM"
     experiment = "dcppA-hindcast"
-    freq = "day"
+    freq = "Amon"
     months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
     # Set up the argument parser
