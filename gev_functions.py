@@ -35,6 +35,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 # # Suppress warnings
 # warnings.filterwarnings('ignore')
 
+
 def determine_effective_dec_year(row):
     year = row["time"].year
     month = row["time"].month
@@ -45,11 +46,27 @@ def determine_effective_dec_year(row):
     else:
         return None
     
+# do the same but for canari
+def determine_effective_dec_year_canari(row):
+    year = row["time"].split("-")[0]
+    month = row["time"].split("-")[1]
+    
+    if month in ["01", "02", "03"]:
+        return int(year) - 1
+    elif month in ["10", "11", "12"]:
+        return int(year)
+    else:
+        return None
+
+
+
 def month_col_canari(row):
-    return int(row['time'].split("-")[1])
+    return int(row["time"].split("-")[1])
+
 
 def year_col_canari(row):
-    return int(row['time'].split("-")[0])
+    return int(row["time"].split("-")[0])
+
 
 # Define a function to do the pivot detrending
 def pivot_detrend_obs(
@@ -60,7 +77,7 @@ def pivot_detrend_obs(
 ) -> pd.DataFrame:
     """
     Pivot detrend a DataFrame.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -71,7 +88,7 @@ def pivot_detrend_obs(
         Name of the column to use as the y-axis.
     suffix : str, optional
         Suffix to append to the detrended column, by default "_dt".
-    
+
     Returns
     -------
     pd.DataFrame
@@ -92,6 +109,7 @@ def pivot_detrend_obs(
     df[y_axis_name + suffix] = final_point - trend + df[y_axis_name]
 
     return df
+
 
 def pivot_detrend_model(
     df: pd.DataFrame,
@@ -159,17 +177,18 @@ def pivot_detrend_model(
 
     return df
 
+
 # Define a function to calculate the obs block minima/maxima
 def obs_block_min_max(
     df: pd.DataFrame,
     time_name: str,
     min_max_var_name: str,
-    new_df_cols: list[str],
+    new_df_cols: list[str] = [],
     process_min: bool = True,
 ) -> pd.DataFrame:
     """
     Calculate the block minima/maxima for a DataFrame.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -183,7 +202,7 @@ def obs_block_min_max(
     process_min : bool, optional
         Whether to calculate the block minima (True) or maxima (False), by default True.
 
-    
+
     Returns
     -------
     pd.DataFrame
@@ -209,13 +228,17 @@ def obs_block_min_max(
         df_this = pd.DataFrame(
             {
                 time_name: [time],
-                f"{min_max_var_name}_{name}": [time_data.loc[min_max_value, min_max_var_name]],
+                f"{min_max_var_name}_{name}": [
+                    time_data.loc[min_max_value, min_max_var_name]
+                ],
             }
         )
 
-        # Add the new columns
-        for col in new_df_cols:
-            df_this[col] = time_data.loc[min_max_value, col]
+        # if the cols are not empty
+        if new_df_cols:
+            # Add the new columns
+            for col in new_df_cols:
+                df_this[col] = time_data.loc[min_max_value, col]
 
         # Concat to the block df
         block_df = pd.concat([block_df, df_this])
@@ -234,7 +257,7 @@ def model_block_min_max(
 ) -> pd.DataFrame:
     """
     Calculate the block minima/maxima for a DataFrame.
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -249,7 +272,7 @@ def model_block_min_max(
         Whether to calculate the block minima (True) or maxima (False), by default True.
     member_name : str, optional
         Name of the column to use as the member identifier, by default "member".
-    
+
     Returns
     -------
     pd.DataFrame
@@ -277,7 +300,9 @@ def model_block_min_max(
                 {
                     time_name: [time],
                     member_name: [member],
-                    f"{min_max_var_name}_{name}": [time_data.loc[min_max_value, min_max_var_name]],
+                    f"{min_max_var_name}_{name}": [
+                        time_data.loc[min_max_value, min_max_var_name]
+                    ],
                 }
             )
 
@@ -290,6 +315,7 @@ def model_block_min_max(
 
     return block_df
 
+
 # Define a function for simple mean bias correct
 def mean_bias_correct(
     model_df: pd.DataFrame,
@@ -300,7 +326,7 @@ def mean_bias_correct(
 ) -> pd.DataFrame:
     """
     Perform a simple mean bias correction.
-    
+
     Parameters
     ----------
     model_df : pd.DataFrame
@@ -313,7 +339,7 @@ def mean_bias_correct(
         Name of the column to use in the observed DataFrame.
     suffix : str, optional
         Suffix to append to the corrected column, by default "_bc".
-    
+
     Returns
     -------
     pd.DataFrame
@@ -330,6 +356,7 @@ def mean_bias_correct(
 
     return model_df
 
+
 # Define a function to process the GEV params
 def process_gev_params(
     obs_df: pd.DataFrame,
@@ -343,7 +370,7 @@ def process_gev_params(
 ) -> dict:
     """
     Process the GEV parameters.
-    
+
     Parameters
     ----------
     obs_df : pd.DataFrame
@@ -398,10 +425,14 @@ def process_gev_params(
             df_model_this_time = model_df[model_df[model_time_name] == time]
 
             # Pick a random member
-            member_this = np.random.choice(df_model_this_time[model_member_name].unique())
+            member_this = np.random.choice(
+                df_model_this_time[model_member_name].unique()
+            )
 
             # Get the data for this member
-            data_this = df_model_this_time[df_model_this_time[model_member_name] == member_this]
+            data_this = df_model_this_time[
+                df_model_this_time[model_member_name] == member_this
+            ]
 
             # Extract the values
             model_value_this = data_this[model_var_name].values
@@ -423,6 +454,7 @@ def process_gev_params(
 
     return gev_params
 
+
 # Define the gev plotting function
 def plot_gev_params(
     gev_params: dict,
@@ -437,7 +469,7 @@ def plot_gev_params(
 ) -> None:
     """
     Plot the GEV parameters.
-    
+
     Parameters
     ----------
     gev_params : dict
@@ -474,10 +506,12 @@ def plot_gev_params(
     ax3 = plt.subplot(gs[3])
 
     # Plot the model dsitribution
-    ax0.hist(model_df[model_var_name], bins=20, color="red", alpha=0.5, label=model_label)
+    ax0.hist(
+        model_df[model_var_name], bins=20, color="red", alpha=0.5, label=model_label, density=True,
+    )
 
     # Plot the distributions
-    ax0.hist(obs_df[obs_var_name], bins=20, color="black", alpha=0.5, label=obs_label)
+    ax0.hist(obs_df[obs_var_name], bins=20, color="black", alpha=0.5, label=obs_label, density=True)
 
     # Set the title
     ax0.set_title(title)
@@ -508,7 +542,9 @@ def plot_gev_params(
     ax1.axvline(gev_params["obs_loc"], color="blue", lw=3, label="Observed")
 
     # Include a title for the loc
-    obs_percentile_loc = percentileofscore(gev_params["model_loc"][0], gev_params["obs_loc"])
+    obs_percentile_loc = percentileofscore(
+        gev_params["model_loc"][0], gev_params["obs_loc"]
+    )
 
     # Set the title
     ax1.set_title(f"location, {obs_percentile_loc:.2f}%")
@@ -573,7 +609,7 @@ def plot_gev_params(
     # Set the title
     ax3.set_title(f"shape, {obs_percentile_shape:.2f}%")
 
-    # remove the y-axis ticks 
+    # remove the y-axis ticks
     for ax in [ax0, ax1, ax2, ax3]:
         ax.yaxis.set_ticks([])
 
@@ -581,6 +617,7 @@ def plot_gev_params(
     plt.tight_layout()
 
     return None
+
 
 # Define a function for plotting the time series
 def plot_detrend_ts(
@@ -592,6 +629,7 @@ def plot_detrend_ts(
     model_time_name: str,
     ylabel: str,
     title: str,
+    ylim: tuple = None,
     detrend_suffix: str = "_dt",
     plot_min: bool = True,
     model_member_name: str = "member",
@@ -599,7 +637,7 @@ def plot_detrend_ts(
 ) -> None:
     """
     Plot the detrended time series.
-    
+
     Parameters
     ----------
     obs_df : pd.DataFrame
@@ -642,17 +680,36 @@ def plot_detrend_ts(
         # if i = 0
         if i == 0:
             # plot the data detrended in grey with a label
-            ax.plot(data_this[model_time_name], data_this[f"{model_var_name}{detrend_suffix}"], color="grey", alpha=0.2, label="Model ens dtr")
+            ax.plot(
+                data_this[model_time_name],
+                data_this[f"{model_var_name}{detrend_suffix}"],
+                color="grey",
+                alpha=0.2,
+                label="Model ens dtr",
+            )
         else:
             # plot the data detrended in grey
-            ax.plot(data_this[model_time_name],data_this[f"{model_var_name}{detrend_suffix}"], color="grey", alpha=0.2)
+            ax.plot(
+                data_this[model_time_name],
+                data_this[f"{model_var_name}{detrend_suffix}"],
+                color="grey",
+                alpha=0.2,
+            )
 
     # Plot the observed data
-    ax.plot(obs_df[obs_time_name], obs_df[obs_var_name], color="black", linestyle="--", label="Obs")
-    ax.plot(obs_df[obs_time_name], obs_df[f"{obs_var_name}{detrend_suffix}"], color="black", label="Obs dtr")
-
-    # Include a dashed black line for the max value of the observed data (no dt)
-    ax.axhline(obs_df[obs_var_name].max(), color="black", linestyle="--")
+    ax.plot(
+        obs_df[obs_time_name],
+        obs_df[obs_var_name],
+        color="black",
+        linestyle="--",
+        label="Obs",
+    )
+    ax.plot(
+        obs_df[obs_time_name],
+        obs_df[f"{obs_var_name}{detrend_suffix}"],
+        color="black",
+        label="Obs dtr",
+    )
 
     if plot_min:
         # Include a solid black line for the min value of the observed data (no dt)
@@ -663,7 +720,7 @@ def plot_detrend_ts(
     else:
         # Include a solid black line for the max value of the observed data (dt)
         ax.axhline(obs_df[f"{obs_var_name}]"].max(), color="black", linestyle="--")
-        
+
         # Include a solid black line for the max value of the observed data (dt)
         ax.axhline(obs_df[f"{obs_var_name}{detrend_suffix}"].max(), color="black")
 
@@ -703,6 +760,11 @@ def plot_detrend_ts(
 
     # Include gridlines
     ax.grid(True)
+
+    # if ylim is not None
+    if ylim is not None:
+        # set the y-axis limits
+        ax.set_ylim(ylim)
 
     # Include the y label
     ax.set_ylabel(ylabel)

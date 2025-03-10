@@ -299,6 +299,13 @@ def main():
             callback=realization_metadata,
         )
 
+        # print the fpaths_u
+        print("=====================================================================")
+        print(f"File paths u: {fpaths_u}")
+        # print the fpaths_v
+        print(f"File paths v: {fpaths_v}")
+        print("=====================================================================")
+
         # remove attrs
         removed_attrs_u = equalise_attributes(cubes_u)
         removed_attrs_v = equalise_attributes(cubes_v)
@@ -307,9 +314,15 @@ def main():
         model_cube_u = cubes_u.merge_cube()
         model_cube_v = cubes_v.merge_cube()
 
+        # print the model cube u
+        print("=====================================================================")
+        print(f"Model cube u: {model_cube_u}")
+        print(f"Model cube v: {model_cube_v}")
+        print("=====================================================================")
+
         # Make sure cube is on the correct grid system
-        model_cube_u = model_cube_u.intersection(longitude=(-180, 180))
-        model_cube_v = model_cube_v.intersection(longitude=(-180, 180))
+        model_cube_u = model_cube_u.intersection(longitude=(-180, 180), latitude=(-90, 90))
+        model_cube_v = model_cube_v.intersection(longitude=(-180, 180), latitude=(-90, 90))
 
         # if the args.country contains a _
         # replace with a space
