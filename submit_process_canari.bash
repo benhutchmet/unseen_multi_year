@@ -7,13 +7,12 @@
 #SBATCH --qos=standard
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_canari-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_canari-%A_%a.err
-#SBATCH --array=1950-2014
 
 # Set up the usage messages
-usage="Usage: sbatch submit_process_canari.bash <variable> <country>"
+usage="Usage: sbatch submit_process_canari.bash <variable> <country> <year>"
 
 # Check the number of CLI arguments
-if [ "$#" -ne 2 ]; then
+if [ "$#" -ne 3 ]; then
     echo "Illegal number of parameters"
     echo $usage
     exit 1
@@ -38,7 +37,7 @@ process_script="/home/users/benhutch/unseen_multi_year/process_daily_canari.py"
 # Extract the arguments
 variable=$1
 country=$2
-year=${SLURM_ARRAY_TASK_ID}
+year=$3
 period="HIST2"
 
 # Echo the args used
