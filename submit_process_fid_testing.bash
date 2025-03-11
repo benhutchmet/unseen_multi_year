@@ -1,19 +1,18 @@
 #!/bin/bash
 #SBATCH --job-name="process_fidelity_testing"
 #SBATCH --time=10:00:00
-#SBATCH --mem=1000M
+#SBATCH --mem=100000
 #SBATCH --account=canari
-#SBATCH --partition=highres
-#SBATCH --qos=highres
+#SBATCH --partition=standard
+#SBATCH --qos=standard
 #SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.err
-#SBATCH --array=1990-2018
 
 # Set up the usage messages
-usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year>"
+usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year> <year>"
 
 # Check the number of CLI arguments
-if [ "$#" -ne 4 ]; then
+if [ "$#" -ne 5 ]; then
     echo "Illegal number of parameters"
     echo $usage
     exit 1
@@ -33,7 +32,7 @@ variable=$1
 region=$2
 season=$3
 winter_year=$4
-year=${SLURM_ARRAY_TASK_ID}
+year=$5
 
 # Echo the args used
 echo "Variable: ${variable}"
