@@ -252,6 +252,7 @@ def model_block_min_max(
     time_name: str,
     min_max_var_name: str,
     new_df_cols: list[str],
+    winter_year: str = None,
     process_min: bool = True,
     member_name: str = "member",
 ) -> pd.DataFrame:
@@ -281,37 +282,85 @@ def model_block_min_max(
     # Initialize the new DataFrame
     block_df = pd.DataFrame()
 
-    # Loop over the unique time names
-    for time in df[time_name].unique():
-        for member in df[member_name].unique():
-            # Get the data for this time
-            time_data = df[(df[time_name] == time) & (df[member_name] == member)]
+    if winter_year is not None:
+        print(f"Assuming winter year column name: {winter_year}")
 
-            # Get the min/max value
-            if process_min:
-                min_max_value = time_data[min_max_var_name].idxmin()
-                name = "min"
-            else:
-                min_max_value = time_data[min_max_var_name].idxmax()
-                name = "max"
+        # Loop over the unique time names
+        for time in df[time_name].unique():
+            for wyear in df[winter_year].unique():
+                for member in df[member_name].unique():
+                    # Get the data for this time
+                    time_data = df[
+                        (df[time_name] == time)
+                        & (df[winter_year] == wyear)
+                        & (df[member_name] == member)
+                    ]
 
-            # Create a new dataframe
-            df_this = pd.DataFrame(
-                {
-                    time_name: [time],
-                    member_name: [member],
-                    f"{min_max_var_name}_{name}": [
-                        time_data.loc[min_max_value, min_max_var_name]
-                    ],
-                }
-            )
+                    # if time_data is empty
+                    if time_data.empty:
+                        print(f"Empty data for {time}, {wyear}, {member}")
+                        continue
 
-            # Add the new columns
-            for col in new_df_cols:
-                df_this[col] = time_data.loc[min_max_value, col]
+                    # Get the min/max value
+                    if process_min:
+                        min_max_value = time_data[min_max_var_name].idxmin()
+                        name = "min"
+                    else:
+                        min_max_value = time_data[min_max_var_name].idxmax()
+                        name = "max"
 
-            # Concat to the block df
-            block_df = pd.concat([block_df, df_this])
+                    # Create a new dataframe
+                    df_this = pd.DataFrame(
+                        {
+                            time_name: [time],
+                            winter_year: [wyear],
+                            member_name: [member],
+                            f"{min_max_var_name}_{name}": [
+                                time_data.loc[min_max_value, min_max_var_name]
+                            ],
+                        }
+                    )
+
+                    # Add the new columns
+                    for col in new_df_cols:
+                        df_this[col] = time_data.loc[min_max_value, col]
+
+                    # Concat to the block df
+                    block_df = pd.concat([block_df, df_this])
+    
+    else:
+        print("Assuming first winter year only")
+        # Loop over the unique time names
+        for time in df[time_name].unique():
+            for member in df[member_name].unique():
+                # Get the data for this time
+                time_data = df[(df[time_name] == time) & (df[member_name] == member)]
+
+                # Get the min/max value
+                if process_min:
+                    min_max_value = time_data[min_max_var_name].idxmin()
+                    name = "min"
+                else:
+                    min_max_value = time_data[min_max_var_name].idxmax()
+                    name = "max"
+
+                # Create a new dataframe
+                df_this = pd.DataFrame(
+                    {
+                        time_name: [time],
+                        member_name: [member],
+                        f"{min_max_var_name}_{name}": [
+                            time_data.loc[min_max_value, min_max_var_name]
+                        ],
+                    }
+                )
+
+                # Add the new columns
+                for col in new_df_cols:
+                    df_this[col] = time_data.loc[min_max_value, col]
+
+                # Concat to the block df
+                block_df = pd.concat([block_df, df_this])
 
     return block_df
 
@@ -367,6 +416,7 @@ def process_gev_params(
     model_time_name: str,
     nboot: int = 1000,
     model_member_name: str = "member",
+    model_lead_name: str = None,
 ) -> dict:
     """
     Process the GEV parameters.
@@ -433,6 +483,16 @@ def process_gev_params(
             data_this = df_model_this_time[
                 df_model_this_time[model_member_name] == member_this
             ]
+
+            # if model_lead_name is not None
+            if model_lead_name is not None:
+                # Pick a random lead time
+                lead_this = np.random.choice(
+                    data_this[model_lead_name].unique()
+                )
+
+                # Get the data for this lead time
+                data_this = data_this[data_this[model_lead_name] == lead_this]
 
             # Extract the values
             model_value_this = data_this[model_var_name].values
