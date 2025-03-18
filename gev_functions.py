@@ -28,7 +28,7 @@ from matplotlib import gridspec
 from datetime import datetime, timedelta
 
 from scipy.optimize import curve_fit
-from scipy.stats import linregress, percentileofscore
+from scipy.stats import linregress, percentileofscore, gaussian_kde
 from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -837,6 +837,158 @@ def plot_detrend_ts(
 
     return None
 
+# Define a function to plot the scatter cmap plots
+def plot_scatter_cmap(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_x_var_name: str,
+    obs_y_var_name: str,
+    obs_cmap_var_name: str,
+    model_x_var_name: str,
+    model_y_var_name: str,
+    model_cmap_var_name: str,
+    xlabel: str,
+    ylabel: str,
+    cmap_label: str,
+    sup_title: str,
+    obs_title="Observed",
+    model_title="Model",
+    cmap: str = "viridis_r",
+    figsize: tuple = (10, 5),
+) -> None:
+    """
+    Plots a colormap scatter plot.
+
+    Parameters
+    ----------
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_x_var_name : str
+        Name of the column to use as the x-axis in the observed DataFrame.
+    obs_y_var_name : str
+        Name of the column to use as the y-axis in the observed DataFrame.
+    obs_cmap_var_name : str
+        Name of the column to use as the colormap in the observed DataFrame.
+    model_x_var_name : str
+        Name of the column to use as the x-axis in the model DataFrame.
+    model_y_var_name : str
+        Name of the column to use as the y-axis in the model DataFrame.
+    model_cmap_var_name : str
+        Name of the column to use as the colormap in the model DataFrame.
+    xlabel : str
+        Label for the x-axis.
+    ylabel : str
+        Label for the y-axis.
+    cmap_label : str
+        Label for the colormap.
+    sup_title : str
+        Title of the plot.
+    obs_title : str, optional
+        Title for the observed data, by default "Observed".
+    model_title : str, optional
+        Title for the model data, by default "Model".
+    cmap : str, optional
+        Colormap to use, by default "viridis_r".
+    figsize : tuple, optional
+        Figure size, by default (10, 5).
+
+    Returns
+    -------
+
+    None
+
+    """
+
+    # Set up the figure
+    # as 1 row and 2 columns
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=figsize, sharey=True)
+
+    # Plot the observed data scatter
+    ax0 = axs[0]
+    ax1 = axs[1]
+
+    # Create the scatter plot
+    sc0 = ax0.scatter(
+        obs_df[obs_x_var_name],
+        obs_df[obs_y_var_name],
+        c=obs_df[obs_cmap_var_name],
+        cmap=cmap,
+        s=100,
+    )
+
+    # Include text for the 2010 point
+    ax0.text(
+        obs_df.loc[2010, obs_x_var_name] + 0.1,
+        obs_df.loc[2010, obs_y_var_name] + 0.1,
+        "2010",
+        color="red",
+        verticalalignment="top",
+    )
+
+    # Include a vertical dashed line for the mean x variable
+    ax0.axvline(obs_df[obs_x_var_name].mean(), color="black", linestyle="--")
+
+    # Include a horizontal dashed line for the mean y variable
+    ax0.axhline(obs_df[obs_y_var_name].mean(), color="black", linestyle="--")
+
+    # Set the title
+    ax0.set_title(obs_title)
+
+    # Set the x label
+    ax0.set_xlabel(xlabel)
+
+    # Set the y label
+    ax0.set_ylabel(ylabel)
+
+    # Set up the x_var and y_var for the model
+    x_var_model = model_df[model_x_var_name]
+    y_var_model = model_df[model_y_var_name]
+
+    # Perform kernel density estimate
+    xy = np.vstack([x_var_model, y_var_model])
+    kde = gaussian_kde(xy)
+    xmin, xmax = x_var_model.min(), x_var_model.max()
+    ymin, ymax = y_var_model.min(), y_var_model.max()
+    X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    Z = np.reshape(kde(positions).T, X.shape)
+
+    # Plot the scatter for the model data
+    sc1 = ax1.scatter(
+        x_var_model,
+        y_var_model,
+        c=model_df[model_cmap_var_name],
+        cmap=cmap,
+        s=100,
+    )
+
+    # Plot the density contours
+    ax1.contour(X, Y, Z, levels=5, colors="black")
+
+    # Include a vertical dashed line for the mean x variable
+    ax1.axvline(x_var_model.mean(), color="black", linestyle="--")
+
+    # Include a horizontal dashed line for the mean y variable
+    ax1.axhline(y_var_model.mean(), color="black", linestyle="--")
+
+    # Set the title
+    ax1.set_title(model_title)
+
+    # Set the x label
+    ax1.set_xlabel(xlabel)
+
+    # Set up the colorbar to the right of both plots
+    cbar = fig.colorbar(sc0, ax=axs, orientation="vertical")
+
+    # Set the label for the colorbar
+    cbar.set_label(cmap_label)
+
+    # Set the super title
+    fig.suptitle(sup_title)
+
+    return None
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
