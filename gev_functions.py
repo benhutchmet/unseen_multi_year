@@ -851,6 +851,7 @@ def plot_scatter_cmap(
     ylabel: str,
     cmap_label: str,
     sup_title: str,
+    xlims: tuple = None,
     obs_title="Observed",
     model_title="Model",
     cmap: str = "viridis_r",
@@ -885,6 +886,8 @@ def plot_scatter_cmap(
         Label for the colormap.
     sup_title : str
         Title of the plot.
+    xlims : tuple, optional
+        Limits for the x-axis, by default None.
     obs_title : str, optional
         Title for the observed data, by default "Observed".
     model_title : str, optional
@@ -903,7 +906,7 @@ def plot_scatter_cmap(
 
     # Set up the figure
     # as 1 row and 2 columns
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=figsize, sharey=True)
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=figsize, sharey=True, layout="compressed")
 
     # Plot the observed data scatter
     ax0 = axs[0]
@@ -920,7 +923,7 @@ def plot_scatter_cmap(
 
     # Include text for the 2010 point
     ax0.text(
-        obs_df.loc[2010, obs_x_var_name] + 0.1,
+        obs_df.loc[2010, obs_x_var_name] + 0.2,
         obs_df.loc[2010, obs_y_var_name] + 0.1,
         "2010",
         color="red",
@@ -942,6 +945,11 @@ def plot_scatter_cmap(
     # Set the y label
     ax0.set_ylabel(ylabel)
 
+    # if ylims is not None
+    if xlims is not None:
+        # set the y-axis limits
+        ax0.set_xlim(xlims)
+
     # Set up the x_var and y_var for the model
     x_var_model = model_df[model_x_var_name]
     y_var_model = model_df[model_y_var_name]
@@ -961,7 +969,7 @@ def plot_scatter_cmap(
         y_var_model,
         c=model_df[model_cmap_var_name],
         cmap=cmap,
-        s=100,
+        s=10,
     )
 
     # Plot the density contours
@@ -979,14 +987,25 @@ def plot_scatter_cmap(
     # Set the x label
     ax1.set_xlabel(xlabel)
 
-    # Set up the colorbar to the right of both plots
-    cbar = fig.colorbar(sc0, ax=axs, orientation="vertical")
+    # if ylims is not None
+    if xlims is not None:
+        # set the y-axis limits
+        ax1.set_xlim(xlims)
+
+    # # Set up a tight layout before adding the colorbar
+    # fig.tight_layout()
+
+    # Add the colorbar after setting up the tight layout
+    cbar = fig.colorbar(sc0, ax=axs, orientation="vertical", pad=0.02)
 
     # Set the label for the colorbar
     cbar.set_label(cmap_label)
 
     # Set the super title
-    fig.suptitle(sup_title)
+    fig.suptitle(sup_title, y=1.05)
+
+    # Adjust the layout again if necessary
+    plt.subplots_adjust(top=0.9)
 
     return None
 
