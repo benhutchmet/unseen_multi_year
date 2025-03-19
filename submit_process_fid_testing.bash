@@ -7,12 +7,13 @@
 #SBATCH --qos=standard
 #SBATCH -o /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.err
+#SBATCH --array=1960-2018
 
 # Set up the usage messages
-usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year> <year>"
+usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year>"
 
 # Check the number of CLI arguments
-if [ "$#" -ne 5 ]; then
+if [ "$#" -ne 4 ]; then
     echo "Illegal number of parameters"
     echo $usage
     exit 1
@@ -32,7 +33,7 @@ variable=$1
 region=$2
 season=$3
 winter_year=$4
-year=$5
+year=${SLURM_ARRAY_TASK_ID}
 
 # Echo the args used
 echo "Variable: ${variable}"

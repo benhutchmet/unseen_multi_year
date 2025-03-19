@@ -98,6 +98,13 @@ def main():
         "r8i1p1f2",
         "r9i1p1f2",
     ]
+    # print("=================================")
+    # print("TESTING: Using only one member")
+    # print("=================================")
+    # # --------------------------
+    # # NOTE: For testing purposes
+    # # --------------------------
+    # members_list_test = ["r1i1p1f2"]
 
     # Define the parser
     parser = argparse.ArgumentParser(
@@ -223,6 +230,10 @@ def main():
     model_ds_list = []
 
     # loop over the members
+    # print("=================================")
+    # print("Looping over the members")
+    # print("TESTING: Using only one member")
+    # print("=================================")
     for m, member_this in tqdm(enumerate(members_list)):
 
         # print member this
