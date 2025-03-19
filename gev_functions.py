@@ -33,6 +33,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import linregress, percentileofscore, gaussian_kde
 from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
+from iris.util import equalise_attributes
 
 # # Suppress warnings
 # warnings.filterwarnings('ignore')
@@ -1019,7 +1020,7 @@ def extract_sel_cubes(
     model_lead_name: str = "lead",
     model_member_name: str = "member",
     freq: str = "day",
-) -> iris.cube:
+):
     """
     Extracts the cubes for a DataFrame.
 
@@ -1165,8 +1166,11 @@ def extract_sel_cubes(
     # Set up the list of cubes as a cube list
     cubes = iris.cube.CubeList(cube_list)
 
+    # equalise the attributes
+    attrs = equalise_attributes(cubes)
+
     # Merge the cube list
-    cubes_merged = cubes.merge()
+    cubes_merged = cubes.merge_cube()
 
     return cubes_merged
 
