@@ -9,6 +9,7 @@ Author: Ben Hutchins, 2025
 # Local imports
 import os
 import sys
+import glob
 import time
 import argparse
 import warnings
@@ -21,6 +22,7 @@ import pandas as pd
 import shapely.geometry
 import cartopy.io.shapereader as shpreader
 import iris
+import cftime
 
 # Specific imports
 from tqdm import tqdm
@@ -1008,6 +1010,165 @@ def plot_scatter_cmap(
     plt.subplots_adjust(top=0.9)
 
     return None
+
+# Define a function for extracting cubes for a dataframe
+def extract_sel_cubes(
+    model_df: pd.DataFrame,
+    model_var_name: str,
+    model_time_name: str = "init_year",
+    model_lead_name: str = "lead",
+    model_member_name: str = "member",
+    freq: str = "day",
+) -> iris.cube:
+    """
+    Extracts the cubes for a DataFrame.
+
+    Parameters
+    ----------
+
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+        E.g. "tas", "sfcWind", etc.
+    model_time_name : str, optional
+        Name of the column to use as the time axis in the model DataFrame, by default "init_year".
+    model_lead_name : str, optional
+        Name of the column to use as the lead time axis in the model DataFrame, by default "lead".
+    model_member_name : str, optional
+        Name of the column to use as the member identifier in the model DataFrame, by default "member".
+    freq : str, optional
+        Frequency of the data, by default "day".
+    
+    Returns
+    -------
+
+    iris.cube
+        Cube of the data.
+    
+    """
+
+    # Hard code the base path
+    base_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/"
+
+    # Extract the unique times
+    unique_times = model_df[model_time_name].unique()
+
+    # Set up an empty cube list
+    cube_list = []
+
+    # set up an empty dates list
+    dates = []
+
+    # Loop over the unique times
+    for i, iyear_this in tqdm(enumerate(unique_times)):
+        # Subset the df to this init year
+        model_df_subset_this = model_df[model_df[model_time_name] == iyear_this]
+        for j, row in model_df_subset_this.iterrows():
+            # Extract the init_year, member and lead_time
+            init_year = int(row[model_time_name])
+            member = int(row[model_member_name])
+            lead_time = int(row[model_lead_name])
+
+            # Set up the path
+            path_this = f"s{init_year}-r{member}i1p1f2/{freq}/{model_var_name}/gn/files/d*/"
+
+            # If the lead time is 60 or less
+            if lead_time <= 60:
+                # Set up the fname
+                fname = f"{model_var_name}_{freq}_HadGEM3-GC31-MM_dcppA-hindcast_s{init_year}-r{member}i1p1f2_gn_{init_year}1101-{init_year}1230.nc"
+            else:
+                # Set up the lead time - base
+                lead_time_minus_base = lead_time - 60
+
+                # Divide this by 360
+                nyears = lead_time_minus_base // 360
+
+                # Set up the year to extract
+                year_to_extract = init_year + nyears
+
+                # Set up the base lead year
+                base_lead_year = 60 + (nyears * 360)
+
+                # Find the lead time this
+                lead_time_this = lead_time - base_lead_year
+
+                # if nyears == 10
+                if nyears == 10:
+                    # Set up the fname
+                    fname = f"{model_var_name}_{freq}_HadGEM3-GC31-MM_dcppA-hindcast_s{init_year}-r{member}i1p1f2_gn_{year_to_extract + 1}0101-{year_to_extract + 1}0330.nc"
+                else:
+                    # Set up the fname
+                    fname = f"{model_var_name}_{freq}_HadGEM3-GC31-MM_dcppA-hindcast_s{init_year}-r{member}i1p1f2_gn_{year_to_extract + 1}0101-{year_to_extract + 1}1230.nc"
+
+            # Set up the full path
+            full_path = os.path.join(base_path, path_this, fname)
+
+            # glob the files
+            files_this = glob.glob(full_path)
+
+            # if the length of files_this is not 1
+            if len(files_this) != 1:
+                print(f"files: {files_this}")
+                print(f"full_path: {full_path}")
+                print(f"init_year: {init_year}")
+                print(f"member: {member}")
+                print(f"lead_time: {lead_time}")
+                print(f"nyears: {nyears}")
+                print(f"year_this: {year_to_extract}")
+
+                print("Length of files_this is not 1")
+                print("Exiting")
+                sys.exit(1)
+
+            # Load the cube
+            cube = iris.load_cube(files_this[0], model_var_name)
+
+            # Set up the realization coord
+            realization_coord = iris.coords.AuxCoord(
+                np.int32(member),
+                "realization",
+                units="1",
+            )
+
+            # add aux coords for the member
+            cube.add_aux_coord(realization_coord)
+
+            # Set up the index to extract
+            if lead_time <= 60:
+                # Extract the index lead - 1
+                index = lead_time - 1
+            else:
+                # extract the date
+                index = lead_time_this - 1
+
+            # Extract the date
+            date_this = cube.coord("time").points[index]
+            date_this = cftime.num2date(
+                date_this,
+                cube.coord("time").units.origin,
+                cube.coord("time").units.calendar,
+            )
+
+            # if the date_this is not in the dates list, append it
+            if date_this not in dates:
+                dates.append(date_this)
+            else:
+                print(f"Date {date_this} already in the dates list")
+
+            # apply this to the cube
+            cube_subset = cube[index]
+
+            # Append the cube to the list
+            cube_list.append(cube_subset)
+
+    # Set up the list of cubes as a cube list
+    cubes = iris.cube.CubeList(cube_list)
+
+    # Merge the cube list
+    cubes_merged = cubes.merge()
+
+    return cubes_merged
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
