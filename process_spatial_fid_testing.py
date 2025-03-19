@@ -156,6 +156,13 @@ def main():
             "lon1": -7,
             "lon2": 5,
         }
+    elif args.region == "Europe":
+        gridbox = {
+            "lon1": -11,  # degrees east
+            "lon2": 30,
+            "lat1": 35,  # degrees north
+            "lat2": 70,
+        }
     else:
         raise ValueError("Region not recognised")
 
@@ -179,10 +186,37 @@ def main():
         print(f"Error: {model_array_path} already exists")
         sys.exit()
 
-    # Load the obs data
-    # FIXME: Hardcoded for now
-    # obs_data = iris.load_cube(test_obs_wind_path, "si10")
-    obs_data = iris.load_cube(test_obs_tas_path, "t2m")
+    # # Load the obs data
+    # # FIXME: Hardcoded for now
+    # # obs_data = iris.load_cube(test_obs_wind_path, "si10")
+    # obs_data = iris.load_cube(test_obs_tas_path, "t2m")
+
+    if args.variable == "tas":
+        # Set up the obs_path
+        obs_path = (
+            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc"
+        )
+
+        # Load the obs data
+        obs_data = iris.load_cube(obs_path, "t2m")
+    elif args.variable == "sfcWind":
+        # Set up the obs_path
+        obs_path = (
+            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
+        )
+
+        # Load the obs data
+        obs_data = iris.load_cube(obs_path, "si10")
+    elif args.variable == "psl":
+        # Set up the obs path
+        obs_path = (
+            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_msl_daily_1960_2020_daymean.nc"
+        )
+
+        # Load the data
+        obs_data = iris.load_cube(obs_path, "msl")
+    else:
+        raise ValueError("Variable not recognised")
 
     # Loop over the members list
     # Set up an empty list to store the data
@@ -241,18 +275,18 @@ def main():
     print(obs_data)
 
     # Set up the leads to extract from the model data
-    leads_djf_model = np.arange(
-        31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
-    )
+    # leads_djf_model = np.arange(
+    #     31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
+    # )
 
-    # print the min lead we are extracting
-    print("=================================")
-    print(f"Min lead: {leads_djf_model[0]}")
-    print(f"Max lead: {leads_djf_model[-1]}")
-    print("=================================")
+    # # print the min lead we are extracting
+    # print("=================================")
+    # print(f"Min lead: {leads_djf_model[0]}")
+    # print(f"Max lead: {leads_djf_model[-1]}")
+    # print("=================================")
 
-    # Extract the relevant leads
-    model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
+    # # Extract the relevant leads
+    # model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
 
     # Extract the data for the gridbox
     obs_data_box = obs_data.intersection(
