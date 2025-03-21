@@ -248,6 +248,60 @@ def obs_block_min_max(
 
     return block_df
 
+# write a function to calculate the block minima/maxima
+# for a given percentile for the obs
+def obs_block_min_max_percentile(
+    df: pd.DataFrame,
+    time_name: str,
+    min_max_var_name: str,
+    percentile: float = 5,
+) -> pd.DataFrame:
+    """
+    Calculate the block minima/maxima for a DataFrame.
+    
+    But for the lowest 5th percentile of the data
+    
+    Parameters
+    ----------
+    
+    df : pd.DataFrame
+        DataFrame to calculate block minima/maxima for.
+    time_name : str
+        Name of the column to use as the time axis.
+    min_max_var_name : str
+        Name of the column to calculate the block minima/maxima for.
+    percentile : float, optional
+        The percentile to use, by default 5.
+    
+    Returns
+    -------
+
+    pd.DataFrame
+        New dataframe with the block minima/maxima added.
+    
+    """
+
+    # Initialize the new dataframe
+    block_df = pd.DataFrame()
+
+    # Loop over the unique time names
+    for time in df[time_name].unique():
+        # Get the data for this time
+        time_data = df[df[time_name] == time]
+
+        # if percentile is less than 50
+        if percentile < 50:
+            # Find the rows that are less than the threshold
+            time_data = time_data[time_data[min_max_var_name] < np.percentile(time_data[min_max_var_name], percentile)]
+        else:
+            # Find the rows that are greater than the threshold
+            time_data = time_data[time_data[min_max_var_name] > np.percentile(time_data[min_max_var_name], percentile)]
+
+        # Concat to the block df
+        block_df = pd.concat([block_df, time_data])
+
+    return block_df
+
 
 # Define a function to calculate the model block minima/maxima
 def model_block_min_max(
@@ -367,6 +421,109 @@ def model_block_min_max(
 
     return block_df
 
+
+# Define a function to calculate the block minima/maxima
+# for the model data
+# but for the lowest 5th percentile of the data
+# for each independent season
+def model_block_min_max_percentile(
+    df: pd.DataFrame,
+    time_name: str,
+    min_max_var_name: str,
+    percentile: float = 5,
+    winter_year: str = None,
+    member_name: str = "member",
+) -> pd.DataFrame:
+    """
+    Calculate the block minima/maxima for a DataFrame.
+    
+    But for the lowest 5th percentile of the data
+    
+    Parameters
+    ----------
+    
+    df : pd.DataFrame
+        DataFrame to calculate block minima/maxima for.
+    time_name : str
+        Name of the column to use as the time axis.
+    min_max_var_name : str
+        Name of the column to calculate the block minima/maxima for.
+    percentile : float, optional
+        The percentile to use, by default 5.
+    winter_year : str, optional
+        Name of the column to use as the winter year, by default None.
+    member_name : str, optional
+        Name of the column to use as the member identifier, by default "member".
+
+    Returns
+    -------
+
+    pd.DataFrame
+        New dataframe with the block minima/maxima added.
+        
+    """
+
+    # Initialize the new dataframe
+    block_df = pd.DataFrame()
+
+    # quantify the percentile threshold
+    threshold = np.percentile(df[min_max_var_name], percentile)
+
+    if winter_year is not None:
+        print(f"Assuming winter year column name: {winter_year}")
+
+        # Loop over the unique time names
+        for time in df[time_name].unique():
+            for wyear in df[winter_year].unique():
+                for member in df[member_name].unique():
+                    # Get the data for this time
+                    time_data = df[
+                        (df[time_name] == time)
+                        & (df[winter_year] == wyear)
+                        & (df[member_name] == member)
+                    ]
+
+                    # if time_data is empty
+                    if time_data.empty:
+                        print(f"Empty data for {time}, {wyear}, {member}")
+                        continue
+
+                    # if percentile is less than 50
+                    if percentile < 50:
+                        # Find the rows that are less than the threshold
+                        time_data = time_data[time_data[min_max_var_name] < threshold]
+                    else:
+                        # Find the rows that are greater than the threshold
+                        time_data = time_data[time_data[min_max_var_name] > threshold]
+
+                    # Concat to the block df
+                    block_df = pd.concat([block_df, time_data])
+
+    else:
+        print("Assuming first winter year only")
+        # Loop over the unique time names
+        for time in df[time_name].unique():
+            for member in df[member_name].unique():
+                # Get the data for this time
+                time_data = df[(df[time_name] == time) & (df[member_name] == member)]
+
+                # if time_data is empty
+                if time_data.empty:
+                    print(f"Empty data for {time}, {member}")
+                    continue
+
+                # if percentile is less than 50
+                if percentile < 50:
+                    # Find the rows that are less than the threshold
+                    time_data = time_data[time_data[min_max_var_name] < threshold]
+                else:
+                    # Find the rows that are greater than the threshold
+                    time_data = time_data[time_data[min_max_var_name] > threshold]
+
+                # Concat to the block df
+                block_df = pd.concat([block_df, time_data])
+
+    return block_df
 
 # Define a function for simple mean bias correct
 def mean_bias_correct(
@@ -742,22 +899,41 @@ def plot_detrend_ts(
 
         # if i = 0
         if i == 0:
-            # plot the data detrended in grey with a label
-            ax.plot(
-                data_this[model_time_name],
-                data_this[f"{model_var_name}{detrend_suffix}"],
-                color="grey",
-                alpha=0.2,
-                label="Model ens dtr",
-            )
+            if detrend_suffix is not None:
+                # plot the data detrended in grey with a label
+                ax.plot(
+                    data_this[model_time_name],
+                    data_this[f"{model_var_name}{detrend_suffix}"],
+                    color="grey",
+                    alpha=0.2,
+                    label="Model ens dtr",
+                )
+            else:
+                # plot the data in grey with a label
+                ax.plot(
+                    data_this[model_time_name],
+                    data_this[model_var_name],
+                    color="grey",
+                    alpha=0.2,
+                    label="Model ens",
+                )
         else:
-            # plot the data detrended in grey
-            ax.plot(
-                data_this[model_time_name],
-                data_this[f"{model_var_name}{detrend_suffix}"],
-                color="grey",
-                alpha=0.2,
-            )
+            if detrend_suffix is not None:
+                # plot the data detrended in grey
+                ax.plot(
+                    data_this[model_time_name],
+                    data_this[f"{model_var_name}{detrend_suffix}"],
+                    color="grey",
+                    alpha=0.2,
+                )
+            else:
+                # plot the data in grey
+                ax.plot(
+                    data_this[model_time_name],
+                    data_this[model_var_name],
+                    color="grey",
+                    alpha=0.2,
+                )
 
     # Plot the observed data
     ax.plot(
@@ -767,25 +943,31 @@ def plot_detrend_ts(
         linestyle="--",
         label="Obs",
     )
-    ax.plot(
-        obs_df[obs_time_name],
-        obs_df[f"{obs_var_name}{detrend_suffix}"],
-        color="black",
-        label="Obs dtr",
-    )
+
+    # if detrend suffix is not none
+    if detrend_suffix is not None:
+        ax.plot(
+            obs_df[obs_time_name],
+            obs_df[f"{obs_var_name}{detrend_suffix}"],
+            color="black",
+            label="Obs dtr",
+        )
 
     if plot_min:
         # Include a solid black line for the min value of the observed data (no dt)
         ax.axhline(obs_df[obs_var_name].min(), color="black", linestyle="--")
 
-        # Include a solid black line for the min value of the observed data (dt)
-        ax.axhline(obs_df[f"{obs_var_name}{detrend_suffix}"].min(), color="black")
+        # if detrend suffix is not None
+        if detrend_suffix is not None:
+            # Include a solid black line for the min value of the observed data (dt)
+            ax.axhline(obs_df[f"{obs_var_name}{detrend_suffix}"].min(), color="black")
     else:
         # Include a solid black line for the max value of the observed data (dt)
-        ax.axhline(obs_df[f"{obs_var_name}]"].max(), color="black", linestyle="--")
+        ax.axhline(obs_df[f"{obs_var_name}"].max(), color="black", linestyle="--")
 
-        # Include a solid black line for the max value of the observed data (dt)
-        ax.axhline(obs_df[f"{obs_var_name}{detrend_suffix}"].max(), color="black")
+        if detrend_suffix is not None:
+            # Include a solid black line for the max value of the observed data (dt)
+            ax.axhline(obs_df[f"{obs_var_name}{detrend_suffix}"].max(), color="black")
 
     # # Include text on these lines
     # ax.text(
@@ -813,13 +995,14 @@ def plot_detrend_ts(
         label="Model ensmean",
     )
 
-    # Add a red line for the ensemble mean of the model data (dt)
-    ax.plot(
-        model_df[model_time_name].unique(),
-        model_df.groupby(model_time_name)[f"{model_var_name}{detrend_suffix}"].mean(),
-        color="red",
-        label="Model ensmean dtr",
-    )
+    if detrend_suffix is not None:
+        # Add a red line for the ensemble mean of the model data (dt)
+        ax.plot(
+            model_df[model_time_name].unique(),
+            model_df.groupby(model_time_name)[f"{model_var_name}{detrend_suffix}"].mean(),
+            color="red",
+            label="Model ensmean dtr",
+        )
 
     # Include gridlines
     ax.grid(True)
@@ -1173,6 +1356,113 @@ def extract_sel_cubes(
     cubes_merged = cubes.merge_cube()
 
     return cubes_merged
+
+# Write a function to plot the lead time dependent drift
+def plot_lead_drift(
+    model_df: pd.DataFrame,
+    obs_df: pd.DataFrame,
+    model_var_name: str,
+    obs_var_name: str,
+    lead_name: str,
+    ylabel: str,
+    title: str,
+    figsize: tuple = (10, 5),
+) -> None:
+    """
+    Plots the lead time dependent drift for the model data. Also plots the observed data to the side.
+    
+    Parameters
+    ----------
+    
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    lead_name : str
+        Name of the column to use as the lead time axis in the model DataFrame.
+    ylabel : str
+        Label for the y-axis.
+    title : str
+        Title of the plot.
+        
+    Returns
+    -------
+        
+    None
+    
+    """
+
+    # Set up the figure and the axes
+    fig, axs = plt.subplots(
+    nrows=1,
+    ncols=2,
+    figsize=figsize,
+    sharey=True,
+    gridspec_kw={"width_ratios": [8, 1]},
+    )
+
+    # Set up the axes
+    ax0 = axs[0]
+    ax1 = axs[1]
+
+    # Get the unique lead times
+    unique_leads = sorted(model_df[lead_name].unique())
+
+    # Loop over the lead names
+    for lead in unique_leads:
+        # Subset the model data
+        model_df_lead_this = model_df[model_df[lead_name] == lead]
+
+        # Plot the boxplot
+        ax0.boxplot(
+            model_df_lead_this[model_var_name],
+            positions=[lead],
+            widths=0.8,
+            showfliers=True,
+            boxprops=dict(color="red", facecolor="none"),
+            capprops=dict(color="red"),
+            whiskerprops=dict(color="red"),
+            flierprops=dict(markerfacecolor="red", marker="."),
+            medianprops=dict(color="red"),
+            whis=[1, 99],  # the 0th and 100th percentiles (i.e. min and max)
+            patch_artist=True,
+        )
+
+    # Set the x-axis label
+    ax0.set_xlabel("Lead year")
+
+    # Set the y-axis label
+    ax0.set_ylabel(ylabel)
+
+    # Set the title
+    ax0.set_title(title)
+
+    # Plot the observed data
+    ax1.boxplot(
+        obs_df[obs_var_name],
+        positions=[1],
+        widths=0.8,
+        showfliers=True,
+        boxprops=dict(color="black", facecolor="none"),
+        capprops=dict(color="black"),
+        whiskerprops=dict(color="black"),
+        flierprops=dict(markerfacecolor="black", marker="."),
+        medianprops=dict(color="black"),
+        whis=[1, 99],  # the 0th and 100th percentiles (i.e. min and max)
+        patch_artist=True,
+    )
+
+    # Set a title for ax1 for the obs
+    ax1.set_title("Obs")
+
+    # Specify a tight layout
+    plt.tight_layout()
+
+    return None
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
