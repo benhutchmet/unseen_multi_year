@@ -565,6 +565,85 @@ def mean_bias_correct(
 
     return model_df
 
+# Define a function which performs a lead-time dependent 
+# mean bias correction
+def lead_time_mean_bias_correct(
+    model_df: pd.DataFrame,
+    obs_df: pd.DataFrame,
+    model_var_name: str,
+    obs_var_name: str,
+    lead_name: str,
+    suffix: str = "_bc",
+) -> pd.DataFrame:
+    """
+    Perform a lead-time dependent mean bias correction.
+
+    Parameters
+    ----------
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_var_name : str
+        Name of the column to correct in the model DataFrame.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    lead_name : str
+        Name of the column to use as the lead time axis.
+    suffix : str, optional
+        Suffix to append to the corrected column, by default "_bc".
+
+    Returns
+    -------
+    pd.DataFrame
+        Corrected DataFrame.
+    """
+
+    # Set up the corrected df
+    corrected_df = pd.DataFrame()
+
+    # Get the unique lead times from the model df
+    lead_times = sorted(model_df[lead_name].unique())
+
+    # Loop over the lead times
+    for lead in lead_times:
+        # Get the data for this lead time
+        data_this = model_df[model_df[lead_name] == lead]
+
+        # Extract the unique effective dec years for the model
+        unique_eff_dec_years_model = data_this["effective_dec_year"].unique()
+
+        # Extract the unique effective dec years for the obs
+        unique_eff_dec_years_obs = obs_df["effective_dec_year"].unique()
+
+        obs_df_lead_this = None
+
+        # if the unique eff dec years for the model and obs are not the same
+        if not np.array_equal(unique_eff_dec_years_model, unique_eff_dec_years_obs):
+            print("Unique effective decadal years for model and obs are not the same")
+            # Subset the obs this to the unique eff dec years for the model
+            obs_df_lead_this = obs_df[
+                obs_df["effective_dec_year"].isin(unique_eff_dec_years_model)
+            ]
+
+        # If obs_df_lead_this is None
+        if obs_df_lead_this is not None:
+            # Calculate the mean bias
+            bias = data_this[model_var_name].mean() - obs_df_lead_this[obs_var_name].mean()
+        else:
+            # Calculate the mean bias
+            bias = data_this[model_var_name].mean() - obs_df[obs_var_name].mean()
+
+        # Print the size of the bias
+        print(f"Lead {lead} mean bias correction: {bias}")
+
+        # Correct the model data
+        data_this[model_var_name + suffix] = data_this[model_var_name] - bias
+
+        # Concat to the corrected df
+        corrected_df = pd.concat([corrected_df, data_this])
+
+    return corrected_df
 
 # Define a function to process the GEV params
 def process_gev_params(
@@ -673,7 +752,6 @@ def process_gev_params(
         gev_params["model_scale"][0][i] = scale_model
 
     return gev_params
-
 
 # Define the gev plotting function
 def plot_gev_params(
@@ -1599,6 +1677,237 @@ def plot_lead_pdfs(
     plt.tight_layout()
 
     return None
+
+# Write a function to compare the trends in full field
+# and block minima or maxima
+def compare_trends(
+    model_df_full_field: pd.DataFrame,
+    obs_df_full_field: pd.DataFrame,
+    model_df_block: pd.DataFrame,
+    obs_df_block: pd.DataFrame,
+    model_var_name_full_field: str,
+    obs_var_name_full_field: str,
+    model_var_name_block: str,
+    obs_var_name_block: str,
+    model_time_name: str,
+    obs_time_name: str,
+    ylabel: str,
+    suptitle: str,
+    member_name: str = "member",
+    figsize: tuple = (10, 5),
+) -> None:
+    """
+    Compares the trends in the full field and block minima or maxima.
+    
+    Parameters
+    ----------
+    
+    model_df_full_field : pd.DataFrame
+        DataFrame of model data for the full field.
+    obs_df_full_field : pd.DataFrame
+        DataFrame of observed data for the full field.
+    model_df_block : pd.DataFrame
+        DataFrame of model data for the block minima or maxima.
+    obs_df_block : pd.DataFrame
+        DataFrame of observed data for the block minima or maxima.
+    model_var_name_full_field : str
+        Name of the column to use in the model DataFrame for the full field.
+    obs_var_name_full_field : str
+        Name of the column to use in the observed DataFrame for the full field.
+    model_var_name_block : str
+        Name of the column to use in the model DataFrame for the block minima or maxima.
+    obs_var_name_block : str
+        Name of the column to use in the observed DataFrame for the block minima or maxima.
+    model_time_name : str
+        Name of the column to use as the time axis in the model DataFrame.
+    obs_time_name : str
+        Name of the column to use as the time axis in the observed DataFrame.
+    ylabel : str
+        Label for the y-axis.
+    suptitle : str
+        Title of the plot.
+    member_name : str, optional
+        Name of the column to use as the member identifier in the model DataFrame, by default "member".
+    figsize : tuple, optional
+        Figure size, by default (10, 5).
+
+    Returns
+    -------
+
+    None
+    
+    """
+
+    # Set up the figure as one row and two columns
+    fig, axs = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=figsize,
+        sharey=True,
+        gridspec_kw={"width_ratios": [1, 1]},
+    )
+
+    # Set up the axes
+    ax0 = axs[0]
+    ax1 = axs[1]
+
+    # Plot the full field data for the observations
+    ax0.plot(
+        obs_df_full_field[obs_time_name],
+        obs_df_full_field[obs_var_name_full_field],
+        color="black",
+        label="obs",
+    )
+
+    # quantify linear trend for the obs
+    slope_obs_ff, intercept_obs_ff, _, _, _ = linregress(
+        obs_df_full_field[obs_time_name], obs_df_full_field[obs_var_name_full_field]
+    )
+
+    # print the slope and intercept
+    print(f"obs slope: {slope_obs_ff}, obs intercept: {intercept_obs_ff}")
+
+    # calclate the trend line
+    trend_line_obs_ff = slope_obs_ff * obs_df_full_field[obs_time_name] + intercept_obs_ff
+
+    # # calculate the final point
+    # final_point_obs_ff = trend_line_obs_ff.iloc[-1]
+
+    # # pivot the trend line
+    # trend_line_obs_ff_pivot = final_point_obs_ff - trend_line_obs_ff + obs_df_full_field[obs_var_name_full_field]
+
+    # plot this line as a dashed black line
+    ax0.plot(obs_df_full_field[obs_time_name], trend_line_obs_ff, color="black", linestyle="--")
+
+    # plot the full field data for the model
+    # taking the ensemble mean
+    ax0.plot(
+        model_df_full_field[model_time_name].unique(),
+        model_df_full_field.groupby(model_time_name)[model_var_name_full_field].mean(),
+        color="red",
+        label="model ensmean",
+    )
+
+    # Set up the slopes
+    slopes_model_ff = np.zeros(model_df_full_field[member_name].nunique())
+    intercepts_model_ff = np.zeros(model_df_full_field[member_name].nunique())
+
+    # Loop over the members
+    for i, member in enumerate(model_df_full_field[member_name].unique()):
+        # Get the data for this member
+        data_this = model_df_full_field[model_df_full_field[member_name] == member]
+
+        # quantify linear trend for the model
+        slope_model_ff, intercept_model_ff, _, _, _ = linregress(
+            data_this[model_time_name], data_this[model_var_name_full_field]
+        )
+
+        # store the slopes and intercepts
+        slopes_model_ff[i] = slope_model_ff
+        intercepts_model_ff[i] = intercept_model_ff
+
+    # calculate the mean slope and intercept
+    slope_model_ff_mean = np.mean(slopes_model_ff)
+    intercept_model_ff_mean = np.mean(intercepts_model_ff)
+
+    # calculate the 5th and 95th percentiles
+    slope_model_ff_5th = np.percentile(slopes_model_ff, 5)
+    slope_model_ff_95th = np.percentile(slopes_model_ff, 95)
+
+    # calculate the CI
+    ci_model_ff = (slope_model_ff_95th - slope_model_ff_5th) / 2
+
+    # plot the ensemble mean slope
+    ax0.plot(
+        model_df_full_field[model_time_name].unique(),
+        slope_model_ff_mean * model_df_full_field[model_time_name].unique() + intercept_model_ff_mean,
+        color="red",
+        linestyle="--",
+    )
+
+    # Set the title for ax0
+    ax0.set_title(f"Full field, obs slope: {slope_obs_ff:.3f}, model slope: {slope_model_ff_mean:.3f} (+/- {ci_model_ff:.3f})", fontweight="bold")
+
+    # Plot the block data for the observations
+    ax1.plot(
+        obs_df_block[obs_time_name],
+        obs_df_block[obs_var_name_block],
+        color="black",
+        label="obs",
+    )
+
+    # quantify linear trend for the obs
+    slope_obs_block, intercept_obs_block, _, _, _ = linregress(
+        obs_df_block[obs_time_name], obs_df_block[obs_var_name_block]
+    )
+
+    # print the slope and intercept
+    print(f"obs slope: {slope_obs_block}, obs intercept: {intercept_obs_block}")
+
+    # calclate the trend line
+    trend_line_obs_block = slope_obs_block * obs_df_block[obs_time_name] + intercept_obs_block
+
+    # plot the trend line
+    ax1.plot(obs_df_block[obs_time_name], trend_line_obs_block, color="black", linestyle="--")
+
+    # plot the block data for the model
+    # taking the ensemble mean
+    ax1.plot(
+        model_df_block[model_time_name].unique(),
+        model_df_block.groupby(model_time_name)[model_var_name_block].mean(),
+        color="red",
+        label="model ensmean",
+    )
+
+    # Set up the slopes
+    slopes_model_block = np.zeros(model_df_block[member_name].nunique())
+    intercepts_model_block = np.zeros(model_df_block[member_name].nunique())
+
+    # Loop over the members
+    for i, member in enumerate(model_df_block[member_name].unique()):
+        # Get the data for this member
+        data_this = model_df_block[model_df_block[member_name] == member]
+
+        # quantify linear trend for the model
+        slope_model_block, intercept_model_block, _, _, _ = linregress(
+            data_this[model_time_name], data_this[model_var_name_block]
+        )
+
+        # store the slopes
+        slopes_model_block[i] = slope_model_block
+        intercepts_model_block[i] = intercept_model_block
+
+    # calculate the mean slope and intercept
+    slope_model_block_mean = np.mean(slopes_model_block)
+    intercept_model_block_mean = np.mean(intercepts_model_block)
+
+    # calculate the 5th and 95th percentiles
+    slope_model_block_5th = np.percentile(slopes_model_block, 5)
+    slope_model_block_95th = np.percentile(slopes_model_block, 95)
+
+    # calculate the CI
+    ci_model_block = (slope_model_block_95th - slope_model_block_5th) / 2
+
+    # plot the ensemble mean slope
+    ax1.plot(
+        model_df_block[model_time_name].unique(),
+        slope_model_block_mean * model_df_block[model_time_name].unique() + intercept_model_block_mean,
+        color="red",
+        linestyle="--",
+    )
+
+    # Set the title for ax1
+    ax1.set_title(f"Block minima/maxima, obs slope: {slope_obs_block:.3f}, model slope: {slope_model_block_mean:.3f} (+/- {ci_model_block:.3f})", fontweight="bold")
+
+    # Set the ylabel
+    ax0.set_ylabel(ylabel)
+
+    # Set a tight layout
+    plt.tight_layout()
+
+    return None
+
+
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
