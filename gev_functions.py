@@ -1464,6 +1464,142 @@ def plot_lead_drift(
 
     return None
 
+# Define a function for plotting the distributions for each lead time relative
+# to the observatrions
+def plot_lead_pdfs(
+    model_df: pd.DataFrame,
+    obs_df: pd.DataFrame,
+    model_var_name: str,
+    obs_var_name: str,
+    lead_name: str,
+    xlabel: str,
+    suptitle: str,
+    figsize: tuple = (10, 10),
+) -> None:
+    """
+    Plots the probability density functions for each lead time relative to the observations.
+    
+    Parameters
+    ----------
+    
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    lead_name : str
+        Name of the column to use as the lead time axis in the model DataFrame.
+    xlabel : str
+        Label for the x-axis.
+    suptitle : str
+        Title of the plot.
+        
+    Returns
+    -------
+        
+    None
+    
+    """
+
+    # Set up the figure with three rows and 4 columns
+    fig, axs = plt.subplots(
+        nrows=3,
+        ncols=4,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+    )
+
+    # Flatten the axes
+    axs_flat = axs.flatten()
+
+    # Get the unique lead times
+    unique_leads = sorted(model_df[lead_name].unique())
+
+    # Loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data
+        model_df_lead_this = model_df[model_df[lead_name] == lead]
+
+        # Extract the unique effective dec years for the model
+        unique_eff_dec_years_model = model_df_lead_this["effective_dec_year"].unique()
+
+        # Extract the unique effective dec years for the obs
+        unique_eff_dec_years_obs = obs_df["effective_dec_year"].unique()
+
+        obs_df_lead_this = None
+
+        # if the unique eff dec years for the model and obs are not the same
+        if not np.array_equal(unique_eff_dec_years_model, unique_eff_dec_years_obs):
+            print("Unique effective decadal years for model and obs are not the same")
+            # Subset the obs this to the unique eff dec years for the model
+            obs_df_lead_this = obs_df[
+                obs_df["effective_dec_year"].isin(unique_eff_dec_years_model)
+            ]
+
+        # Plot the model distribution
+        axs_flat[i].hist(
+            model_df_lead_this[model_var_name],
+            bins=20,
+            color="red",
+            alpha=0.5,
+            label="model",
+            density=True,
+        )
+
+        # if obs_df_lead_this is not None
+        if obs_df_lead_this is not None:
+            # Plot the observed distribution 
+            axs_flat[i].hist(
+                obs_df_lead_this[obs_var_name],
+                bins=20,
+                color="black",
+                alpha=0.5,
+                label="obs",
+                density=True,
+            )
+
+            # Calculate the mean bias
+            bias = model_df_lead_this[model_var_name].mean() - obs_df_lead_this[obs_var_name].mean()
+        else:
+            # Plot the observed distribution
+            axs_flat[i].hist(
+                obs_df[obs_var_name],
+                bins=20,
+                color="black",
+                alpha=0.5,
+                label="obs",
+                density=True,
+            )
+
+            # Calculate the mean bias
+            bias = model_df_lead_this[model_var_name].mean() - obs_df[obs_var_name].mean()
+
+        # Set the title
+        axs_flat[i].set_title(f"lead {lead}, bias: {bias:.2f}")
+
+        # Remove the y-axis ticks
+        axs_flat[i].yaxis.set_ticks([])
+
+        # if the axis is on the bottom row, then set the xlabel
+        if i >= 8:
+            axs_flat[i].set_xlabel(xlabel)
+
+        # if i is 11, remove the plot
+        if i == 11:
+            axs_flat[i].axis("off")
+
+    # Set up the suptitle
+    fig.suptitle(suptitle)
+
+    # Set a tight layout
+    plt.tight_layout()
+
+    return None
+
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
     print("Please import the functions and use them in your script.")
