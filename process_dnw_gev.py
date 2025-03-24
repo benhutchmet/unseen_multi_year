@@ -372,25 +372,25 @@ def main():
     # Create a new column for data_tas_c in df_model_full_djf
     df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
 
-    # # Apply the lead time dependent mean bias correction
-    # # For temperature
-    # df_model_djf = gev_funcs.lead_time_mean_bias_correct(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_tas_c",
-    #     obs_var_name="data_c",
-    #     lead_name="winter_year",
-    # )
+    # Apply the lead time dependent mean bias correction
+    # For temperature
+    df_model_djf = gev_funcs.lead_time_mean_bias_correct(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_tas_c",
+        obs_var_name="data_c",
+        lead_name="winter_year",
+    )
 
-    # # Apply the lead time dependent mean bias correction
-    # # For wind speed
-    # df_model_djf = gev_funcs.lead_time_mean_bias_correct(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_sfcWind",
-    #     obs_var_name="data_sfcWind",
-    #     lead_name="winter_year",
-    # )
+    # Apply the lead time dependent mean bias correction
+    # For wind speed
+    df_model_djf = gev_funcs.lead_time_mean_bias_correct(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_sfcWind",
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+    )
 
     # Pivot detrend the obs
     df_obs_dt = gev_funcs.pivot_detrend_obs(
@@ -403,7 +403,7 @@ def main():
     df_model_djf_dt = gev_funcs.pivot_detrend_model(
         df=df_model_djf,
         x_axis_name="effective_dec_year",
-        y_axis_name="data_tas_c",
+        y_axis_name="data_tas_c_bc",
     )
 
     # print the head of the df_obs
@@ -415,7 +415,7 @@ def main():
         obs_df=df_obs,
         model_df=df_model_djf,
         obs_ws_col="data_sfcWind",
-        model_ws_col="data_sfcWind",
+        model_ws_col="data_sfcWind_bc",
     )
 
     # # Apply the ws_to_wp_gen function to the detrended obs and model data
@@ -423,7 +423,7 @@ def main():
         obs_df=df_obs_dt,
         model_df=df_model_djf_dt,
         obs_ws_col="data_sfcWind",
-        model_ws_col="data_sfcWind",
+        model_ws_col="data_sfcWind_bc",
     )
 
     # Convert the temperature to demand
@@ -431,7 +431,7 @@ def main():
         obs_df=df_obs,
         model_df=df_model_djf,
         obs_temp_col="data_c",
-        model_temp_col="data_tas_c",
+        model_temp_col="data_tas_c_bc",
     )
 
     # # Convert the dt temperature to demand
@@ -439,8 +439,34 @@ def main():
         obs_df=df_obs_dt,
         model_df=df_model_djf_dt,
         obs_temp_col="data_c_dt",
-        model_temp_col="data_tas_c_dt",
+        model_temp_col="data_tas_c_bc_dt",
     )
+
+    # Plot the lead pdfs for the demand data (temperature has been detrended)
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf_dt,
+        obs_df=df_obs_dt,
+        model_var_name="UK_demand",
+        obs_var_name="UK_demand",
+        lead_name="winter_year",
+        xlabel="Demand (GW)",
+        suptitle="Lead dependent demand PDFs (detrended temp), DJF, 1960-2017",
+    )
+
+    # Plot the lead pdfs for the wind power generation data
+    # all winter days
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf_dt,
+        obs_df=df_obs_dt,
+        model_var_name="sigmoid_total_wind_gen",
+        obs_var_name="sigmoid_total_wind_gen",
+        lead_name="winter_year",
+        xlabel="Wind Power Generation (GW)",
+        suptitle="Lead dependent wind power generation PDFs, DJF, 1960-2017",
+    )
+
+    sys.exit()
+
 
     # Calculate demand net wind
     df_obs["demand_net_wind"] = df_obs["UK_demand"] - df_obs["sigmoid_total_wind_gen"]

@@ -30,7 +30,7 @@ from matplotlib import gridspec
 from datetime import datetime, timedelta
 
 from scipy.optimize import curve_fit
-from scipy.stats import linregress, percentileofscore, gaussian_kde
+from scipy.stats import linregress, percentileofscore, gaussian_kde, skew, kurtosis
 from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
 from iris.util import equalise_attributes
@@ -705,7 +705,7 @@ def process_gev_params(
     }
 
     # Fit the GEV distribution to the observed data
-    shape_obs, loc_obs, scale_obs = gev.fit(obs_df[obs_var_name])
+    shape_obs, loc_obs, scale_obs = gev.fit(obs_df[obs_var_name], 0)
 
     # Store the observed parameters
     gev_params["obs_shape"] = shape_obs
@@ -751,7 +751,7 @@ def process_gev_params(
             pseudo_obs_this[t] = model_value_this
 
         # Fit the GEV distribution to the pseudo-observed data
-        shape_model, loc_model, scale_model = gev.fit(pseudo_obs_this)
+        shape_model, loc_model, scale_model = gev.fit(pseudo_obs_this, 0)
 
         # Store the model parameters
         gev_params["model_shape"][0][i] = shape_model
@@ -759,6 +759,176 @@ def process_gev_params(
         gev_params["model_scale"][0][i] = scale_model
 
     return gev_params
+
+# Write a function for processing full field fidelity
+def process_moments_fidelity(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_var_name: str,
+    model_var_name: str,
+    obs_wyears_name: str,
+    model_wyears_name: str,
+    obs_time_name: str,
+    model_time_name: str,
+    nboot: int = 1000,
+    model_member_name: str = "member",
+    model_lead_name: str = None,
+) -> dict:
+    """
+    Process the moments of fidelity.
+
+    Parameters
+    ----------
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    model_var_name : str
+        Name of the column to use in the mode DataFrame.
+    obs_wyears_name : str
+        Name of the column to use as the winter years in the observed DataFrame.
+    model_wyears_name : str
+        Name of the column to use as the winter years in the model DataFrame.
+    obs_time_name : str
+        Name of the column to use as the time axis in the observed DataFrame.
+    model_time_name : str
+        Name of the column to use as the time axis in the model DataFrame.
+    nboot : int, optional
+        Number of bootstrap samples to use, by default 1000.
+    model_member_name : str, optional
+        Name of the column to use as the member identifier in the model DataFrame, by default "member".
+
+    Returns
+    -------
+    dict
+        Dictionary of moments of fidelity.
+    """
+
+    mdi = -999.0
+
+    # Initialize the dictionary
+    moments_fidelity = {
+        "obs_mean": mdi,
+        "obs_std": mdi,
+        "obs_skew": mdi,
+        "obs_kurt": mdi,
+        "model_mean": [np.zeros(nboot)],
+        "model_std": [np.zeros(nboot)],
+        "model_skew": [np.zeros(nboot)],
+        "model_kurt": [np.zeros(nboot)],
+    }
+
+    # Calculate the observed mean and standard deviation
+    obs_mean = np.mean(obs_df[obs_var_name])
+    obs_std = np.std(obs_df[obs_var_name])
+    obs_skew = skew(obs_df[obs_var_name]) # from scipy
+    obs_kurt = kurtosis(obs_df[obs_var_name]) # ditto
+
+    # Store the observed moments
+    moments_fidelity["obs_mean"] = obs_mean
+    moments_fidelity["obs_std"] = obs_std
+    moments_fidelity["obs_skew"] = obs_skew
+    moments_fidelity["obs_kurt"] = obs_kurt
+
+    # Set up the obs years
+    n_obs_years = len(obs_df[obs_wyears_name].unique())
+    obs_years = obs_df[obs_wyears_name].unique()
+
+    # Set up the model winters
+    if model_lead_name is not None:
+        print("Assuming multiple winters are present")
+        model_years = model_df[model_wyears_name].unique()
+        model_members = model_df[model_member_name].unique()
+        model_winters = model_df[model_lead_name].unique()
+
+        # Select the model df for the first winter, member and year
+        model_df_this = model_df[
+            (model_df[model_wyears_name] == model_years[0])
+            & (model_df[model_member_name] == model_members[0])
+            & (model_df[model_lead_name] == model_winters[0])
+        ]
+
+        # Set up the length of this
+        n_model_winter_days = len(model_df_this)
+    else:
+        print("Assuming only one winter is present")
+        model_years = model_df[model_wyears_name].unique()
+        model_members = model_df[model_member_name].unique()
+        
+        # Select the model df for the first winter and member
+        model_df_this = model_df[
+            (model_df[model_wyears_name] == model_years[0])
+            & (model_df[model_member_name] == model_members[0])
+        ]
+
+        # Set up the length of this
+        n_model_winter_days = len(model_df_this)
+
+    # print the n obs years
+    print(f"Number of observed years: {n_obs_years}")
+    print(f"Number of model winter days: {n_model_winter_days}")
+
+    # assert that n_model_winter days is less than 200
+    assert n_model_winter_days < 200, "n_model_winter_days should be less than 200"
+
+    # Loop over the nboot
+    for i in tqdm(range(nboot)):
+        # Set up the psuedo-observed data
+        pseudo_obs_this = np.zeros[(n_obs_years, n_model_winter_days)]
+        for y, obs_year in enumerate(obs_years):
+            # Subset the data
+            df_model_this_year = model_df[model_df[model_wyears_name] == obs_year]
+
+            # Pick a random member
+            member_this = np.random.choice(
+                df_model_this_year[model_member_name].unique()
+            )
+
+            # Get the data for this member
+            data_this = df_model_this_year[
+                df_model_this_year[model_member_name] == member_this
+            ]
+
+            # if model_lead_name is not None
+            if model_lead_name is not None:
+                # Pick a random lead time
+                lead_this = np.random.choice(
+                    data_this[model_lead_name].unique()
+                )
+
+                # Get the data for this lead time
+                data_this = data_this[data_this[model_lead_name] == lead_this]
+
+            # Extract the values
+            model_values_this = data_this[model_var_name].values
+
+            # assert that the size of values is greater than 1
+            assert model_values_this.size > 1, "model_values_this should have length greater than 1"
+
+            # assert that the size of values is less than 200
+            assert model_values_this.size < 200, "model_values_this should have length less than 200"
+
+            # Add the data to the pseudo-observed data
+            pseudo_obs_this[y, :] = model_values_this
+
+        # Flatten the pseudo-observed data
+        pseudo_obs_this_flat = pseudo_obs_this.flatten()
+
+        # Calculate the mean, standard deviation, skew and kurtosis
+        model_mean_this = np.mean(pseudo_obs_this_flat)
+        model_std_this = np.std(pseudo_obs_this_flat)
+        model_skew_this = skew(pseudo_obs_this_flat)
+        model_kurt_this = kurtosis(pseudo_obs_this_flat)
+
+        # Store the model moments
+        moments_fidelity["model_mean"][0][i] = model_mean_this
+        moments_fidelity["model_std"][0][i] = model_std_this
+        moments_fidelity["model_skew"][0][i] = model_skew_this
+        moments_fidelity["model_kurt"][0][i] = model_kurt_this
+
+    return moments_fidelity
 
 # Define the gev plotting function
 def plot_gev_params(
@@ -829,6 +999,11 @@ def plot_gev_params(
         linestyle="--",
     )
 
+    # print the mean of the model shape
+    print(f"Model shape mean: {gev_params['model_shape'][0].mean()}")
+    print(f"Model shape std: {gev_params['model_shape'][0].std()}")
+    print(f"Model loc mean: {gev_params['model_loc'][0].mean()}")
+
     # plot the obs mean gev
     ax0.plot(
         xvals_model,
@@ -836,6 +1011,11 @@ def plot_gev_params(
         color="black",
         linestyle="--",
     )
+
+    # print the obs shape
+    print(f"Obs shape: {gev_params['obs_shape']}")
+    print(f"Obs loc: {gev_params['obs_loc']}")
+    print(f"Obs scale: {gev_params['obs_scale']}")
 
     # Set the title
     ax0.set_title(title)
