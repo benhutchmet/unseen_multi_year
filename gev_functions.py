@@ -818,6 +818,25 @@ def plot_gev_params(
     # Plot the distributions
     ax0.hist(obs_df[obs_var_name], bins=20, color="black", alpha=0.5, label=obs_label, density=True)
 
+    # plot the model mean gev
+    xvals_model = np.linspace(np.min(model_df[model_var_name]), np.max(model_df[model_var_name]), 100)
+    
+    # Plot the GEV distribution
+    ax0.plot(
+        xvals_model,
+        gev.pdf(xvals_model, gev_params["model_shape"][0].mean(), gev_params["model_loc"][0].mean(), gev_params["model_scale"][0].mean()),
+        color="red",
+        linestyle="--",
+    )
+
+    # plot the obs mean gev
+    ax0.plot(
+        xvals_model,
+        gev.pdf(xvals_model, gev_params["obs_shape"], gev_params["obs_loc"], gev_params["obs_scale"]),
+        color="black",
+        linestyle="--",
+    )
+
     # Set the title
     ax0.set_title(title)
 

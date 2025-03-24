@@ -45,7 +45,7 @@ import gev_functions as gev_funcs
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
 from functions import (
-    sigmoid,
+    sigmoid, dot_plot
 )
 
 # Define a function to set up the winter years
@@ -372,6 +372,26 @@ def main():
     # Create a new column for data_tas_c in df_model_full_djf
     df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
 
+    # # Apply the lead time dependent mean bias correction
+    # # For temperature
+    # df_model_djf = gev_funcs.lead_time_mean_bias_correct(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_tas_c",
+    #     obs_var_name="data_c",
+    #     lead_name="winter_year",
+    # )
+
+    # # Apply the lead time dependent mean bias correction
+    # # For wind speed
+    # df_model_djf = gev_funcs.lead_time_mean_bias_correct(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind",
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    # )
+
     # Pivot detrend the obs
     df_obs_dt = gev_funcs.pivot_detrend_obs(
         df=df_obs,
@@ -448,29 +468,44 @@ def main():
         process_min=False,
     )
 
+    # print the head of df_model_djf
+    print(df_model_djf.head())
+    print(df_model_djf.tail())
+
     # Same for the model data
     block_maxima_model_dnw = gev_funcs.model_block_min_max(
         df=df_model_djf,
-        time_name="effective_dec_year",
+        time_name="init_year",
         min_max_var_name="demand_net_wind",
-        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand", "init_year", "winter_year"],
+        winter_year="winter_year",
         process_min=False,
     )
 
     # Same for the model data detrend
     block_maxima_model_dnw_dt = gev_funcs.model_block_min_max(
         df=df_model_djf_dt,
-        time_name="effective_dec_year",
+        time_name="init_year",
         min_max_var_name="demand_net_wind",
-        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand", "init_year", "winter_year"],
+        winter_year="winter_year",
         process_min=False,
     )
+
+    # sys.exit()
 
     # print the head of the df_obs
     print(df_obs.head())
 
     # print the head of the df_model_djf
     print(df_model_djf.head())
+
+    # make sure that effective_dec_year is in the block_maxima_model_dnw_dt
+    if "effective_dec_year" not in block_maxima_model_dnw_dt.columns:
+        block_maxima_model_dnw_dt["effective_dec_year"] = block_maxima_model_dnw_dt["init_year"] + (block_maxima_model_dnw_dt["winter_year"] - 1)
+
+    if "effective_dec_year" not in block_maxima_model_dnw.columns:
+        block_maxima_model_dnw["effective_dec_year"] = block_maxima_model_dnw["init_year"] + (block_maxima_model_dnw["winter_year"] - 1)
 
     # Now compare the trends
     gev_funcs.compare_trends(
@@ -485,7 +520,7 @@ def main():
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
         ylabel="Demand Net Wind (GW)",
-        suptitle="Demand Net Wind trends",
+        suptitle="Demand Net Wind trends (temp + wind lead BC)",
         figsize=(15, 5),
     )
 
@@ -502,8 +537,121 @@ def main():
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
         ylabel="Demand Net Wind (GW)",
-        suptitle="Demand Net Wind trends (detrended)",
+        suptitle="Demand Net Wind trends (detrended, temp + wind lead BC)",
         figsize=(15, 5),
+    )
+
+    # print the columns in the block_maxima_model_dnw_dt
+    print(block_maxima_model_dnw_dt.columns)
+
+    # print the head of block_maxima_model_dnw_dt
+    print(block_maxima_model_dnw_dt.head())
+
+    # Process lead time dependent mean bias correction for demand net wind
+    block_maxima_model_dnw_dt = gev_funcs.lead_time_mean_bias_correct(
+        model_df=block_maxima_model_dnw_dt,
+        obs_df=block_maxima_obs_dnw_dt,
+        model_var_name="demand_net_wind_max",
+        obs_var_name="demand_net_wind_max",
+        lead_name="winter_year",
+    )
+
+    # bias correct the demand net wind (non)
+
+    # If block maxima model dt does not have column:
+    # "effective_dec_year", add it
+    if "effective_dec_year" not in block_maxima_model_dnw_dt.columns:
+        block_maxima_model_dnw_dt["effective_dec_year"] = block_maxima_model_dnw_dt["init_year"] + (block_maxima_model_dnw_dt["winter_year"] - 1)
+
+    # Now process the GEV params
+    # for the non biasw corrected data
+    gev_params_no_bc = gev_funcs.process_gev_params(
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_var_name="demand_net_wind_max",
+        model_var_name="demand_net_wind_max",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        nboot=1000,
+        model_lead_name="winter_year",
+    )
+
+    # Process the GEV params for the bias corrected data
+    gev_params_bc = gev_funcs.process_gev_params(
+        obs_df=block_maxima_obs_dnw_dt,
+        model_df=block_maxima_model_dnw_dt,
+        obs_var_name="demand_net_wind_max",
+        model_var_name="demand_net_wind_max_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        nboot=1000,
+        model_lead_name="winter_year",
+    )
+
+    # Now plot the GEV params - non bias corrected
+    gev_funcs.plot_gev_params(
+        gev_params=gev_params_no_bc,
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_var_name="demand_net_wind_max",
+        model_var_name="demand_net_wind_max",
+        title="Distribution of max DJF demand net wind (GW), no BC",
+        obs_label="obs",
+        model_label="model",
+        figsize=(15, 5),
+    )
+
+    # Now plot the GEV params - bias corrected
+    gev_funcs.plot_gev_params(
+        gev_params=gev_params_bc,
+        obs_df=block_maxima_obs_dnw_dt,
+        model_df=block_maxima_model_dnw_dt,
+        obs_var_name="demand_net_wind_max",
+        model_var_name="demand_net_wind_max_bc",
+        title="Distribution of max DJF demand net wind (GW), BC",
+        obs_label="obs",
+        model_label="model",
+        figsize=(15, 5),
+    )
+
+    # Set effective dec year as a datetime for the model data
+    block_maxima_model_dnw_dt["effective_dec_year"] = pd.to_datetime(block_maxima_model_dnw_dt["effective_dec_year"], format="%Y")
+
+    # Reset the index of the obs data
+    block_maxima_obs_dnw.reset_index(inplace=True)
+
+    # Format effective dec year as a datetime
+    block_maxima_obs_dnw["effective_dec_year"] = pd.to_datetime(block_maxima_obs_dnw["effective_dec_year"], format="%Y")
+
+    # set effective dec year as the index in the obs df
+    block_maxima_obs_dnw.set_index("effective_dec_year", inplace=True)
+
+    # Plot the dot plot for the non bias corrected data
+    dot_plot(
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_max",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Observed vs modelled max DJF demand net wind (GW), no BC",
+        ylims=(35, 50),
+        solid_line=np.max,
+        dashed_quant=0.80,
+    )
+
+    # Plot the dot plot for the bias corrected data
+    dot_plot(
+        obs_df=block_maxima_obs_dnw_dt,
+        model_df=block_maxima_model_dnw_dt,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_max_bc",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Observed vs modelled max DJF demand net wind (GW), BC",
+        ylims=(35, 50),
+        solid_line=np.max,
+        dashed_quant=0.80,
     )
 
     # print the time taken
