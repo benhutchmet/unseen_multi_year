@@ -97,21 +97,25 @@ def pivot_detrend_obs(
     pd.DataFrame
         Detrended DataFrame.
     """
+
+    # Make a copy of the DataFrame
+    df_copy = df.copy()
+
     # Define the function to fit
     slope, intercept, r_value, p_value, std_err = linregress(
-        df[x_axis_name], df[y_axis_name]
+        df_copy[x_axis_name], df_copy[y_axis_name]
     )
 
     # Calculate the trend line
-    trend = slope * df[x_axis_name] + intercept
+    trend = slope * df_copy[x_axis_name] + intercept
 
     # Determine the final point on the trend line
     final_point = trend.iloc[-1]
 
     # Create a new column with the detrended values
-    df[y_axis_name + suffix] = final_point - trend + df[y_axis_name]
+    df_copy[y_axis_name + suffix] = final_point - trend + df_copy[y_axis_name]
 
-    return df
+    return df_copy
 
 
 def pivot_detrend_model(
@@ -143,8 +147,11 @@ def pivot_detrend_model(
         Detrended DataFrame.
     """
 
+    # Make a copy of the DataFrame
+    df_copy = df.copy()
+
     # Set up the n members
-    members = df[member_name].unique()
+    members = df_copy[member_name].unique()
     n_members = len(members)
 
     # Set up the slopes
@@ -154,7 +161,7 @@ def pivot_detrend_model(
     # Loop over the members
     for i, member in enumerate(members):
         # Get the data for this member
-        data = df[df[member_name] == member]
+        data = df_copy[df_copy[member_name] == member]
 
         # Define the function to fit
         slope, intercept, r_value, p_value, std_err = linregress(
@@ -170,15 +177,15 @@ def pivot_detrend_model(
     intercepts_mean = np.mean(intercepts)
 
     # Calculate the trend line
-    trend = intercepts_mean + slopes_mean * df[x_axis_name]
+    trend = intercepts_mean + slopes_mean * df_copy[x_axis_name]
 
     # Determine the final point on the trend line
     final_point = trend.iloc[-1]
 
     # Create a new column with the detrended values
-    df[y_axis_name + suffix] = final_point - trend + df[y_axis_name]
+    df_copy[y_axis_name + suffix] = final_point - trend + df_copy[y_axis_name]
 
-    return df
+    return df_copy
 
 
 # Define a function to calculate the obs block minima/maxima
@@ -1901,6 +1908,9 @@ def compare_trends(
 
     # Set the ylabel
     ax0.set_ylabel(ylabel)
+
+    # Set up t6he suptitle
+    fig.suptitle(suptitle, fontweight="bold")
 
     # Set a tight layout
     plt.tight_layout()

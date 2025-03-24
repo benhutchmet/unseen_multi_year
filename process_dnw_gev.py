@@ -9,7 +9,7 @@ This script processes daily obs and model data (all leads) into a dataframe cont
 Methodology is still in development, so this script is a work in progress.
 
 """
-
+#%%
 # Local imports
 import os
 import sys
@@ -190,6 +190,101 @@ def ws_to_wp_gen(
 
     return obs_df, model_df
 
+# Write a function to convert the temp (C) to weather dependent electricity demand
+def temp_to_demand(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_temp_col: str,
+    model_temp_col: str,
+    hdd_base: float = 15.5,
+    cdd_base: float = 22.0,
+    regr_coeffs_fpath: str = "/home/users/benhutch/ERA5_energy_update/ERA5_Regression_coeffs_demand_model.csv",
+    country: str = "United_Kingdom",
+    demand_year: int = 2017,
+) -> pd.DataFrame:
+    """
+    Converts temperature to electricity demand using regression coefficients
+    as quantified from the observations.
+    
+    Parameters
+    ==========
+    
+    obs_df : pd.DataFrame
+        The dataframe containing the observed temperature data.
+    model_df : pd.DataFrame
+        The dataframe containing the model temperature data.
+    obs_temp_col : str
+        The name of the observed temperature column.
+    model_temp_col : str
+        The name of the model temperature column.
+    hdd_base : float
+        The base temperature for heating degree days.
+    cdd_base : float
+        The base temperature for cooling degree days.
+    regr_coeffs_fpath : str
+        The file path to the regression coefficients.
+    country : str
+        The country for which to calculate the demand.
+    demand_year : int
+        The year for which to calculate the demand.
+    
+    Returns
+    =======
+
+    obs_df: pd.DataFrame
+        The dataframe containing the observed electricity demand data.
+    model_df: pd.DataFrame
+        The dataframe containing the model electricity demand data.
+    
+    """
+
+    # assertr that temperature is in C
+    assert obs_df[obs_temp_col].max() < 100, "Temperature is not in C"
+    assert model_df[model_temp_col].max() < 100, "Temperature is not in C"
+
+    # Process the observed data
+    obs_df["hdd"] = obs_df[obs_temp_col].apply(lambda x: max(0, hdd_base - x))
+    obs_df["cdd"] = obs_df[obs_temp_col].apply(lambda x: max(0, x - cdd_base))
+
+    # Process the model data in the same way
+    model_df["hdd"] = model_df[model_temp_col].apply(lambda x: max(0, hdd_base - x))
+    model_df["cdd"] = model_df[model_temp_col].apply(lambda x: max(0, x - cdd_base))
+
+    # Load the regression coefficients
+    df_regr = pd.read_csv(regr_coeffs_fpath)
+
+    # Set the index
+    df_regr.set_index("Unnamed: 0", inplace=True)
+
+    # Rename the columns by splitting by _ and extracting the second element
+    df_regr.columns = [x.split("_")[0] for x in df_regr.columns]
+
+    # if there is a column called "United" replace it with "United Kingdom"
+    if "United" in df_regr.columns:
+        df_regr.rename(columns={"United": "United_Kingdom"}, inplace=True)
+
+    # Extract the regression coefficients for the country
+    time_coeff_uk = df_regr.loc["time", country]
+    hdd_coeff_uk = df_regr.loc["HDD", country]
+    cdd_coeff_uk = df_regr.loc["CDD", country]
+
+    # Calculate the observed demand
+    obs_df["UK_demand"] = (
+        (time_coeff_uk * demand_year) +
+        (hdd_coeff_uk * obs_df["hdd"]) +
+        (cdd_coeff_uk * obs_df["cdd"])
+    )
+
+    # Calculate the model demand
+    model_df["UK_demand"] = (
+        (time_coeff_uk * demand_year) +
+        (hdd_coeff_uk * model_df["hdd"]) +
+        (cdd_coeff_uk * model_df["cdd"])
+    )
+
+    return obs_df, model_df
+
+
 # Define the main function
 def main():
     # Start the timer
@@ -277,6 +372,24 @@ def main():
     # Create a new column for data_tas_c in df_model_full_djf
     df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
 
+    # Pivot detrend the obs
+    df_obs_dt = gev_funcs.pivot_detrend_obs(
+        df=df_obs,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_c",
+    )
+
+    # # Pivot detrend the model
+    df_model_djf_dt = gev_funcs.pivot_detrend_model(
+        df=df_model_djf,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_tas_c",
+    )
+
+    # print the head of the df_obs
+    print(df_obs.columns)
+    print(df_obs_dt.columns)
+
     # Apply the ws_to_wp_gen function to the obs and model data
     df_obs, df_model_djf = ws_to_wp_gen(
         obs_df=df_obs,
@@ -285,11 +398,113 @@ def main():
         model_ws_col="data_sfcWind",
     )
 
+    # # Apply the ws_to_wp_gen function to the detrended obs and model data
+    df_obs_dt, df_model_djf_dt = ws_to_wp_gen(
+        obs_df=df_obs_dt,
+        model_df=df_model_djf_dt,
+        obs_ws_col="data_sfcWind",
+        model_ws_col="data_sfcWind",
+    )
+
+    # Convert the temperature to demand
+    df_obs, df_model_djf = temp_to_demand(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        obs_temp_col="data_c",
+        model_temp_col="data_tas_c",
+    )
+
+    # # Convert the dt temperature to demand
+    df_obs_dt, df_model_djf_dt = temp_to_demand(
+        obs_df=df_obs_dt,
+        model_df=df_model_djf_dt,
+        obs_temp_col="data_c_dt",
+        model_temp_col="data_tas_c_dt",
+    )
+
+    # Calculate demand net wind
+    df_obs["demand_net_wind"] = df_obs["UK_demand"] - df_obs["sigmoid_total_wind_gen"]
+    df_model_djf["demand_net_wind"] = df_model_djf["UK_demand"] - df_model_djf["sigmoid_total_wind_gen"]
+
+    # # Calculate the demand net wind detrended
+    df_obs_dt["demand_net_wind"] = df_obs_dt["UK_demand"] - df_obs_dt["sigmoid_total_wind_gen"]
+    df_model_djf_dt["demand_net_wind"] = df_model_djf_dt["UK_demand"] - df_model_djf_dt["sigmoid_total_wind_gen"]
+
+    # Calculate the block maxima demand net wind for the obs data
+    block_maxima_obs_dnw = gev_funcs.obs_block_min_max(
+        df=df_obs,
+        time_name="effective_dec_year",
+        min_max_var_name="demand_net_wind",
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        process_min=False,
+    )
+
+    # Calculate the block maxima demand net wind for the obs data detrend
+    block_maxima_obs_dnw_dt = gev_funcs.obs_block_min_max(
+        df=df_obs_dt,
+        time_name="effective_dec_year",
+        min_max_var_name="demand_net_wind",
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        process_min=False,
+    )
+
+    # Same for the model data
+    block_maxima_model_dnw = gev_funcs.model_block_min_max(
+        df=df_model_djf,
+        time_name="effective_dec_year",
+        min_max_var_name="demand_net_wind",
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        process_min=False,
+    )
+
+    # Same for the model data detrend
+    block_maxima_model_dnw_dt = gev_funcs.model_block_min_max(
+        df=df_model_djf_dt,
+        time_name="effective_dec_year",
+        min_max_var_name="demand_net_wind",
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        process_min=False,
+    )
+
     # print the head of the df_obs
     print(df_obs.head())
 
     # print the head of the df_model_djf
     print(df_model_djf.head())
+
+    # Now compare the trends
+    gev_funcs.compare_trends(
+        model_df_full_field=df_model_djf,
+        obs_df_full_field=df_obs,
+        model_df_block=block_maxima_model_dnw,
+        obs_df_block=block_maxima_obs_dnw,
+        model_var_name_full_field="demand_net_wind",
+        obs_var_name_full_field="demand_net_wind",
+        model_var_name_block="demand_net_wind_max",
+        obs_var_name_block="demand_net_wind_max",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        suptitle="Demand Net Wind trends",
+        figsize=(15, 5),
+    )
+
+    # Now compare the trends for the detrended data
+    gev_funcs.compare_trends(
+        model_df_full_field=df_model_djf_dt,
+        obs_df_full_field=df_obs_dt,
+        model_df_block=block_maxima_model_dnw_dt,
+        obs_df_block=block_maxima_obs_dnw_dt,
+        model_var_name_full_field="demand_net_wind",
+        obs_var_name_full_field="demand_net_wind",
+        model_var_name_block="demand_net_wind_max",
+        obs_var_name_block="demand_net_wind_max",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        suptitle="Demand Net Wind trends (detrended)",
+        figsize=(15, 5),
+    )
 
     # print the time taken
     print(f"Time taken: {time.time() - start} seconds")
@@ -298,3 +513,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# %%
