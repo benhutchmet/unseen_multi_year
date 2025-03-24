@@ -48,6 +48,9 @@ from functions import (
     sigmoid, dot_plot
 )
 
+# Silence warnings
+warnings.filterwarnings("ignore")
+
 # Define a function to set up the winter years
 def select_leads_wyears_DJF(
     df: pd.DataFrame,
@@ -134,6 +137,10 @@ def ws_to_wp_gen(
         The dataframe containing the model wind power generation data.
     """
 
+    # create a copy of the obs df
+    obs_df_copy = obs_df.copy()
+    model_df_copy = model_df.copy()
+
     # Load the clear heads data
     ch_df = pd.read_csv(ch_fpath)
 
@@ -163,32 +170,32 @@ def ws_to_wp_gen(
     # Set up an initial guess for the parameters for the sigmoid fit
     p0 = [
         max(ch_df["total_gen"]),
-        np.median(obs_df[obs_ws_col]),
+        np.median(obs_df_copy[obs_ws_col]),
         1,
         min(ch_df["total_gen"]),
     ]
 
     # Fit the sigmoid curve to the observed data
     popt, pcov = curve_fit(
-        sigmoid, obs_df[obs_ws_col], ch_df["total_gen"], p0=p0, method="dogbox"
+        sigmoid, obs_df_copy[obs_ws_col], ch_df["total_gen"], p0=p0, method="dogbox"
     )
 
     # Apply the sigmoid function to the observed data
-    obs_df["sigmoid_total_wind_gen"] = sigmoid(obs_df[obs_ws_col], *popt)
+    obs_df_copy["sigmoid_total_wind_gen"] = sigmoid(obs_df_copy[obs_ws_col], *popt)
 
     # Do the same for the model data
-    model_df["sigmoid_total_wind_gen"] = sigmoid(model_df[model_ws_col], *popt)
+    model_df_copy["sigmoid_total_wind_gen"] = sigmoid(model_df_copy[model_ws_col], *popt)
 
     # If any of the sigmoid_total_wind_gen values are negative, set them to 0
-    if any(obs_df["sigmoid_total_wind_gen"] < 0):
+    if any(obs_df_copy["sigmoid_total_wind_gen"] < 0):
         print("Negative values in obs sigmoid_total_wind_gen, setting to 0")
-        obs_df["sigmoid_total_wind_gen"] = obs_df["sigmoid_total_wind_gen"].clip(lower=0)
+        obs_df_copy["sigmoid_total_wind_gen"] = obs_df_copy["sigmoid_total_wind_gen"].clip(lower=0)
 
-    if any(model_df["sigmoid_total_wind_gen"] < 0):
+    if any(model_df_copy["sigmoid_total_wind_gen"] < 0):
         print("Negative values in model sigmoid_total_wind_gen, setting to 0")
-        model_df["sigmoid_total_wind_gen"] = model_df["sigmoid_total_wind_gen"].clip(lower=0)
+        model_df_copy["sigmoid_total_wind_gen"] = model_df_copy["sigmoid_total_wind_gen"].clip(lower=0)
 
-    return obs_df, model_df
+    return obs_df_copy, model_df_copy
 
 # Write a function to convert the temp (C) to weather dependent electricity demand
 def temp_to_demand(
@@ -238,17 +245,21 @@ def temp_to_demand(
     
     """
 
+    # Create a copy of the obs and model dfs
+    obs_df_copy = obs_df.copy()
+    model_df_copy = model_df.copy()
+
     # assertr that temperature is in C
-    assert obs_df[obs_temp_col].max() < 100, "Temperature is not in C"
-    assert model_df[model_temp_col].max() < 100, "Temperature is not in C"
+    assert obs_df_copy[obs_temp_col].max() < 100, "Temperature is not in C"
+    assert model_df_copy[model_temp_col].max() < 100, "Temperature is not in C"
 
     # Process the observed data
-    obs_df["hdd"] = obs_df[obs_temp_col].apply(lambda x: max(0, hdd_base - x))
-    obs_df["cdd"] = obs_df[obs_temp_col].apply(lambda x: max(0, x - cdd_base))
+    obs_df_copy["hdd"] = obs_df_copy[obs_temp_col].apply(lambda x: max(0, hdd_base - x))
+    obs_df_copy["cdd"] = obs_df_copy[obs_temp_col].apply(lambda x: max(0, x - cdd_base))
 
     # Process the model data in the same way
-    model_df["hdd"] = model_df[model_temp_col].apply(lambda x: max(0, hdd_base - x))
-    model_df["cdd"] = model_df[model_temp_col].apply(lambda x: max(0, x - cdd_base))
+    model_df_copy["hdd"] = model_df_copy[model_temp_col].apply(lambda x: max(0, hdd_base - x))
+    model_df_copy["cdd"] = model_df_copy[model_temp_col].apply(lambda x: max(0, x - cdd_base))
 
     # Load the regression coefficients
     df_regr = pd.read_csv(regr_coeffs_fpath)
@@ -269,20 +280,20 @@ def temp_to_demand(
     cdd_coeff_uk = df_regr.loc["CDD", country]
 
     # Calculate the observed demand
-    obs_df["UK_demand"] = (
+    obs_df_copy["UK_demand"] = (
         (time_coeff_uk * demand_year) +
-        (hdd_coeff_uk * obs_df["hdd"]) +
-        (cdd_coeff_uk * obs_df["cdd"])
+        (hdd_coeff_uk * obs_df_copy["hdd"]) +
+        (cdd_coeff_uk * obs_df_copy["cdd"])
     )
 
     # Calculate the model demand
-    model_df["UK_demand"] = (
+    model_df_copy["UK_demand"] = (
         (time_coeff_uk * demand_year) +
-        (hdd_coeff_uk * model_df["hdd"]) +
-        (cdd_coeff_uk * model_df["cdd"])
+        (hdd_coeff_uk * model_df_copy["hdd"]) +
+        (cdd_coeff_uk * model_df_copy["cdd"])
     )
 
-    return obs_df, model_df
+    return obs_df_copy, model_df_copy
 
 
 # Define the main function
@@ -374,7 +385,7 @@ def main():
 
     # Apply the lead time dependent mean bias correction
     # For temperature
-    df_model_djf = gev_funcs.lead_time_mean_bias_correct(
+    df_model_djf_bc = gev_funcs.lead_time_mean_bias_correct(
         model_df=df_model_djf,
         obs_df=df_obs,
         model_var_name="data_tas_c",
@@ -382,10 +393,13 @@ def main():
         lead_name="winter_year",
     )
 
+    # print the columns in df_model_djf_bc
+    print(df_model_djf_bc.columns)
+
     # Apply the lead time dependent mean bias correction
     # For wind speed
-    df_model_djf = gev_funcs.lead_time_mean_bias_correct(
-        model_df=df_model_djf,
+    df_model_djf_bc = gev_funcs.lead_time_mean_bias_correct(
+        model_df=df_model_djf_bc,
         obs_df=df_obs,
         model_var_name="data_sfcWind",
         obs_var_name="data_sfcWind",
@@ -399,52 +413,108 @@ def main():
         y_axis_name="data_c",
     )
 
+    # print the columns in df_model_djf_bc
+    print(df_model_djf_bc.columns)
+
     # # Pivot detrend the model
-    df_model_djf_dt = gev_funcs.pivot_detrend_model(
-        df=df_model_djf,
+    df_model_djf_bc_dt = gev_funcs.pivot_detrend_model(
+        df=df_model_djf_bc,
         x_axis_name="effective_dec_year",
         y_axis_name="data_tas_c_bc",
     )
 
-    # print the head of the df_obs
-    print(df_obs.columns)
-    print(df_obs_dt.columns)
-
-    # Apply the ws_to_wp_gen function to the obs and model data
-    df_obs, df_model_djf = ws_to_wp_gen(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        obs_ws_col="data_sfcWind",
-        model_ws_col="data_sfcWind_bc",
+    # pivot detrend the non bias corrected model
+    df_model_djf_dt = gev_funcs.pivot_detrend_model(
+        df=df_model_djf,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_tas_c",
     )
+
+    # print the columns in df_model_djf_bc_dt
+    print("columns in df_model_djf_dt")
+    print(df_model_djf_dt.columns)
+
+    # # print the head of the df_obs
+    # print(df_obs.columns)
+    # print(df_obs_dt.columns)
+
+    # # Apply the ws_to_wp_gen function to the obs and model data
+    # df_obs, df_model_djf = ws_to_wp_gen(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     obs_ws_col="data_sfcWind",
+    #     model_ws_col="data_sfcWind_bc",
+    # )
 
     # # Apply the ws_to_wp_gen function to the detrended obs and model data
-    df_obs_dt, df_model_djf_dt = ws_to_wp_gen(
+    df_obs_dt, df_model_djf_bc_dt = ws_to_wp_gen(
         obs_df=df_obs_dt,
-        model_df=df_model_djf_dt,
+        model_df=df_model_djf_bc_dt,
         obs_ws_col="data_sfcWind",
         model_ws_col="data_sfcWind_bc",
     )
 
-    # Convert the temperature to demand
-    df_obs, df_model_djf = temp_to_demand(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        obs_temp_col="data_c",
-        model_temp_col="data_tas_c_bc",
-    )
-
-    # # Convert the dt temperature to demand
-    df_obs_dt, df_model_djf_dt = temp_to_demand(
+    # convert the non bias corrected model data to wind power generation
+    _, df_model_djf_dt = ws_to_wp_gen(
         obs_df=df_obs_dt,
         model_df=df_model_djf_dt,
+        obs_ws_col="data_sfcWind",
+        model_ws_col="data_sfcWind",
+    )
+
+    # # Convert the temperature to demand
+    # df_obs, df_model_djf = temp_to_demand(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     obs_temp_col="data_c",
+    #     model_temp_col="data_tas_c_bc",
+    # )
+
+    # # Convert the dt temperature to demand
+    df_obs_dt, df_model_djf_bc_dt = temp_to_demand(
+        obs_df=df_obs_dt,
+        model_df=df_model_djf_bc_dt,
         obs_temp_col="data_c_dt",
         model_temp_col="data_tas_c_bc_dt",
     )
 
+    # calculate the bias in bc demand data
+    demand_bias = df_model_djf_bc_dt["UK_demand"].mean() - df_obs_dt["UK_demand"].mean()
+
+    # print the demand bias
+    print(f"Demand bias: {demand_bias}")
+    # print the bc demand mean
+    print(f"BC demand mean: {df_model_djf_bc_dt['UK_demand'].mean()}")
+    # print the obs demand mean
+    print(f"Obs demand mean: {df_obs_dt['UK_demand'].mean()}")
+
+    # print the head of the df_obs_dt
+    print(df_obs_dt.head())
+
+    # print the head of the df_model_djf_bc_dt
+    print(df_model_djf_dt.head())
+
+    # # Convert the non bias corrected model temperature to demand
+    _, df_model_djf_dt = temp_to_demand(
+        obs_df=df_obs_dt,
+        model_df=df_model_djf_dt,
+        obs_temp_col="data_c",
+        model_temp_col="data_tas_c_dt",
+    )
+
+    # calculate the bias in bc demand data
+    demand_bias = df_model_djf_bc_dt["UK_demand"].mean() - df_obs_dt["UK_demand"].mean()
+
+    # print the demand bias
+    print(f"Demand bias: {demand_bias}")
+    # print the bc demand mean
+    print(f"BC demand mean: {df_model_djf_bc_dt['UK_demand'].mean()}")
+    # print the obs demand mean
+    print(f"Obs demand mean: {df_obs_dt['UK_demand'].mean()}")
+
     # Plot the lead pdfs for the demand data (temperature has been detrended)
     gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf_dt,
+        model_df=df_model_djf_bc_dt,
         obs_df=df_obs_dt,
         model_var_name="UK_demand",
         obs_var_name="UK_demand",
@@ -456,7 +526,7 @@ def main():
     # Plot the lead pdfs for the wind power generation data
     # all winter days
     gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf_dt,
+        model_df=df_model_djf_bc_dt,
         obs_df=df_obs_dt,
         model_var_name="sigmoid_total_wind_gen",
         obs_var_name="sigmoid_total_wind_gen",
@@ -465,16 +535,62 @@ def main():
         suptitle="Lead dependent wind power generation PDFs, DJF, 1960-2017",
     )
 
+    # Calculate demand net wind
+    # for the detrended, but NON BIAS CORRECTED data
+    df_obs_dt["demand_net_wind"] = df_obs_dt["UK_demand"] - df_obs_dt["sigmoid_total_wind_gen"]
+
+    # Calculate demand net wind for the detrended, but NON BIAS CORRECTED model data
+    df_model_djf_dt["demand_net_wind"] = df_model_djf_dt["UK_demand"] - df_model_djf_dt["sigmoid_total_wind_gen"]
+
+    # Calculate demand net wind for the detrended, BIAS CORRECTED model data
+    df_model_djf_bc_dt["demand_net_wind"] = df_model_djf_bc_dt["UK_demand"] - df_model_djf_bc_dt["sigmoid_total_wind_gen"]
+
+    # -------------------------
+    # Now do the generic fidelity testing
+    # -------------------------
+
+    # Plot the pdfs for multivariate testing
+    # for all leads
+    gev_funcs.plot_multi_var_dist(
+        obs_df=df_obs_dt,
+        model_df=df_model_djf_dt,
+        model_df_bc=df_model_djf_bc_dt,
+        obs_var_names=["data_c_dt", "UK_demand", "data_sfcWind", "sigmoid_total_wind_gen", "demand_net_wind"],
+        model_var_names=["data_tas_c_dt", "UK_demand", "data_sfcWind", "sigmoid_total_wind_gen", "demand_net_wind"],
+        model_var_names_bc=["data_tas_c_bc_dt", "UK_demand", "data_sfcWind_bc", "sigmoid_total_wind_gen", "demand_net_wind"],
+        row_titles=["Temp (°C)", "Demand (GW)", "10m wind speed (m/s)", "Wind power gen. (GW)", "Demand net wind (GW)"],
+        subplot_titles=[("a", "b"), ("c", "d"), ("e", "f"), ("g", "h"), ("i", "j")],
+        figsize=(15, 15),
+    )
+
     sys.exit()
 
+    # # process the dict for standard fid testing
+    # moments_dict = gev_funcs.process_moments_fidelity(
+    #     obs_df=df_obs_dt,
+    #     model_df=df_model_djf_dt,
+    #     obs_var_name="demand_net_wind",
+    #     model_var_name="demand_net_wind",
+    #     obs_wyears_name="effective_dec_year",
+    #     model_wyears_name="effective_dec_year",
+    #     nboot=1000,
+    #     model_member_name="member",
+    #     model_lead_name="winter_year",
+    # )
 
-    # Calculate demand net wind
-    df_obs["demand_net_wind"] = df_obs["UK_demand"] - df_obs["sigmoid_total_wind_gen"]
-    df_model_djf["demand_net_wind"] = df_model_djf["UK_demand"] - df_model_djf["sigmoid_total_wind_gen"]
+    # # Now plot the fidelity testing output
+    # gev_funcs.plot_moments_fidelity(
+    #     obs_df=df_obs_dt,
+    #     model_df=df_model_djf_dt,
+    #     obs_var_name="demand_net_wind",
+    #     model_var_name="demand_net_wind",
+    #     moments_fidelity=moments_dict,
+    #     title="Fidelity testing for demand net wind (detrended temp), DJF, 1960-2017",
+    #     figsize=(15, 5),
+    # )
 
-    # # Calculate the demand net wind detrended
-    df_obs_dt["demand_net_wind"] = df_obs_dt["UK_demand"] - df_obs_dt["sigmoid_total_wind_gen"]
-    df_model_djf_dt["demand_net_wind"] = df_model_djf_dt["UK_demand"] - df_model_djf_dt["sigmoid_total_wind_gen"]
+    # Now sys exit
+    # sys.exit()
 
     # Calculate the block maxima demand net wind for the obs data
     block_maxima_obs_dnw = gev_funcs.obs_block_min_max(

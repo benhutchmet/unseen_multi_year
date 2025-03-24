@@ -48,19 +48,19 @@ def determine_effective_dec_year(row):
         return year
     else:
         return None
-    
+
+
 # do the same but for canari
 def determine_effective_dec_year_canari(row):
     year = row["time"].split("-")[0]
     month = row["time"].split("-")[1]
-    
+
     if month in ["01", "02", "03"]:
         return int(year) - 1
     elif month in ["10", "11", "12"]:
         return int(year)
     else:
         return None
-
 
 
 def month_col_canari(row):
@@ -255,6 +255,7 @@ def obs_block_min_max(
 
     return block_df
 
+
 # write a function to calculate the block minima/maxima
 # for a given percentile for the obs
 def obs_block_min_max_percentile(
@@ -265,12 +266,12 @@ def obs_block_min_max_percentile(
 ) -> pd.DataFrame:
     """
     Calculate the block minima/maxima for a DataFrame.
-    
+
     But for the lowest 5th percentile of the data
-    
+
     Parameters
     ----------
-    
+
     df : pd.DataFrame
         DataFrame to calculate block minima/maxima for.
     time_name : str
@@ -279,13 +280,13 @@ def obs_block_min_max_percentile(
         Name of the column to calculate the block minima/maxima for.
     percentile : float, optional
         The percentile to use, by default 5.
-    
+
     Returns
     -------
 
     pd.DataFrame
         New dataframe with the block minima/maxima added.
-    
+
     """
 
     # Initialize the new dataframe
@@ -299,10 +300,16 @@ def obs_block_min_max_percentile(
         # if percentile is less than 50
         if percentile < 50:
             # Find the rows that are less than the threshold
-            time_data = time_data[time_data[min_max_var_name] < np.percentile(time_data[min_max_var_name], percentile)]
+            time_data = time_data[
+                time_data[min_max_var_name]
+                < np.percentile(time_data[min_max_var_name], percentile)
+            ]
         else:
             # Find the rows that are greater than the threshold
-            time_data = time_data[time_data[min_max_var_name] > np.percentile(time_data[min_max_var_name], percentile)]
+            time_data = time_data[
+                time_data[min_max_var_name]
+                > np.percentile(time_data[min_max_var_name], percentile)
+            ]
 
         # Concat to the block df
         block_df = pd.concat([block_df, time_data])
@@ -391,7 +398,7 @@ def model_block_min_max(
 
                     # Concat to the block df
                     block_df = pd.concat([block_df, df_this])
-    
+
     else:
         print("Assuming first winter year only")
         # Loop over the unique time names
@@ -443,12 +450,12 @@ def model_block_min_max_percentile(
 ) -> pd.DataFrame:
     """
     Calculate the block minima/maxima for a DataFrame.
-    
+
     But for the lowest 5th percentile of the data
-    
+
     Parameters
     ----------
-    
+
     df : pd.DataFrame
         DataFrame to calculate block minima/maxima for.
     time_name : str
@@ -467,7 +474,7 @@ def model_block_min_max_percentile(
 
     pd.DataFrame
         New dataframe with the block minima/maxima added.
-        
+
     """
 
     # Initialize the new dataframe
@@ -532,6 +539,7 @@ def model_block_min_max_percentile(
 
     return block_df
 
+
 # Define a function for simple mean bias correct
 def mean_bias_correct(
     model_df: pd.DataFrame,
@@ -572,7 +580,8 @@ def mean_bias_correct(
 
     return model_df
 
-# Define a function which performs a lead-time dependent 
+
+# Define a function which performs a lead-time dependent
 # mean bias correction
 def lead_time_mean_bias_correct(
     model_df: pd.DataFrame,
@@ -636,7 +645,9 @@ def lead_time_mean_bias_correct(
         # If obs_df_lead_this is None
         if obs_df_lead_this is not None:
             # Calculate the mean bias
-            bias = data_this[model_var_name].mean() - obs_df_lead_this[obs_var_name].mean()
+            bias = (
+                data_this[model_var_name].mean() - obs_df_lead_this[obs_var_name].mean()
+            )
         else:
             # Calculate the mean bias
             bias = data_this[model_var_name].mean() - obs_df[obs_var_name].mean()
@@ -651,6 +662,7 @@ def lead_time_mean_bias_correct(
         corrected_df = pd.concat([corrected_df, data_this])
 
     return corrected_df
+
 
 # Define a function to process the GEV params
 def process_gev_params(
@@ -733,9 +745,7 @@ def process_gev_params(
             # if model_lead_name is not None
             if model_lead_name is not None:
                 # Pick a random lead time
-                lead_this = np.random.choice(
-                    data_this[model_lead_name].unique()
-                )
+                lead_this = np.random.choice(data_this[model_lead_name].unique())
 
                 # Get the data for this lead time
                 data_this = data_this[data_this[model_lead_name] == lead_this]
@@ -760,6 +770,7 @@ def process_gev_params(
 
     return gev_params
 
+
 # Write a function for processing full field fidelity
 def process_moments_fidelity(
     obs_df: pd.DataFrame,
@@ -768,8 +779,6 @@ def process_moments_fidelity(
     model_var_name: str,
     obs_wyears_name: str,
     model_wyears_name: str,
-    obs_time_name: str,
-    model_time_name: str,
     nboot: int = 1000,
     model_member_name: str = "member",
     model_lead_name: str = None,
@@ -791,14 +800,12 @@ def process_moments_fidelity(
         Name of the column to use as the winter years in the observed DataFrame.
     model_wyears_name : str
         Name of the column to use as the winter years in the model DataFrame.
-    obs_time_name : str
-        Name of the column to use as the time axis in the observed DataFrame.
-    model_time_name : str
-        Name of the column to use as the time axis in the model DataFrame.
     nboot : int, optional
         Number of bootstrap samples to use, by default 1000.
     model_member_name : str, optional
         Name of the column to use as the member identifier in the model DataFrame, by default "member".
+    model_lead_name : str, optional
+        Name of the column to use as the lead time in the model DataFrame, by default None.
 
     Returns
     -------
@@ -823,8 +830,8 @@ def process_moments_fidelity(
     # Calculate the observed mean and standard deviation
     obs_mean = np.mean(obs_df[obs_var_name])
     obs_std = np.std(obs_df[obs_var_name])
-    obs_skew = skew(obs_df[obs_var_name]) # from scipy
-    obs_kurt = kurtosis(obs_df[obs_var_name]) # ditto
+    obs_skew = skew(obs_df[obs_var_name])  # from scipy
+    obs_kurt = kurtosis(obs_df[obs_var_name])  # ditto
 
     # Store the observed moments
     moments_fidelity["obs_mean"] = obs_mean
@@ -856,7 +863,7 @@ def process_moments_fidelity(
         print("Assuming only one winter is present")
         model_years = model_df[model_wyears_name].unique()
         model_members = model_df[model_member_name].unique()
-        
+
         # Select the model df for the first winter and member
         model_df_this = model_df[
             (model_df[model_wyears_name] == model_years[0])
@@ -876,7 +883,7 @@ def process_moments_fidelity(
     # Loop over the nboot
     for i in tqdm(range(nboot)):
         # Set up the psuedo-observed data
-        pseudo_obs_this = np.zeros[(n_obs_years, n_model_winter_days)]
+        pseudo_obs_this = np.zeros((n_obs_years, n_model_winter_days))
         for y, obs_year in enumerate(obs_years):
             # Subset the data
             df_model_this_year = model_df[model_df[model_wyears_name] == obs_year]
@@ -894,9 +901,7 @@ def process_moments_fidelity(
             # if model_lead_name is not None
             if model_lead_name is not None:
                 # Pick a random lead time
-                lead_this = np.random.choice(
-                    data_this[model_lead_name].unique()
-                )
+                lead_this = np.random.choice(data_this[model_lead_name].unique())
 
                 # Get the data for this lead time
                 data_this = data_this[data_this[model_lead_name] == lead_this]
@@ -905,10 +910,14 @@ def process_moments_fidelity(
             model_values_this = data_this[model_var_name].values
 
             # assert that the size of values is greater than 1
-            assert model_values_this.size > 1, "model_values_this should have length greater than 1"
+            assert (
+                model_values_this.size > 1
+            ), "model_values_this should have length greater than 1"
 
             # assert that the size of values is less than 200
-            assert model_values_this.size < 200, "model_values_this should have length less than 200"
+            assert (
+                model_values_this.size < 200
+            ), "model_values_this should have length less than 200"
 
             # Add the data to the pseudo-observed data
             pseudo_obs_this[y, :] = model_values_this
@@ -929,6 +938,318 @@ def process_moments_fidelity(
         moments_fidelity["model_kurt"][0][i] = model_kurt_this
 
     return moments_fidelity
+
+
+# define a function to plot the distributions
+def plot_multi_var_dist(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    model_df_bc: pd.DataFrame,
+    obs_var_names: list[str],
+    model_var_names: list[str],
+    model_var_names_bc: list[str],
+    row_titles: list[str],
+    subplot_titles: list[str],
+    figsize: tuple = (15, 5),
+) -> None:
+    """
+    Plot the distributions of multiple variables.
+
+    Parameters
+    ----------
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    model_df_bc : pd.DataFrame
+        DataFrame of model data after bias correction.
+    obs_var_names : list[str]
+        List of names of the columns to use in the observed DataFrame.
+    model_var_names : list[str]
+        List of names of the columns to use in the model DataFrame.
+    model_var_names_bc : list[str]
+        List of names of the columns to use in the model DataFrame after bias correction.
+    row_titles : list[str]
+        List of titles for each row.
+    subplot_titles : list[tuple]
+        List of titles for each subplot.
+    figsize : tuple, optional
+        Figure size, by default (15, 5).
+
+    Returns
+    -------
+    None
+    """
+
+    # Set up the nrows
+    nrows = len(obs_var_names)
+
+    # Set up the figure
+    fig, axs = plt.subplots(nrows=nrows, ncols=2, figsize=figsize)
+
+    # loop over the nrows
+    for r, row in enumerate(range(nrows)):
+        # Plot the raw distribution on the first axis
+        axs[r, 0].hist(
+            model_df[model_var_names[r]],
+            color="red",
+            alpha=0.5,
+            label="model",
+            density=True,
+        )
+
+        # Same for the observations
+        axs[r, 0].hist(
+            obs_df[obs_var_names[r]],
+            color="black",
+            alpha=0.5,
+            label="observed",
+            density=True,
+        )
+
+        # remove the numbers from the y axis
+        axs[r, 0].set_yticks([])
+
+        # Set the row title to the left
+        axs[r, 0].set_ylabel(row_titles[r])
+
+        # # Set up the subplot title
+        # axs[r, 0].set_title(subplot_titles[r][0])
+
+        axs[r, 0].text(
+            0.05,
+            0.05,
+            subplot_titles[r][0],
+            transform=axs[r, 0].transAxes,
+            fontsize=12,
+            verticalalignment="bottom",
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # do the same for the bias corrected distribution
+        axs[r, 1].text(
+            0.05,
+            0.05,
+            subplot_titles[r][1],
+            transform=axs[r, 1].transAxes,
+            fontsize=12,
+            verticalalignment="bottom",
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Plot the bias corrected distribution on the second axis
+        axs[r, 1].hist(
+            model_df_bc[model_var_names_bc[r]],
+            color="red",
+            alpha=0.5,
+            label="model",
+            density=True,
+        )
+
+        # Same for the observations
+        axs[r, 1].hist(
+            obs_df[obs_var_names[r]],
+            color="black",
+            alpha=0.5,
+            label="observed",
+            density=True,
+        )
+
+        # if r is 0
+        if r == 0:
+            # Set the title
+            axs[r, 0].set_title("raw")
+            axs[r, 1].set_title("bias corrected")
+
+            # include a legend
+            axs[r, 1].legend(loc="upper right")
+
+        # calculate the bias for the raw data
+        bias_raw = model_df[model_var_names[r]].mean() - obs_df[obs_var_names[r]].mean()
+        bias_bc = (
+            model_df_bc[model_var_names_bc[r]].mean() - obs_df[obs_var_names[r]].mean()
+        )
+
+        # include these in a textbox in the top left
+        axs[r, 0].text(
+            0.05,
+            0.95,
+            f"raw bias = {bias_raw:.2f}",
+            transform=axs[r, 0].transAxes,
+            verticalalignment="top",
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        axs[r, 1].text(
+            0.05,
+            0.95,
+            f"BC bias = {bias_bc:.2f}",
+            transform=axs[r, 1].transAxes,
+            verticalalignment="top",
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+    # Specify a tight layout
+    fig.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+    return None
+
+
+# Define a function for plotting the moments fidelity
+def plot_moments_fidelity(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_var_name: str,
+    model_var_name: str,
+    moments_fidelity: dict,
+    title: str,
+    figsize: tuple = (15, 5),
+) -> None:
+    """
+    Plot the moments of fidelity.
+
+    Parameters
+    ----------
+
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    moments_fidelity : dict
+        Dictionary of moments of fidelity.
+    title : str
+        Title of the plot.
+    figsize : tuple, optional
+        Figure size, by default (15, 5).
+
+    Returns
+    -------
+
+    None
+
+    """
+
+    # Set up the figure
+    fig = plt.figure(figsize=figsize)
+    gs = gridspec.GridSpec(nrows=2, ncols=3, width_ratios=[2, 1, 1])
+
+    ax_main = fig.add_subplot(gs[:, 0])  # Span all rows with first col
+
+    # Plot the distribution on the first axis
+    ax_main.hist(
+        model_df[model_var_name], color="red", alpha=0.5, label="model", density=True
+    )
+
+    # Same for the observations
+    ax_main.hist(
+        obs_df[obs_var_name], color="black", alpha=0.5, label="observed", density=True
+    )
+
+    # Include a textbox with the sample size
+    ax_main.text(
+        0.95,
+        0.90,
+        f"model N = {len(model_df)}\nobs N = {len(obs_df)}",
+        transform=ax_main.transAxes,
+        bbox=dict(facecolor="white", alpha=0.5),
+        horizontalalignment="right",
+    )
+
+    # Include a legend
+    ax_main.legend(loc="upper right")
+
+    ax_main.tick_params(
+        axis="y", which="both", left=False, right=False, labelleft=False
+    )
+
+    # Remove the numbers from the y axis
+    ax_main.set_yticks([])
+
+    # Add a title
+    ax_main.set_title(title)
+
+    # Set up the list of stat names
+    stat_names = ["mean", "std", "skew", "kurt"]
+
+    # Set up the list of axes labels
+    ax_labels = ["a", "b", "c", "d"]
+
+    # Additional subplots for metrics
+    ax_mean = fig.add_subplot(gs[0, 1])
+    ax_skew = fig.add_subplot(gs[0, 2])
+    ax_stddev = fig.add_subplot(gs[1, 1])
+    ax_kurtosis = fig.add_subplot(gs[1, 2])
+
+    axes = [ax_mean, ax_skew, ax_stddev, ax_kurtosis]
+
+    # Set up the model stats
+    model_stats = [
+        moments_fidelity["model_mean"][0],
+        moments_fidelity["model_skew"][0],
+        moments_fidelity["model_std"][0],
+        moments_fidelity["model_kurt"][0],
+    ]
+
+    # set up the obs stats
+    obs_stats = [
+        moments_fidelity["obs_mean"],
+        moments_fidelity["obs_skew"],
+        moments_fidelity["obs_std"],
+        moments_fidelity["obs_kurt"],
+    ]
+
+    # Loop over the stats
+    for i, ax in enumerate(axes):
+        # Plot the historgaram of the model stats
+        ax.hist(model_stats[i], bins=100, density=True, color="red", label="model")
+
+        # Plot the obs stats
+        ax.axvline(obs_stats[i], color="black", linestyle="-", label="ERA5")
+
+        # Calculate the percentile of score for the obs
+        obs_pos = percentileofscore(model_stats[i], obs_stats[i])
+
+        # Plot vertical black dashed lines for the 2.5% and 97.5% quantiles of the model stats
+        ax.axvline(np.quantile(model_stats[i], 0.025), color="black", linestyle="--")
+
+        ax.axvline(np.quantile(model_stats[i], 0.975), color="black", linestyle="--")
+
+        # rmeove the yticks
+        ax.set_yticks([])
+
+        # Add a title in bold with obs_pos rounded to the closest integer
+        ax.set_title(f"{stat_names[i]}, {round(obs_pos)}%", fontweight="bold")
+
+        # add the axes labels
+        # in the top left
+        ax.text(
+            0.05,
+            0.95,
+            ax_labels[i],
+            transform=ax.transAxes,
+            fontsize=12,
+            fontweight="bold",
+            va="top",
+            ha="left",
+            bbox=dict(facecolor="white", alpha=0.5),
+            zorder=100,
+        )
+
+    # Specify a tight layout
+    fig.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+    return None
+
 
 # Define the gev plotting function
 def plot_gev_params(
@@ -982,19 +1303,38 @@ def plot_gev_params(
 
     # Plot the model dsitribution
     ax0.hist(
-        model_df[model_var_name], bins=20, color="red", alpha=0.5, label=model_label, density=True,
+        model_df[model_var_name],
+        bins=20,
+        color="red",
+        alpha=0.5,
+        label=model_label,
+        density=True,
     )
 
     # Plot the distributions
-    ax0.hist(obs_df[obs_var_name], bins=20, color="black", alpha=0.5, label=obs_label, density=True)
+    ax0.hist(
+        obs_df[obs_var_name],
+        bins=20,
+        color="black",
+        alpha=0.5,
+        label=obs_label,
+        density=True,
+    )
 
     # plot the model mean gev
-    xvals_model = np.linspace(np.min(model_df[model_var_name]), np.max(model_df[model_var_name]), 100)
-    
+    xvals_model = np.linspace(
+        np.min(model_df[model_var_name]), np.max(model_df[model_var_name]), 100
+    )
+
     # Plot the GEV distribution
     ax0.plot(
         xvals_model,
-        gev.pdf(xvals_model, gev_params["model_shape"][0].mean(), gev_params["model_loc"][0].mean(), gev_params["model_scale"][0].mean()),
+        gev.pdf(
+            xvals_model,
+            gev_params["model_shape"][0].mean(),
+            gev_params["model_loc"][0].mean(),
+            gev_params["model_scale"][0].mean(),
+        ),
         color="red",
         linestyle="--",
     )
@@ -1007,7 +1347,12 @@ def plot_gev_params(
     # plot the obs mean gev
     ax0.plot(
         xvals_model,
-        gev.pdf(xvals_model, gev_params["obs_shape"], gev_params["obs_loc"], gev_params["obs_scale"]),
+        gev.pdf(
+            xvals_model,
+            gev_params["obs_shape"],
+            gev_params["obs_loc"],
+            gev_params["obs_scale"],
+        ),
         color="black",
         linestyle="--",
     )
@@ -1283,7 +1628,9 @@ def plot_detrend_ts(
         # Add a red line for the ensemble mean of the model data (dt)
         ax.plot(
             model_df[model_time_name].unique(),
-            model_df.groupby(model_time_name)[f"{model_var_name}{detrend_suffix}"].mean(),
+            model_df.groupby(model_time_name)[
+                f"{model_var_name}{detrend_suffix}"
+            ].mean(),
             color="red",
             label="Model ensmean dtr",
         )
@@ -1306,6 +1653,7 @@ def plot_detrend_ts(
     ax.set_title(title)
 
     return None
+
 
 # Define a function to plot the scatter cmap plots
 def plot_scatter_cmap(
@@ -1376,7 +1724,9 @@ def plot_scatter_cmap(
 
     # Set up the figure
     # as 1 row and 2 columns
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=figsize, sharey=True, layout="compressed")
+    fig, axs = plt.subplots(
+        nrows=1, ncols=2, figsize=figsize, sharey=True, layout="compressed"
+    )
 
     # Plot the observed data scatter
     ax0 = axs[0]
@@ -1479,6 +1829,7 @@ def plot_scatter_cmap(
 
     return None
 
+
 # Define a function for extracting cubes for a dataframe
 def extract_sel_cubes(
     model_df: pd.DataFrame,
@@ -1507,13 +1858,13 @@ def extract_sel_cubes(
         Name of the column to use as the member identifier in the model DataFrame, by default "member".
     freq : str, optional
         Frequency of the data, by default "day".
-    
+
     Returns
     -------
 
     iris.cube
         Cube of the data.
-    
+
     """
 
     # Hard code the base path
@@ -1539,7 +1890,9 @@ def extract_sel_cubes(
             lead_time = int(row[model_lead_name])
 
             # Set up the path
-            path_this = f"s{init_year}-r{member}i1p1f2/{freq}/{model_var_name}/gn/files/d*/"
+            path_this = (
+                f"s{init_year}-r{member}i1p1f2/{freq}/{model_var_name}/gn/files/d*/"
+            )
 
             # If the lead time is 60 or less
             if lead_time <= 60:
@@ -1641,6 +1994,7 @@ def extract_sel_cubes(
 
     return cubes_merged
 
+
 # Write a function to plot the lead time dependent drift
 def plot_lead_drift(
     model_df: pd.DataFrame,
@@ -1654,10 +2008,10 @@ def plot_lead_drift(
 ) -> None:
     """
     Plots the lead time dependent drift for the model data. Also plots the observed data to the side.
-    
+
     Parameters
     ----------
-    
+
     model_df : pd.DataFrame
         DataFrame of model data.
     obs_df : pd.DataFrame
@@ -1672,21 +2026,21 @@ def plot_lead_drift(
         Label for the y-axis.
     title : str
         Title of the plot.
-        
+
     Returns
     -------
-        
+
     None
-    
+
     """
 
     # Set up the figure and the axes
     fig, axs = plt.subplots(
-    nrows=1,
-    ncols=2,
-    figsize=figsize,
-    sharey=True,
-    gridspec_kw={"width_ratios": [8, 1]},
+        nrows=1,
+        ncols=2,
+        figsize=figsize,
+        sharey=True,
+        gridspec_kw={"width_ratios": [8, 1]},
     )
 
     # Set up the axes
@@ -1748,6 +2102,7 @@ def plot_lead_drift(
 
     return None
 
+
 # Define a function for plotting the distributions for each lead time relative
 # to the observatrions
 def plot_lead_pdfs(
@@ -1762,10 +2117,10 @@ def plot_lead_pdfs(
 ) -> None:
     """
     Plots the probability density functions for each lead time relative to the observations.
-    
+
     Parameters
     ----------
-    
+
     model_df : pd.DataFrame
         DataFrame of model data.
     obs_df : pd.DataFrame
@@ -1780,12 +2135,12 @@ def plot_lead_pdfs(
         Label for the x-axis.
     suptitle : str
         Title of the plot.
-        
+
     Returns
     -------
-        
+
     None
-    
+
     """
 
     # Set up the figure with three rows and 4 columns
@@ -1836,7 +2191,7 @@ def plot_lead_pdfs(
 
         # if obs_df_lead_this is not None
         if obs_df_lead_this is not None:
-            # Plot the observed distribution 
+            # Plot the observed distribution
             axs_flat[i].hist(
                 obs_df_lead_this[obs_var_name],
                 bins=20,
@@ -1847,7 +2202,10 @@ def plot_lead_pdfs(
             )
 
             # Calculate the mean bias
-            bias = model_df_lead_this[model_var_name].mean() - obs_df_lead_this[obs_var_name].mean()
+            bias = (
+                model_df_lead_this[model_var_name].mean()
+                - obs_df_lead_this[obs_var_name].mean()
+            )
         else:
             # Plot the observed distribution
             axs_flat[i].hist(
@@ -1860,7 +2218,9 @@ def plot_lead_pdfs(
             )
 
             # Calculate the mean bias
-            bias = model_df_lead_this[model_var_name].mean() - obs_df[obs_var_name].mean()
+            bias = (
+                model_df_lead_this[model_var_name].mean() - obs_df[obs_var_name].mean()
+            )
 
         # Set the title
         axs_flat[i].set_title(f"lead {lead}, bias: {bias:.2f}")
@@ -1884,6 +2244,7 @@ def plot_lead_pdfs(
 
     return None
 
+
 # Write a function to compare the trends in full field
 # and block minima or maxima
 def compare_trends(
@@ -1904,10 +2265,10 @@ def compare_trends(
 ) -> None:
     """
     Compares the trends in the full field and block minima or maxima.
-    
+
     Parameters
     ----------
-    
+
     model_df_full_field : pd.DataFrame
         DataFrame of model data for the full field.
     obs_df_full_field : pd.DataFrame
@@ -1941,7 +2302,7 @@ def compare_trends(
     -------
 
     None
-    
+
     """
 
     # Set up the figure as one row and two columns
@@ -1974,7 +2335,9 @@ def compare_trends(
     print(f"obs slope: {slope_obs_ff}, obs intercept: {intercept_obs_ff}")
 
     # calclate the trend line
-    trend_line_obs_ff = slope_obs_ff * obs_df_full_field[obs_time_name] + intercept_obs_ff
+    trend_line_obs_ff = (
+        slope_obs_ff * obs_df_full_field[obs_time_name] + intercept_obs_ff
+    )
 
     # # calculate the final point
     # final_point_obs_ff = trend_line_obs_ff.iloc[-1]
@@ -1983,7 +2346,12 @@ def compare_trends(
     # trend_line_obs_ff_pivot = final_point_obs_ff - trend_line_obs_ff + obs_df_full_field[obs_var_name_full_field]
 
     # plot this line as a dashed black line
-    ax0.plot(obs_df_full_field[obs_time_name], trend_line_obs_ff, color="black", linestyle="--")
+    ax0.plot(
+        obs_df_full_field[obs_time_name],
+        trend_line_obs_ff,
+        color="black",
+        linestyle="--",
+    )
 
     # plot the full field data for the model
     # taking the ensemble mean
@@ -2026,13 +2394,17 @@ def compare_trends(
     # plot the ensemble mean slope
     ax0.plot(
         model_df_full_field[model_time_name].unique(),
-        slope_model_ff_mean * model_df_full_field[model_time_name].unique() + intercept_model_ff_mean,
+        slope_model_ff_mean * model_df_full_field[model_time_name].unique()
+        + intercept_model_ff_mean,
         color="red",
         linestyle="--",
     )
 
     # Set the title for ax0
-    ax0.set_title(f"Full field, obs slope: {slope_obs_ff:.3f}, model slope: {slope_model_ff_mean:.3f} (+/- {ci_model_ff:.3f})", fontweight="bold")
+    ax0.set_title(
+        f"Full field, obs slope: {slope_obs_ff:.3f}, model slope: {slope_model_ff_mean:.3f} (+/- {ci_model_ff:.3f})",
+        fontweight="bold",
+    )
 
     # Plot the block data for the observations
     ax1.plot(
@@ -2051,10 +2423,14 @@ def compare_trends(
     print(f"obs slope: {slope_obs_block}, obs intercept: {intercept_obs_block}")
 
     # calclate the trend line
-    trend_line_obs_block = slope_obs_block * obs_df_block[obs_time_name] + intercept_obs_block
+    trend_line_obs_block = (
+        slope_obs_block * obs_df_block[obs_time_name] + intercept_obs_block
+    )
 
     # plot the trend line
-    ax1.plot(obs_df_block[obs_time_name], trend_line_obs_block, color="black", linestyle="--")
+    ax1.plot(
+        obs_df_block[obs_time_name], trend_line_obs_block, color="black", linestyle="--"
+    )
 
     # plot the block data for the model
     # taking the ensemble mean
@@ -2097,13 +2473,17 @@ def compare_trends(
     # plot the ensemble mean slope
     ax1.plot(
         model_df_block[model_time_name].unique(),
-        slope_model_block_mean * model_df_block[model_time_name].unique() + intercept_model_block_mean,
+        slope_model_block_mean * model_df_block[model_time_name].unique()
+        + intercept_model_block_mean,
         color="red",
         linestyle="--",
     )
 
     # Set the title for ax1
-    ax1.set_title(f"Block minima/maxima, obs slope: {slope_obs_block:.3f}, model slope: {slope_model_block_mean:.3f} (+/- {ci_model_block:.3f})", fontweight="bold")
+    ax1.set_title(
+        f"Block minima/maxima, obs slope: {slope_obs_block:.3f}, model slope: {slope_model_block_mean:.3f} (+/- {ci_model_block:.3f})",
+        fontweight="bold",
+    )
 
     # Set the ylabel
     ax0.set_ylabel(ylabel)
@@ -2115,7 +2495,6 @@ def compare_trends(
     plt.tight_layout()
 
     return None
-
 
 
 if __name__ == "__main__":
