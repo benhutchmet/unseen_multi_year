@@ -6,7 +6,7 @@ process_temp_gev.py
 This script processes the temperature extremes for fidelity testing via GEV fitting.
 
 """
-
+#%%
 # Local imports
 import os
 import sys
@@ -110,7 +110,7 @@ def main():
     ]
 
     # Create a new column for data tas c in df_model_full_djf
-    df_model_tas_djf["data_tas_c"] = df_model_tas_djf["data_tas"] - 273.15
+    df_model_tas_djf["data_tas_c"] = df_model_tas_djf["data"] - 273.15
 
     # Apply the block minima transform to the obs data
     block_minima_obs_tas = gev_funcs.obs_block_min_max(
@@ -131,6 +131,9 @@ def main():
         process_min=True,
     )
 
+    # Ensure effective dec year is in the block minima model tas
+    block_minima_model_tas["effective_dec_year"] = block_minima_model_tas["init_year"] + (block_minima_model_tas["winter_year"] - 1)
+
     # Compare the trends
     gev_funcs.compare_trends(
         model_df_full_field=df_model_tas_djf,
@@ -146,6 +149,7 @@ def main():
         ylabel="Temperature (C)",
         suptitle="Temperature trends (no bias correction or detrend)",
         figsize=(15, 5),
+        window_size=10,
     )
 
 
@@ -155,3 +159,4 @@ def main():
 # If name is main
 if __name__ == "__main__":
     main()
+# %%

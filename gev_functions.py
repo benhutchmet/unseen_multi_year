@@ -189,6 +189,74 @@ def pivot_detrend_model(
     return df_copy
 
 
+# Write a function to pivot detrend the model
+# but using the rolling mean methodology
+def pivot_detrend_model_rolling(
+    df: pd.DataFrame,
+    x_axis_name: str,
+    y_axis_name: str,
+    suffix: str = "_rm_dt",
+    member_name: str = "member",
+    window: int = 10,
+    centred_bool: bool = True,
+    min_periods: int = 1,
+) -> pd.DataFrame:
+    """
+    Pivot detrend a DataFrame by taking the 10 year rolling mean
+    of the ensemble mean
+
+    Parameters
+    ==========
+
+    df : pd.DataFrame
+        DataFrame to detrend
+    x_axis_name : str
+        Name of the column to use as the x-axis
+    y_axis_name : str
+        Name of the column to use as the y-axis
+    suffix : str, optional
+        Suffix to append to the detrended column, by default "_rm_dt"
+    member_name : str, optional
+        Name of the column to use as the member identifier, by default "member"
+    window : int, optional
+        The size of the moving window, by default 10
+    centred_bool : bool, optional
+        Whether to set the window to be centred, by default True
+    min_periods : int, optional
+        The minimum number of periods to use, by default 1
+
+    Returns
+    =======
+
+    pd.DataFrame
+        Detrended DataFrame
+
+    """
+
+    # Make a copy of the DataFrame
+    df_copy = df.copy()
+
+    # Calculate the model ensemble mean
+    model_ensmean = df_copy.groupby(x_axis_name)[y_axis_name].mean()
+
+    # Calculate the rolling trend line
+    trend = model_ensmean.rolling(
+        window=window, center=centred_bool, min_periods=min_periods
+    ).mean()
+
+    # Determine the final point on the trend line
+    final_point = trend.iloc[-1]
+
+    # Set up the detrended valued
+    values = df_copy[y_axis_name].values
+
+    # Create a new column with the detrended values
+    df_copy[y_axis_name + suffix] = (
+        values - trend.loc[df_copy[x_axis_name].values].values + final_point
+    )
+
+    return df_copy
+
 # Define a function to calculate the obs block minima/maxima
 def obs_block_min_max(
     df: pd.DataFrame,
@@ -1730,21 +1798,23 @@ def plot_scatter_cmap(
     # Set up the figure
     # as 1 row and 2 columns
     fig, ax0 = plt.subplots(
-        nrows=1, ncols=1, figsize=figsize,
+        nrows=1,
+        ncols=1,
+        figsize=figsize,
     )
 
     # process the data for the obs as standardised anomalies
-    obs_x_stand_anoms = (obs_df[obs_x_var_name] - obs_df[obs_x_var_name].mean()) / obs_df[
-        obs_x_var_name
-    ].std()
-    obs_y_stand_anoms = (obs_df[obs_y_var_name] - obs_df[obs_y_var_name].mean()) / obs_df[
-        obs_y_var_name
-    ].std()
+    obs_x_stand_anoms = (
+        obs_df[obs_x_var_name] - obs_df[obs_x_var_name].mean()
+    ) / obs_df[obs_x_var_name].std()
+    obs_y_stand_anoms = (
+        obs_df[obs_y_var_name] - obs_df[obs_y_var_name].mean()
+    ) / obs_df[obs_y_var_name].std()
 
     # Process the obs cmap variable
-    obs_cmap_stand_anoms = (obs_df[obs_cmap_var_name] - obs_df[obs_cmap_var_name].mean()) / obs_df[
-        obs_cmap_var_name
-    ].std()
+    obs_cmap_stand_anoms = (
+        obs_df[obs_cmap_var_name] - obs_df[obs_cmap_var_name].mean()
+    ) / obs_df[obs_cmap_var_name].std()
 
     # Include a vertical dashed line for the mean x variable
     ax0.axvline(0, color="black", linestyle="--")
@@ -2299,6 +2369,9 @@ def compare_trends(
     suptitle: str,
     member_name: str = "member",
     figsize: tuple = (10, 5),
+    window_size: int = 5,
+    centred_bool: bool = True,
+    min_periods: int = 1,
 ) -> None:
     """
     Compares the trends in the full field and block minima or maxima.
@@ -2334,6 +2407,12 @@ def compare_trends(
         Name of the column to use as the member identifier in the model DataFrame, by default "member".
     figsize : tuple, optional
         Figure size, by default (10, 5).
+    window_size : int, optional
+        Window size for the rolling mean, by default 5.
+    centred_bool : bool, optional
+        Whether to centre the rolling mean, by default True.
+    min_periods : int, optional
+        Minimum number of periods for the rolling mean, by default 1.
 
     Returns
     -------
@@ -2355,17 +2434,25 @@ def compare_trends(
     ax0 = axs[0]
     ax1 = axs[1]
 
+    # group by effecteive dec yuear and take the mean
+    obs_df_full_field_grouped = obs_df_full_field.groupby("effective_dec_year")[
+        obs_var_name_full_field
+    ].mean()
+
+    # print the had of the opbs df full field grouped
+    print(obs_df_full_field_grouped.head())
+
     # Plot the full field data for the observations
     ax0.plot(
-        obs_df_full_field[obs_time_name],
-        obs_df_full_field[obs_var_name_full_field],
+        obs_df_full_field[obs_time_name].unique(),
+        obs_df_full_field_grouped,
         color="black",
         label="obs",
     )
 
     # quantify linear trend for the obs
     slope_obs_ff, intercept_obs_ff, _, _, _ = linregress(
-        obs_df_full_field[obs_time_name], obs_df_full_field[obs_var_name_full_field]
+        obs_df_full_field[obs_time_name].unique(), obs_df_full_field_grouped
     )
 
     # print the slope and intercept
@@ -2373,7 +2460,20 @@ def compare_trends(
 
     # calclate the trend line
     trend_line_obs_ff = (
-        slope_obs_ff * obs_df_full_field[obs_time_name] + intercept_obs_ff
+        slope_obs_ff * obs_df_full_field[obs_time_name].unique() + intercept_obs_ff
+    )
+
+    # Calculate the obs 5 year rolling trendline
+    rolling_trend_line_obs_ff = obs_df_full_field_grouped.rolling(
+        window=window_size, center=centred_bool, min_periods=min_periods
+    ).mean()
+
+    # Plot this line as a black dot dashed line
+    ax0.plot(
+        obs_df_full_field[obs_time_name].unique(),
+        rolling_trend_line_obs_ff,
+        color="black",
+        linestyle="-.",
     )
 
     # # calculate the final point
@@ -2384,7 +2484,7 @@ def compare_trends(
 
     # plot this line as a dashed black line
     ax0.plot(
-        obs_df_full_field[obs_time_name],
+        obs_df_full_field[obs_time_name].unique(),
         trend_line_obs_ff,
         color="black",
         linestyle="--",
@@ -2437,6 +2537,24 @@ def compare_trends(
         linestyle="--",
     )
 
+    # Calculate the model ensemble mean
+    model_ensmean_ff = model_df_full_field.groupby(model_time_name)[
+        model_var_name_full_field
+    ].mean()
+
+    # Calculate the rolling mean of this trend line
+    rolling_trend_line_model_ff = model_ensmean_ff.rolling(
+        window=window_size, center=centred_bool, min_periods=min_periods
+    ).mean()
+
+    # Plot this as a red dot dashed line
+    ax0.plot(
+        model_df_full_field[model_time_name].unique(),
+        rolling_trend_line_model_ff,
+        color="red",
+        linestyle="-.",
+    )
+
     # Set the title for ax0
     ax0.set_title(
         f"Full field, obs slope: {slope_obs_ff:.3f}, model slope: {slope_model_ff_mean:.3f} (+/- {ci_model_ff:.3f})",
@@ -2467,6 +2585,21 @@ def compare_trends(
     # plot the trend line
     ax1.plot(
         obs_df_block[obs_time_name], trend_line_obs_block, color="black", linestyle="--"
+    )
+
+    # quantify the 5 year rolling trend for the observatsion
+    rolling_trend_line_obs_block = (
+        obs_df_block[obs_var_name_block]
+        .rolling(window=window_size, center=centred_bool, min_periods=min_periods)
+        .mean()
+    )
+
+    # plot this line as a black dot dashed line
+    ax1.plot(
+        obs_df_block[obs_time_name],
+        rolling_trend_line_obs_block,
+        color="black",
+        linestyle="-.",
     )
 
     # plot the block data for the model
@@ -2516,6 +2649,24 @@ def compare_trends(
         linestyle="--",
     )
 
+    # Calculate the model ensemble mean
+    model_ensmean_block = model_df_block.groupby(model_time_name)[
+        model_var_name_block
+    ].mean()
+
+    # Calculate the rolling mean of this trend line
+    rolling_trend_line_model_block = model_ensmean_block.rolling(
+        window=window_size, center=centred_bool, min_periods=min_periods
+    ).mean()
+
+    # Plot this as a red dot dashed line
+    ax1.plot(
+        model_df_block[model_time_name].unique(),
+        rolling_trend_line_model_block,
+        color="red",
+        linestyle="-.",
+    )
+
     # Set the title for ax1
     ax1.set_title(
         f"Block minima/maxima, obs slope: {slope_obs_block:.3f}, model slope: {slope_model_block_mean:.3f} (+/- {ci_model_block:.3f})",
@@ -2532,6 +2683,7 @@ def compare_trends(
     plt.tight_layout()
 
     return None
+
 
 # Set up a function for plotting the relation between variables
 def plot_rel_var(
@@ -2597,8 +2749,8 @@ def plot_rel_var(
         obs_df[obs_var_names[0]],
         obs_df[obs_var_names[1]],
         gridsize=30,
-        cmap='winter_r',
-        mincnt=1
+        cmap="winter_r",
+        mincnt=1,
     )
 
     # # Add a color bar to show the density scale
@@ -2615,8 +2767,8 @@ def plot_rel_var(
         model_df[model_var_names[0]],
         model_df[model_var_names[1]],
         gridsize=50,
-        cmap='autumn_r',
-        mincnt=1
+        cmap="autumn_r",
+        mincnt=1,
     )
 
     # Set the title for ax1
@@ -2627,8 +2779,8 @@ def plot_rel_var(
         model_df_bc[model_var_names_bc[0]],
         model_df_bc[model_var_names_bc[1]],
         gridsize=50,
-        cmap='autumn_r',
-        mincnt=1
+        cmap="autumn_r",
+        mincnt=1,
     )
 
     # Set the title for ax2
@@ -2638,6 +2790,7 @@ def plot_rel_var(
     plt.tight_layout()
 
     return None
+
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
