@@ -39,6 +39,9 @@ from iris.util import equalise_attributes
 # # Suppress warnings
 # warnings.filterwarnings('ignore')
 
+sys.path.append("/home/users/benhutch/unseen_functions")
+from functions import estimate_period
+
 
 def determine_effective_dec_year(row):
     year = row["time"].year
@@ -2788,6 +2791,236 @@ def plot_rel_var(
 
     # Set a tight layout
     plt.tight_layout()
+
+    return None
+
+# Define a function for plotting the return periods for a given decade
+def plot_return_periods_decades(
+    model_df: pd.DataFrame,
+    model_var_name: str,
+    obs_df: pd.DataFrame,
+    obs_var_name: str,
+    decades: np.ndarray,
+    title: str,
+    model_year_name: str = "effective_dec_year",
+    num_samples: int = 1000,
+    figsize: tuple = (10, 5),
+    bad_min: bool = True,
+) -> None:
+    """
+    Estimates the return period of extremes for a given decade.
+    
+    Parameters
+    ----------
+    
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame
+    decades : np.ndarray
+        Array of decades to use.
+    title : str
+        Title of the plot.
+    model_year_name : str, optional
+        Name of the column to use as the year axis in the model DataFrame, by default "effective_dec_year".
+    num_samples : int, optional
+        Number of samples to use for the bootstrapping, by default 1000.
+    figsize : tuple, optional
+        Figure size, by default (10, 5).
+    bad_min : bool, optional
+        Whether to use the block minima or maxima, by default True.
+        True for minima, False for maxima.
+        
+    Returns
+    -------
+    
+    None
+    
+    """
+
+    # Sort out the decade years
+    decade_years = []
+
+    # Set up the decade years
+    for i, decade in enumerate(decades):
+        if i == 0:
+            decade_years.append(np.arange(decade, decade + 11))
+        else:
+            decade_years.append(np.arange(decade + 1, decade + 11))
+
+    # Flatten the list of arrays into a single list
+    decade_years_flat = np.concatenate(decade_years)
+
+    # Filter out the years not in the model data
+    filtered_years = [year for year in decade_years_flat if year in model_df[model_year_name].unique()]
+
+    # Reshape the filtered list back into the original decade structure
+    filtered_decade_years = []
+    for i, decade in enumerate(decades):
+        if i == 0:
+            filtered_decade_years.append(np.array([year for year in filtered_years if 1961 <= year <= 1970]))
+        else:
+            filtered_decade_years.append(np.array([year for year in filtered_years if decade + 1 <= year <= decade + 10]))
+
+    # Extract the unique winter years from the model df
+    unique_winter_years = model_df[model_year_name].unique()
+
+    # Set up the min or max bad yea
+    if bad_min:
+        bad_year = obs_df.loc[
+            obs_df[obs_var_name].idxmin()
+        ]
+    else:
+        bad_year = obs_df.loc[
+            obs_df[obs_var_name].idxmax()
+        ]
+
+    # Print the bad year
+    print(f"Bad year: {bad_year}")
+
+    # print the value on this bad year
+    print(f"Value: {bad_year[obs_var_name]}")
+
+    # Set up the params for the decade
+    decade_params = np.zeros([
+        len(filtered_decade_years),
+        num_samples,
+        3
+    ])
+
+    # print the filtered decade years
+    print(f"Filtered decade years: {filtered_decade_years}")
+
+    # Loop over the unique winter years
+    for i, decade in tqdm(enumerate(filtered_decade_years)):
+        # Subset the model data to this decade
+        model_df_decade = model_df[model_df[model_year_name].isin(decade)]
+
+        # Set up the params for this decade
+        params_decade_this = np.zeros([num_samples, 3])
+
+        # # print the decade
+        # print(f"Decade: {decade}")
+
+        # # print the model df decade head
+        # print(model_df_decade.head())
+
+        # Loop over the number of samples
+        for j in range(num_samples):
+            params_decade_this[j, :] = gev.fit(
+            np.random.choice(
+                model_df_decade[model_var_name],
+                size=len(model_df_decade),
+                replace=True,
+                )
+            )
+        
+        # Append the params to the model year
+        decade_params[i, :, :] = params_decade_this
+
+    # Set up arrays for the mean, 2.5th and 97.5th percentiles
+    period_decade_mean = np.zeros([len(filtered_decade_years)])
+    period_decade_0025 = np.zeros([len(filtered_decade_years)])
+    period_decade_0975 = np.zeros([len(filtered_decade_years)])
+
+    # Find the value for the obs worst event
+    worst_obs_event_value = bad_year[obs_var_name]
+
+    # Loop over the unique years to fit the ppfs
+    for i, decade in tqdm(enumerate(filtered_decade_years)):
+        # Subset to the params for this decade
+        params_this = decade_params[i, :, :]
+
+        # Estimate the period for the mean
+        period_decade_mean[i] = estimate_period(
+            return_level=worst_obs_event_value,
+            loc=np.mean(params_this[:, 1]),
+            scale=np.mean(params_this[:, 2]),
+            shape=np.mean(params_this[:, 0]),
+        )
+
+        # Estimate the period for the 2.5th percentile
+        period_decade_0025[i] = estimate_period(
+            return_level=worst_obs_event_value,
+            loc=np.percentile(params_this[:, 1], 2.5),
+            scale=np.percentile(params_this[:, 2], 2.5),
+            shape=np.percentile(params_this[:, 0], 2.5),
+        )
+
+        # Estimate the period for the 97.5th percentile
+        period_decade_0975[i] = estimate_period(
+            return_level=worst_obs_event_value,
+            loc=np.percentile(params_this[:, 1], 97.5),
+            scale=np.percentile(params_this[:, 2], 97.5),
+            shape=np.percentile(params_this[:, 0], 97.5),
+        )
+
+    # Put these into a dataframe with the decades
+    model_decades_rls = pd.DataFrame(
+        {
+            "decade": decades,
+            "mean": period_decade_mean,
+            "0025": period_decade_0025,
+            "0975": period_decade_0975,
+        }
+    )
+
+    # for each row of "mean", "025", "975" calculate the return period
+    # 1 / (1 - (100 - value))
+    model_decades_rls["mean_rp (%)"] = 1 - (model_decades_rls["mean"] / 100)
+    model_decades_rls["0025_rp (%)"] = 1 - (model_decades_rls["0025"] / 100)
+    model_decades_rls["0975_rp (%)"] = 1 - (model_decades_rls["0975"] / 100)
+
+    # calculate the return period in years of the observed worst event
+    model_decades_rls["mean_rp (years)"] = 1 / model_decades_rls["mean_rp (%)"]
+    model_decades_rls["0025_rp (years)"] = 1 / model_decades_rls["0025_rp (%)"]
+    model_decades_rls["0975_rp (years)"] = 1 / model_decades_rls["0975_rp (%)"]
+
+    # save the model decades rls
+    save_idr = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # save the model decades rls
+    model_decades_rls.to_csv(f"{save_idr}/model_decades_rls.csv", index=False)
+
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot teh mean as a scatter
+    ax.scatter(
+        model_decades_rls["decade"],
+        model_decades_rls["mean_rp (years)"],
+        color="blue",
+        label="mean",
+    )
+
+    # plot the 025 and 975 percentiles
+    plt.errorbar(
+        model_decades_rls["decade"],
+        model_decades_rls["mean_rp (years)"],
+        yerr=[
+            model_decades_rls["mean_rp (years)"] - model_decades_rls["0025_rp (years)"], # lower errors
+            model_decades_rls["0975_rp (years)"] - model_decades_rls["mean_rp (years)"], # upper errors
+        ],
+        fmt="none",
+        ecolor="blue",
+        capsize=5,
+    )
+
+    # set up a log yscale
+    plt.yscale("log")
+
+    # Set up the y ticks
+    plt.yticks([10, 100, 500, 1000], ["10", "100", "500", "1000"])
+
+    # set up the y axis labels
+    plt.ylabel("Return period (years)")
+
+    # Set up the title
+    plt.title(title)
 
     return None
 
