@@ -28,6 +28,7 @@ import cftime
 from tqdm import tqdm
 from matplotlib import gridspec
 from datetime import datetime, timedelta
+from typing import List, Tuple
 
 from scipy.optimize import curve_fit
 from scipy.stats import linregress, percentileofscore, gaussian_kde, skew, kurtosis
@@ -994,6 +995,7 @@ def plot_multi_var_dist(
             model_df[model_var_names[r]],
             color="red",
             alpha=0.5,
+            bins=30,
             label="model",
             density=True,
         )
@@ -1003,6 +1005,7 @@ def plot_multi_var_dist(
             obs_df[obs_var_names[r]],
             color="black",
             alpha=0.5,
+            bins=30,
             label="observed",
             density=True,
         )
@@ -1010,8 +1013,8 @@ def plot_multi_var_dist(
         # remove the numbers from the y axis
         axs[r, 0].set_yticks([])
 
-        # Set the row title to the left
-        axs[r, 0].set_ylabel(row_titles[r])
+        # Set the row title to the left, rotated 90 degrees and larger font size
+        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=14)
 
         # # Set up the subplot title
         # axs[r, 0].set_title(subplot_titles[r][0])
@@ -1042,6 +1045,7 @@ def plot_multi_var_dist(
             model_df_bc[model_var_names_bc[r]],
             color="red",
             alpha=0.5,
+            bins=30,
             label="model",
             density=True,
         )
@@ -1051,6 +1055,7 @@ def plot_multi_var_dist(
             obs_df[obs_var_names[r]],
             color="black",
             alpha=0.5,
+            bins=30,
             label="observed",
             density=True,
         )
@@ -1724,37 +1729,28 @@ def plot_scatter_cmap(
 
     # Set up the figure
     # as 1 row and 2 columns
-    fig, axs = plt.subplots(
-        nrows=1, ncols=2, figsize=figsize, sharey=True, layout="compressed"
+    fig, ax0 = plt.subplots(
+        nrows=1, ncols=1, figsize=figsize,
     )
 
-    # Plot the observed data scatter
-    ax0 = axs[0]
-    ax1 = axs[1]
+    # process the data for the obs as standardised anomalies
+    obs_x_stand_anoms = (obs_df[obs_x_var_name] - obs_df[obs_x_var_name].mean()) / obs_df[
+        obs_x_var_name
+    ].std()
+    obs_y_stand_anoms = (obs_df[obs_y_var_name] - obs_df[obs_y_var_name].mean()) / obs_df[
+        obs_y_var_name
+    ].std()
 
-    # Create the scatter plot
-    sc0 = ax0.scatter(
-        obs_df[obs_x_var_name],
-        obs_df[obs_y_var_name],
-        c=obs_df[obs_cmap_var_name],
-        cmap=cmap,
-        s=100,
-    )
-
-    # Include text for the 2010 point
-    ax0.text(
-        obs_df.loc[2010, obs_x_var_name] + 0.2,
-        obs_df.loc[2010, obs_y_var_name] + 0.1,
-        "2010",
-        color="red",
-        verticalalignment="top",
-    )
+    # Process the obs cmap variable
+    obs_cmap_stand_anoms = (obs_df[obs_cmap_var_name] - obs_df[obs_cmap_var_name].mean()) / obs_df[
+        obs_cmap_var_name
+    ].std()
 
     # Include a vertical dashed line for the mean x variable
-    ax0.axvline(obs_df[obs_x_var_name].mean(), color="black", linestyle="--")
+    ax0.axvline(0, color="black", linestyle="--")
 
     # Include a horizontal dashed line for the mean y variable
-    ax0.axhline(obs_df[obs_y_var_name].mean(), color="black", linestyle="--")
+    ax0.axhline(0, color="black", linestyle="--")
 
     # Set the title
     ax0.set_title(obs_title)
@@ -1774,6 +1770,14 @@ def plot_scatter_cmap(
     x_var_model = model_df[model_x_var_name]
     y_var_model = model_df[model_y_var_name]
 
+    # standardise the model data
+    x_var_model = (x_var_model - x_var_model.mean()) / x_var_model.std()
+    y_var_model = (y_var_model - y_var_model.mean()) / y_var_model.std()
+
+    # standardise the cmap variable
+    cmap_var_model = model_df[model_cmap_var_name]
+    cmap_var_model = (cmap_var_model - cmap_var_model.mean()) / cmap_var_model.std()
+
     # Perform kernel density estimate
     xy = np.vstack([x_var_model, y_var_model])
     kde = gaussian_kde(xy)
@@ -1784,48 +1788,81 @@ def plot_scatter_cmap(
     Z = np.reshape(kde(positions).T, X.shape)
 
     # Plot the scatter for the model data
-    sc1 = ax1.scatter(
+    sc1 = ax0.scatter(
         x_var_model,
         y_var_model,
-        c=model_df[model_cmap_var_name],
+        c=cmap_var_model,
         cmap=cmap,
         s=10,
+        alpha=0.5,
+        label="model",
     )
 
     # Plot the density contours
-    ax1.contour(X, Y, Z, levels=5, colors="black")
+    ax0.contour(X, Y, Z, levels=5, colors="black")
+
+    # Create the scatter plot
+    sc0 = ax0.scatter(
+        obs_x_stand_anoms,
+        obs_y_stand_anoms,
+        c=obs_cmap_stand_anoms,
+        cmap=cmap,
+        s=100,
+        marker="*",
+        edgecolors="black",
+        label="obs",
+    )
+
+    # find the index of the 2010 value
+    idx_2010 = obs_df.index.get_loc(2010)
+
+    # apply the index to the stand anoms
+    obs_x_stand_anoms_2010 = obs_x_stand_anoms.iloc[idx_2010]
+    obs_y_stand_anoms_2010 = obs_y_stand_anoms.iloc[idx_2010]
+
+    # Include text for the 2010 point
+    ax0.text(
+        obs_x_stand_anoms_2010 + 0.2,
+        obs_y_stand_anoms_2010 + 0.1,
+        "2010",
+        color="red",
+        verticalalignment="top",
+    )
 
     # Include a vertical dashed line for the mean x variable
-    ax1.axvline(x_var_model.mean(), color="black", linestyle="--")
+    ax0.axvline(0, color="black", linestyle="--")
 
     # Include a horizontal dashed line for the mean y variable
-    ax1.axhline(y_var_model.mean(), color="black", linestyle="--")
+    ax0.axhline(0, color="black", linestyle="--")
 
     # Set the title
-    ax1.set_title(model_title)
+    ax0.set_title(model_title)
 
     # Set the x label
-    ax1.set_xlabel(xlabel)
+    ax0.set_xlabel(xlabel)
 
     # if ylims is not None
     if xlims is not None:
         # set the y-axis limits
-        ax1.set_xlim(xlims)
+        ax0.set_xlim(xlims)
 
     # # Set up a tight layout before adding the colorbar
     # fig.tight_layout()
 
     # Add the colorbar after setting up the tight layout
-    cbar = fig.colorbar(sc0, ax=axs, orientation="vertical", pad=0.02)
+    cbar = fig.colorbar(sc0, ax=ax0, orientation="vertical", pad=0.02)
 
     # Set the label for the colorbar
     cbar.set_label(cmap_label)
 
     # Set the super title
-    fig.suptitle(sup_title, y=1.05)
+    fig.suptitle(sup_title, y=1.02)
 
     # Adjust the layout again if necessary
     plt.subplots_adjust(top=0.9)
+
+    # Include a legend in the top left
+    ax0.legend(loc="upper left")
 
     return None
 
@@ -2496,6 +2533,111 @@ def compare_trends(
 
     return None
 
+# Set up a function for plotting the relation between variables
+def plot_rel_var(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    model_df_bc: pd.DataFrame,
+    obs_var_names: Tuple[str, ...],
+    model_var_names: Tuple[str, ...],
+    model_var_names_bc: Tuple[str, ...],
+    row_title: str,
+    figsize: tuple = (10, 5),
+) -> None:
+    """
+    Function which plots the relationship between varaibles.
+
+    Parameters
+    ==========
+
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    model_df_bc : pd.DataFrame
+        DataFrame of model data for the block minima or maxima.
+    obs_var_names : tuple(str)
+        Name of the column to use in the observed DataFrame.
+    model_var_names : tuple(str)
+        Name of the column to use in the model DataFrame.
+    model_var_names_bc : tuple(str)
+        Name of the column to use in the model DataFrame for the block minima or maxima.
+    row_title : str
+        Title for the row.
+    subplot_titles : tuple(str)
+        Titles for the subplots.
+    figsize : tuple, optional
+        Figure size, by default (10, 5).
+
+    Returns
+    =======
+
+    None
+
+    """
+
+    # Set up the figure with nrows = 1 and ncols = 3
+    fig, axs = plt.subplots(
+        nrows=1,
+        ncols=3,
+        figsize=figsize,
+        sharey=True,
+        sharex=True,
+        gridspec_kw={"width_ratios": [1, 1, 1]},
+    )
+
+    # Set up the axes
+    ax0 = axs[0]
+    ax1 = axs[1]
+    ax2 = axs[2]
+
+    # Plot the scatter of tuple[0] against tuple[1] for the observations
+    # Plot the hexbin of tuple[0] against tuple[1] for the observations
+    ax0.hexbin(
+        obs_df[obs_var_names[0]],
+        obs_df[obs_var_names[1]],
+        gridsize=30,
+        cmap='winter_r',
+        mincnt=1
+    )
+
+    # # Add a color bar to show the density scale
+    # cb = fig.colorbar(hb, ax=ax0, label='Counts')
+
+    # Set the title for ax0
+    ax0.set_title("a) ERA5")
+
+    # Set up the row label
+    ax0.set_ylabel(row_title, fontweight="bold", rotation=90, fontsize=12)
+
+    # Plot the scatter of tuple[0] against tuple[1] for the model
+    ax1.hexbin(
+        model_df[model_var_names[0]],
+        model_df[model_var_names[1]],
+        gridsize=50,
+        cmap='autumn_r',
+        mincnt=1
+    )
+
+    # Set the title for ax1
+    ax1.set_title("b) Raw model")
+
+    # Plot the scatter of tuple[0] against tuple[1] for the model block minima or maxima
+    ax2.hexbin(
+        model_df_bc[model_var_names_bc[0]],
+        model_df_bc[model_var_names_bc[1]],
+        gridsize=50,
+        cmap='autumn_r',
+        mincnt=1
+    )
+
+    # Set the title for ax2
+    ax2.set_title("c) Bias corrected model")
+
+    # Set a tight layout
+    plt.tight_layout()
+
+    return None
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")

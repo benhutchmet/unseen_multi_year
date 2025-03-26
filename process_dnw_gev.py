@@ -563,6 +563,223 @@ def main():
         figsize=(15, 15),
     )
 
+    # Now plot the relationship between variables
+    gev_funcs.plot_rel_var(
+        obs_df=df_obs_dt,
+        model_df=df_model_djf_dt,
+        model_df_bc=df_model_djf_bc_dt,
+        obs_var_names=("data_c_dt", "data_sfcWind"),
+        model_var_names=("data_tas_c_dt", "data_sfcWind"),
+        model_var_names_bc=("data_tas_c_bc_dt", "data_sfcWind_bc"),
+        row_title="T vs sfcWind",
+        figsize=(15, 5),
+    )
+
+    # Now quantify the seasonal block maxima for demand net wind
+    # for the observations first
+    block_maxima_obs_dnw = gev_funcs.obs_block_min_max(
+        df=df_obs_dt,
+        time_name="effective_dec_year",
+        min_max_var_name="demand_net_wind",
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        process_min=False,
+    )
+
+    # Now quantify the seasonal block maxima for demand net wind
+    # for the model data
+    block_maxima_model_dnw = gev_funcs.model_block_min_max(
+        df=df_model_djf_bc_dt,
+        time_name="init_year",
+        min_max_var_name="demand_net_wind",
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        winter_year="winter_year",
+        process_min=False,
+    )
+
+    # Make sure effective dec year exists for the model block max
+    if "effective_dec_year" not in block_maxima_model_dnw.columns:
+        block_maxima_model_dnw["effective_dec_year"] = block_maxima_model_dnw["init_year"] + (block_maxima_model_dnw["winter_year"] - 1)
+
+    # Plot the detrend time series in this case
+    gev_funcs.plot_detrend_ts(
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_var_name="demand_net_wind_max",
+        model_var_name="demand_net_wind_max",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Block maxima DJF demand net wind, 1960-2017",
+        ylim=(35, 50),
+        detrend_suffix=None,
+    )
+
+    # Check the slope in demand net wind
+    # for the obs and model data
+    gev_funcs.compare_trends(
+        model_df_full_field=df_model_djf_bc_dt,
+        obs_df_full_field=df_obs_dt,
+        model_df_block=block_maxima_model_dnw,
+        obs_df_block=block_maxima_obs_dnw,
+        model_var_name_full_field="demand_net_wind",
+        obs_var_name_full_field="demand_net_wind",
+        model_var_name_block="demand_net_wind_max",
+        obs_var_name_block="demand_net_wind_max",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        suptitle="Demand Net Wind trends (temp + wind lead BC)",
+        figsize=(15, 5),
+    )
+
+    # Correct lead time dependent bias in demand net wind
+    block_maxima_model_dnw = gev_funcs.lead_time_mean_bias_correct(
+        model_df=block_maxima_model_dnw,
+        obs_df=block_maxima_obs_dnw,
+        model_var_name="demand_net_wind_max",
+        obs_var_name="demand_net_wind_max",
+        lead_name="winter_year",
+    )
+
+    # print the columns for block_maxima_model_dnw
+    print(block_maxima_model_dnw.columns)
+
+    # Set up effective dec year as a datetime for the model data
+    block_maxima_model_dnw["effective_dec_year"] = pd.to_datetime(block_maxima_model_dnw["effective_dec_year"], format="%Y")
+
+    # Set effective dec year as a datetime for the obs data
+    block_maxima_obs_dnw["effective_dec_year"] = pd.to_datetime(block_maxima_obs_dnw["effective_dec_year"], format="%Y")
+
+    # Set this as the index
+    block_maxima_obs_dnw.set_index("effective_dec_year", inplace=True)
+
+    # Plot the dot plot the block maxima dnw extremes
+    # Non bias corrected
+    dot_plot(
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_max",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Block maxima demand net wind, DJF, 1960-2017, no BC",
+        ylims=(30, 60),
+        solid_line=np.max,
+        dashed_quant=0.80,
+    )
+
+    # Now do the same for the bias corrected data
+    dot_plot(
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_max_bc",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Block maxima demand net wind, DJF, 1960-2017, BC",
+        ylims=(30, 60),
+        solid_line=np.max,
+        dashed_quant=0.80,
+    )
+
+    # reset the index of block_maxima_obs_dnw
+    block_maxima_obs_dnw.reset_index(inplace=True)
+
+    # turn effective dec year back into an int for block_maxima_obs_dnw
+    block_maxima_obs_dnw["effective_dec_year"] = block_maxima_obs_dnw["effective_dec_year"].dt.year.astype(int)
+
+    # remove the trend from the obs data
+    block_maxima_obs_dnw_dt = gev_funcs.pivot_detrend_obs(
+        df=block_maxima_obs_dnw,
+        x_axis_name="effective_dec_year",
+        y_axis_name="demand_net_wind_max",
+    )
+
+    # turn effective dec year back into an int for blco_maxima_model_dnw
+    block_maxima_model_dnw["effective_dec_year"] = block_maxima_model_dnw["effective_dec_year"].dt.year.astype(int)
+
+    # remove the trend from the model data
+    block_maxima_model_dnw_dt = gev_funcs.pivot_detrend_model(
+        df=block_maxima_model_dnw,
+        x_axis_name="effective_dec_year",
+        y_axis_name="demand_net_wind_max",
+    )
+
+    # remove the trend from the bias corrected model data
+    block_maxima_model_dnw_bc_dt = gev_funcs.pivot_detrend_model(
+        df=block_maxima_model_dnw,
+        x_axis_name="effective_dec_year",
+        y_axis_name="demand_net_wind_max_bc",
+    )
+
+    # Set the effective dec year as a datetime for the model data
+    block_maxima_model_dnw_dt["effective_dec_year"] = pd.to_datetime(block_maxima_model_dnw_dt["effective_dec_year"], format="%Y")
+
+    # Set effective dec year as an index for the obs
+    block_maxima_obs_dnw_dt.set_index("effective_dec_year", inplace=True)
+
+    # do the dot plot for the detrended model and obs data
+    dot_plot(
+        obs_df=block_maxima_obs_dnw_dt,
+        model_df=block_maxima_model_dnw_dt,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_max_dt",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Block maxima demand net wind, DJF, 1960-2017, detrended",
+        ylims=(30, 60),
+        solid_line=np.max,
+        dashed_quant=0.80,
+    )
+
+    # do the dot plot for the detrended model and obs data
+    dot_plot(
+        obs_df=block_maxima_obs_dnw_dt,
+        model_df=block_maxima_model_dnw_bc_dt,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_max_bc_dt",
+        model_time_name="effective_dec_year",
+        ylabel="Demand Net Wind (GW)",
+        title="Block maxima demand net wind, DJF, 1960-2017, detrended, BC",
+        ylims=(30, 60),
+        solid_line=np.max,
+        dashed_quant=0.80,
+    )
+    
+    # set the index of block_maxima_obs_dnw back to effective dec year
+    block_maxima_obs_dnw.reset_index(inplace=True)
+
+    # make sure effective dec year is a datetime
+    block_maxima_obs_dnw["effective_dec_year"] = pd.to_datetime(block_maxima_obs_dnw["effective_dec_year"], format="%Y")
+
+    # set effective dec year as an int
+    block_maxima_obs_dnw["effective_dec_year"] = block_maxima_obs_dnw["effective_dec_year"].dt.year.astype(int)
+
+    # set back as the index
+    block_maxima_obs_dnw.set_index("effective_dec_year", inplace=True)
+
+    # Now plot the comparison for wind/demand
+    # during demand net wind days
+    # but standardised
+    gev_funcs.plot_scatter_cmap(
+        obs_df=block_maxima_obs_dnw,
+        model_df=block_maxima_model_dnw,
+        obs_x_var_name="sigmoid_total_wind_gen",
+        obs_y_var_name="UK_demand",
+        obs_cmap_var_name="demand_net_wind_max",
+        model_x_var_name="sigmoid_total_wind_gen",
+        model_y_var_name="UK_demand",
+        model_cmap_var_name="demand_net_wind_max",
+        xlabel="Normalised wind power generation anoms",
+        ylabel="Normalised demand anoms",
+        cmap_label="Normalised demand net wind anoms",
+        sup_title=None,
+        xlims=(-5, 5),
+        model_title="Demand net wind anoms",
+        cmap="viridis_r",
+        figsize=(6, 6),
+    )
+
     sys.exit()
 
     # # process the dict for standard fid testing
