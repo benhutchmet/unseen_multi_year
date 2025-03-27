@@ -3093,6 +3093,25 @@ def lead_time_trends(
 
         obs_df_lead_this = None
 
+        # Set up the effective dec years to pool over
+        eff_dec_years = np.arange(1970, 2017 + 1)
+
+        # Subset the model data to these efefctive dec years
+        model_df_lead_this = model_df_lead_this[
+            model_df_lead_this["effective_dec_year"].isin(eff_dec_years)
+        ]
+
+        # Same for the obs data
+        obs_df_lead_this = obs_df[
+            obs_df["effective_dec_year"].isin(eff_dec_years)
+        ]
+
+        # extract the unique effective dec years for the model
+        unique_eff_dec_years_model = model_df_lead_this["effective_dec_year"].unique()
+
+        # extract the unique effective dec years for the obs
+        unique_eff_dec_years_obs = obs_df_lead_this["effective_dec_year"].unique()
+
         # if the unique eff dec years for the model and obs are not the same
         if not np.array_equal(unique_eff_dec_years_model, unique_eff_dec_years_obs):
             print("Unique effective decadal years for model and obs are not the same")
@@ -3110,11 +3129,15 @@ def lead_time_trends(
         )
 
         # Set up the unique number of members in the model data
-        nmembers = len(model_df_lead_this["member"].nunique())
+        nmembers = model_df_lead_this["member"].nunique()
 
         # Calculate the slope and intercept for the model
         slopes_model_this = np.zeros([nmembers])
         intercepts_model_this = np.zeros([nmembers])
+
+        # print the shape of sloes model this
+        print(slopes_model_this.shape)
+        print(intercepts_model_this.shape)
 
         # Loop over the members
         for j, member in enumerate(model_df_lead_this["member"].unique()):
@@ -3128,11 +3151,16 @@ def lead_time_trends(
 
             # Store the slope and intercept
             slopes_model_this[j] = slope_model_this
-            intercept_model_this[j] = intercept_model_this
+            intercepts_model_this[j] = intercept_model_this
 
         # Calculate the mean slope and intercept
         slope_model_mean_this = np.mean(slopes_model_this)
         intercept_model_mean_this = np.mean(intercept_model_this)
+
+        # calculate the actual intercept
+        _, intercept_model_this, _, _, _ = linregress(
+            model_df_lead_this["effective_dec_year"], model_df_lead_this[model_var_name]
+        )
 
         # Calculate the 5th and 95th percentiles
         slope_model_5th_this = np.percentile(slopes_model_this, 5)
@@ -3145,7 +3173,7 @@ def lead_time_trends(
         axs_flat[i].plot(
             model_df_lead_this["effective_dec_year"].unique(),
             slope_model_mean_this * model_df_lead_this["effective_dec_year"].unique()
-            + intercept_model_mean_this,
+            + intercept_model_this,
             color="red",
             linestyle="--",
         )
@@ -3188,8 +3216,19 @@ def lead_time_trends(
             linestyle="--",
         )
 
+        # include the lead in a text box in the top left
+        axs_flat[i].text(
+            0.05,
+            0.95,
+            f"lead {lead}",
+            transform=axs_flat[i].transAxes,
+            fontsize=12,
+            verticalalignment="top",
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
         # Set the title
-        axs_flat[i].set_title(f"lead {lead}, model slope: {slope_model_mean_this:.3f} (+/- {ci_model_this:.3f}), obs slope: {slope_obs_this:.3f}")
+        axs_flat[i].set_title(f"model: {slope_model_mean_this:.3f} (+/- {ci_model_this:.3f}), obs: {slope_obs_this:.3f}")
 
         # Remove the y-axis ticks
         # axs_flat[i].yaxis.set_ticks([])
@@ -3201,6 +3240,92 @@ def lead_time_trends(
 
     return None
 
+# Define a function to apply the lead time dependent trend removal
+def lead_time_trend_corr(
+    model_df: pd.DataFrame,
+    x_axis_name: str,
+    y_axis_name: str,
+    lead_name: str,
+    suffix: str = "_dt",
+    member_name: str = "member",
+) -> pd.DataFrame:
+    """
+    Removes a linear trend from each lead time for each member.
+
+    Parameters
+    ==========
+
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    x_axis_name : str
+        Name of the column to use as the x-axis.
+    y_axis_name : str
+        Name of the column to use as the y-axis.
+    lead_name : str
+        Name of the column to use as the lead time axis.
+    suffix : str, optional
+        Suffix to add to the column names, by default "_dt".
+    member_name : str, optional
+        Name of the column to use as the member identifier, by default "member".
+
+    Returns
+    =======
+
+    pd.DataFrame
+        DataFrame with the linear trends removed.
+    
+    """
+
+    # Make a copy of the dataframe
+    model_df_corr = model_df.copy()
+
+    # Extract the unique lead times
+    unique_leads = model_df[lead_name].unique()
+
+    # Set up a new column in the dataframe (y_axis_name + suffix)
+    # full of NaNs
+    model_df_corr[y_axis_name + suffix] = np.nan
+
+    # Loop over the unique leads
+    for lead in unique_leads:
+        # Subset the model data to this lead
+        model_df_lead_this = model_df[model_df[lead_name] == lead]
+
+        # Set up the slopes and intercepts
+        slopes = np.zeros(model_df_lead_this[member_name].nunique())
+
+        # Loop over the members
+        for i, member in enumerate(model_df_lead_this[member_name].unique()):
+            # Subset the data for this member
+            data_this = model_df_lead_this[model_df_lead_this[member_name] == member]
+
+            # Calculate the linear trend
+            slope, intercept, _, _, _ = linregress(data_this[x_axis_name], data_this[y_axis_name])
+
+            # Store the slope and intercept
+            slopes[i] = slope
+
+        # Calculate the mean slope and intercept
+        slope_mean = np.mean(slopes)
+
+        # print mean slope for lead
+        print(f"Mean slope for lead {lead}: {slope_mean}")
+
+        # Calculate the intercept using all of the data
+        _, intercept_mean, _, _, _ = linregress(model_df_lead_this[x_axis_name], model_df_lead_this[y_axis_name])
+
+        # Calculate the trend line
+        trend_line = slope_mean * model_df_lead_this[x_axis_name] + intercept_mean
+
+        # work out the final point on the trend line
+        final_point = trend_line.iloc[-1]
+
+        # Calculate the detrended values
+        model_df_corr.loc[model_df_corr[lead_name] == lead, y_axis_name + suffix] = (
+            final_point - trend_line + model_df_corr[y_axis_name]
+        )
+
+    return model_df_corr
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")

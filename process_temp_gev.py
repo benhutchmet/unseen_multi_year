@@ -224,6 +224,9 @@ def main():
         figsize=(15, 5),
     )
 
+    # Use a function to correct the lead time dependent trends
+    
+
     sys.exit()
 
     # Apply the linear detrend to the observations for block minima
