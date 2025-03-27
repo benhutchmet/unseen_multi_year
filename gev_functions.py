@@ -3024,6 +3024,183 @@ def plot_return_periods_decades(
 
     return None
 
+# Write a function to compare the lead time dependent trends
+def lead_time_trends(
+    model_df: pd.DataFrame,
+    obs_df: pd.DataFrame,
+    model_var_name: str,
+    obs_var_name: str,
+    lead_name: str,
+    ylabel: str,
+    suptitle: str,
+    figsize: tuple = (10, 5),
+) -> None:
+    """
+    Plots the lead time dependent trends for the model and observed data.
+
+    Parameters
+    ==========
+
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    lead_name : str
+        Name of the column to use as the lead time axis in the model DataFrame.
+    ylabel : str
+        Label for the y-axis.
+    suptitle : str
+        Title of the plot.
+    figsize : tuple, optional
+        Figure size, by default (10, 5).
+
+    Returns
+    =======
+
+    None
+    
+    """
+
+    # Set up teh figure with three rows and 4 columns
+    fig, axs = plt.subplots(
+        nrows=3,
+        ncols=4,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+    )
+
+    # Flatten the axes
+    axs_flat = axs.flatten()
+
+    # Get the unique lead times
+    unique_leads = sorted(model_df[lead_name].unique())
+
+    # Loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data
+        model_df_lead_this = model_df[model_df[lead_name] == lead]
+
+        # Extract the unique effective dec years for the model
+        unique_eff_dec_years_model = model_df_lead_this["effective_dec_year"].unique()
+
+        # Extract the unique effective dec years for the obs
+        unique_eff_dec_years_obs = obs_df["effective_dec_year"].unique()
+
+        obs_df_lead_this = None
+
+        # if the unique eff dec years for the model and obs are not the same
+        if not np.array_equal(unique_eff_dec_years_model, unique_eff_dec_years_obs):
+            print("Unique effective decadal years for model and obs are not the same")
+            # Subset the obs this to the unique eff dec years for the model
+            obs_df_lead_this = obs_df[
+                obs_df["effective_dec_year"].isin(unique_eff_dec_years_model)
+            ]
+
+        # Plot the model scatter points as red circles
+        axs_flat[i].scatter(
+            model_df_lead_this["effective_dec_year"],
+            model_df_lead_this[model_var_name],
+            color="red",
+            label="model",
+        )
+
+        # Set up the unique number of members in the model data
+        nmembers = len(model_df_lead_this["member"].nunique())
+
+        # Calculate the slope and intercept for the model
+        slopes_model_this = np.zeros([nmembers])
+        intercepts_model_this = np.zeros([nmembers])
+
+        # Loop over the members
+        for j, member in enumerate(model_df_lead_this["member"].unique()):
+            # Subset the data for this member
+            data_this = model_df_lead_this[model_df_lead_this["member"] == member]
+
+            # Calculate the linear trend
+            slope_model_this, intercept_model_this, _, _, _ = linregress(
+                data_this["effective_dec_year"], data_this[model_var_name]
+            )
+
+            # Store the slope and intercept
+            slopes_model_this[j] = slope_model_this
+            intercept_model_this[j] = intercept_model_this
+
+        # Calculate the mean slope and intercept
+        slope_model_mean_this = np.mean(slopes_model_this)
+        intercept_model_mean_this = np.mean(intercept_model_this)
+
+        # Calculate the 5th and 95th percentiles
+        slope_model_5th_this = np.percentile(slopes_model_this, 5)
+        slope_model_95th_this = np.percentile(slopes_model_this, 95)
+
+        # Calculate the CI
+        ci_model_this = (slope_model_95th_this - slope_model_5th_this) / 2
+
+        # Plot the slope as a black dashed line
+        axs_flat[i].plot(
+            model_df_lead_this["effective_dec_year"].unique(),
+            slope_model_mean_this * model_df_lead_this["effective_dec_year"].unique()
+            + intercept_model_mean_this,
+            color="red",
+            linestyle="--",
+        )
+
+        # if obs_df_lead_this is not None
+        if obs_df_lead_this is not None:
+            # Plot the observed values as black crosses
+            axs_flat[i].scatter(
+                obs_df_lead_this["effective_dec_year"],
+                obs_df_lead_this[obs_var_name],
+                color="black",
+                marker="x",
+                label="obs",
+            )
+
+            # Calculate the slope and intercept for the obs
+            slope_obs_this, intercept_obs_this, _, _, _ = linregress(
+                obs_df_lead_this["effective_dec_year"], obs_df_lead_this[obs_var_name]
+            )
+        else:
+            # Plot the observed values as black crosses
+            axs_flat[i].scatter(
+                obs_df["effective_dec_year"],
+                obs_df[obs_var_name],
+                color="black",
+                marker="x",
+                label="obs",
+            )
+
+            # Calculate the slope and intercept
+            slope_obs_this, intercept_obs_this, _, _, _ = linregress(
+                obs_df["effective_dec_year"], obs_df[obs_var_name]
+            )
+
+        # plot the obs slope as a black dashed line
+        axs_flat[i].plot(
+            obs_df["effective_dec_year"].unique(),
+            slope_obs_this * obs_df["effective_dec_year"].unique() + intercept_obs_this,
+            color="black",
+            linestyle="--",
+        )
+
+        # Set the title
+        axs_flat[i].set_title(f"lead {lead}, model slope: {slope_model_mean_this:.3f} (+/- {ci_model_this:.3f}), obs slope: {slope_obs_this:.3f}")
+
+        # Remove the y-axis ticks
+        # axs_flat[i].yaxis.set_ticks([])
+
+        # if the axis is on the bottom
+
+    # Set a tight layout
+    plt.tight_layout()
+
+    return None
+
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")

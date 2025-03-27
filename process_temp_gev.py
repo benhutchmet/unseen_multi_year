@@ -56,6 +56,20 @@ def main():
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
 
+    # # Set up the path to the NAO data
+    # nao_path = "/home/users/benhutch/unseen_multi_year/dfs/nao_delta_p_indices_1975_2015.csv"
+
+    # # Load the NAO df
+    # df_nao = pd.read_csv(nao_path)
+
+    # # print the head of the nao data
+    # print(df_nao.head())
+
+    # # print the tail of the nao data
+    # print(df_nao.tail())
+
+    # sys.exit()
+
     # Load the model temperature data
     df_model_tas = pd.read_csv(
         os.path.join(
@@ -94,10 +108,51 @@ def main():
     # Make sure that the time column is a datetime
     df_obs_tas["time"] = pd.to_datetime(df_obs_tas["time"])
 
+    # # make sure time is a datetime in the NAO df
+    # df_nao["time"] = pd.to_datetime(df_nao["time"])
+
     # Apply the effective dec year to the df obs tas
     df_obs_tas["effective_dec_year"] = df_obs_tas.apply(
         lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
     )
+
+    # # make time the index for the obs data
+    # df_obs_tas.set_index("time", inplace=True)
+
+    # # make time the index for the nao data
+    # df_nao.set_index("time", inplace=True)
+
+    # # join the dataframes
+    # df_obs_tas = df_obs_tas.join(df_nao, how="inner")
+
+    # # print the head of df obs tas
+    # print(df_obs_tas.head())
+
+    # # print the tail of df obs tas
+    # print(df_obs_tas.tail())
+
+    # # calculate the correlations in the df
+    # print(df_obs_tas.corr())
+
+    # # Quantify the obs block min and max
+    # block_minima_obs_tas = gev_funcs.obs_block_min_max(
+    #     df=df_obs_tas,
+    #     time_name="effective_dec_year",
+    #     min_max_var_name="data_c",
+    #     new_df_cols=["nao_index", "delta_p_index"],
+    #     process_min=True,
+    # )
+
+    # # print the head of the block minima obs tas
+    # print(block_minima_obs_tas.head())
+
+    # # print the tail of the block minima obs tas
+    # print(block_minima_obs_tas.tail())
+
+    # # print the correlations in the block minima obs tas
+    # print(block_minima_obs_tas.corr())
+
+    # sys.exit()
 
     # Set up the common winter years
     # NOTE: Exclude 1960 as only 10 members initialised in 1960
@@ -156,6 +211,20 @@ def main():
         figsize=(15, 5),
         window_size=10,
     )
+
+    # Plot the lead time trends
+    gev_funcs.lead_time_trends(
+        model_df=block_minima_model_tas,
+        obs_df=block_minima_obs_tas,
+        model_var_name="data_tas_c_min",
+        obs_var_name="data_c_min",
+        lead_name="winter_year",
+        ylabel="Temperature (C)",
+        suptitle="Temperature trends, 1961-2017, DJF block min T",
+        figsize=(15, 5),
+    )
+
+    sys.exit()
 
     # Apply the linear detrend to the observations for block minima
     block_minima_obs_tas_dt = gev_funcs.pivot_detrend_obs(
@@ -287,15 +356,15 @@ def main():
         "effective_dec_year"
     ].dt.year.astype(int)
 
-    # Test teh function for decadal RPd
-    gev_funcs.plot_return_periods_decades(
-        model_df=block_minima_model_tas_dt_bc,
-        model_var_name="data_tas_c_min_rm_dt_bc",
-        obs_df=block_minima_obs_tas_dt,
-        obs_var_name="data_c_min_dt",
-        decades=np.arange(1960, 2020, 10),
-        title="Decadal RPs, 1961-2017, DJF block min T",
-    )
+    # # Test teh function for decadal RPd
+    # gev_funcs.plot_return_periods_decades(
+    #     model_df=block_minima_model_tas_dt_bc,
+    #     model_var_name="data_tas_c_min_rm_dt_bc",
+    #     obs_df=block_minima_obs_tas_dt,
+    #     obs_var_name="data_c_min_dt",
+    #     decades=np.arange(1960, 2020, 10),
+    #     title="Decadal RPs, 1961-2017, DJF block min T",
+    # )
 
     # print how long the script took
     print(f"Script took {time.time() - start_time:.2f} seconds")
