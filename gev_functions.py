@@ -191,7 +191,6 @@ def pivot_detrend_model(
 
     return df_copy
 
-
 # Write a function to pivot detrend the model
 # but using the rolling mean methodology
 def pivot_detrend_model_rolling(
@@ -2971,14 +2970,14 @@ def plot_return_periods_decades(
 
     # for each row of "mean", "025", "975" calculate the return period
     # 1 / (1 - (100 - value))
-    model_decades_rls["mean_rp (%)"] = 1 - (model_decades_rls["mean"] / 100)
-    model_decades_rls["0025_rp (%)"] = 1 - (model_decades_rls["0025"] / 100)
-    model_decades_rls["0975_rp (%)"] = 1 - (model_decades_rls["0975"] / 100)
+    # model_decades_rls["mean_rp (%)"] = 1 - (model_decades_rls["mean"] / 100)
+    # model_decades_rls["0025_rp (%)"] = 1 - (model_decades_rls["0025"] / 100)
+    # model_decades_rls["0975_rp (%)"] = 1 - (model_decades_rls["0975"] / 100)
 
     # calculate the return period in years of the observed worst event
-    model_decades_rls["mean_rp (years)"] = 1 / model_decades_rls["mean_rp (%)"]
-    model_decades_rls["0025_rp (years)"] = 1 / model_decades_rls["0025_rp (%)"]
-    model_decades_rls["0975_rp (years)"] = 1 / model_decades_rls["0975_rp (%)"]
+    model_decades_rls["mean_rp (years)"] = 1 / (model_decades_rls["mean"] / 100)
+    model_decades_rls["0025_rp (years)"] = 1 / (model_decades_rls["0025"] / 100)
+    model_decades_rls["0975_rp (years)"] = 1 / (model_decades_rls["0975"] / 100)
 
     # save the model decades rls
     save_idr = "/home/users/benhutch/unseen_multi_year/dfs"
@@ -3065,6 +3064,10 @@ def lead_time_trends(
     
     """
 
+    # create copies of the model and obs dfs
+    model_df_copy = model_df.copy()
+    obs_df_copy = obs_df.copy()
+
     # Set up teh figure with three rows and 4 columns
     fig, axs = plt.subplots(
         nrows=3,
@@ -3078,18 +3081,18 @@ def lead_time_trends(
     axs_flat = axs.flatten()
 
     # Get the unique lead times
-    unique_leads = sorted(model_df[lead_name].unique())
+    unique_leads = sorted(model_df_copy[lead_name].unique())
 
     # Loop over the unique leads
     for i, lead in enumerate(unique_leads):
         # Subset the model data
-        model_df_lead_this = model_df[model_df[lead_name] == lead]
+        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
 
         # Extract the unique effective dec years for the model
         unique_eff_dec_years_model = model_df_lead_this["effective_dec_year"].unique()
 
         # Extract the unique effective dec years for the obs
-        unique_eff_dec_years_obs = obs_df["effective_dec_year"].unique()
+        unique_eff_dec_years_obs = obs_df_copy["effective_dec_year"].unique()
 
         obs_df_lead_this = None
 
@@ -3102,8 +3105,8 @@ def lead_time_trends(
         ]
 
         # Same for the obs data
-        obs_df_lead_this = obs_df[
-            obs_df["effective_dec_year"].isin(eff_dec_years)
+        obs_df_lead_this = obs_df_copy[
+            obs_df_copy["effective_dec_year"].isin(eff_dec_years)
         ]
 
         # extract the unique effective dec years for the model
@@ -3116,8 +3119,8 @@ def lead_time_trends(
         if not np.array_equal(unique_eff_dec_years_model, unique_eff_dec_years_obs):
             print("Unique effective decadal years for model and obs are not the same")
             # Subset the obs this to the unique eff dec years for the model
-            obs_df_lead_this = obs_df[
-                obs_df["effective_dec_year"].isin(unique_eff_dec_years_model)
+            obs_df_lead_this = obs_df_copy[
+                obs_df_copy["effective_dec_year"].isin(unique_eff_dec_years_model)
             ]
 
         # Plot the model scatter points as red circles
@@ -3196,8 +3199,8 @@ def lead_time_trends(
         else:
             # Plot the observed values as black crosses
             axs_flat[i].scatter(
-                obs_df["effective_dec_year"],
-                obs_df[obs_var_name],
+                obs_df_copy["effective_dec_year"],
+                obs_df_copy[obs_var_name],
                 color="black",
                 marker="x",
                 label="obs",
@@ -3205,13 +3208,13 @@ def lead_time_trends(
 
             # Calculate the slope and intercept
             slope_obs_this, intercept_obs_this, _, _, _ = linregress(
-                obs_df["effective_dec_year"], obs_df[obs_var_name]
+                obs_df_copy["effective_dec_year"], obs_df_copy[obs_var_name]
             )
 
         # plot the obs slope as a black dashed line
         axs_flat[i].plot(
-            obs_df["effective_dec_year"].unique(),
-            slope_obs_this * obs_df["effective_dec_year"].unique() + intercept_obs_this,
+            obs_df_copy["effective_dec_year"].unique(),
+            slope_obs_this * obs_df_copy["effective_dec_year"].unique() + intercept_obs_this,
             color="black",
             linestyle="--",
         )
@@ -3277,19 +3280,28 @@ def lead_time_trend_corr(
     """
 
     # Make a copy of the dataframe
-    model_df_corr = model_df.copy()
+    model_df_copy = model_df.copy()
 
     # Extract the unique lead times
-    unique_leads = model_df[lead_name].unique()
+    unique_leads = model_df_copy[lead_name].unique()
 
     # Set up a new column in the dataframe (y_axis_name + suffix)
     # full of NaNs
-    model_df_corr[y_axis_name + suffix] = np.nan
+    model_df_copy[y_axis_name + suffix] = np.nan
+
+    # create a new empty df to store the new data
+    model_df_dt = pd.DataFrame()
 
     # Loop over the unique leads
-    for lead in unique_leads:
+    for lead in unique_leads:        
         # Subset the model data to this lead
-        model_df_lead_this = model_df[model_df[lead_name] == lead]
+        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+
+        # print the head of model df lead this
+        print(model_df_lead_this.head())
+
+        # print the tail of model df lead this
+        print(model_df_lead_this.tail())
 
         # Set up the slopes and intercepts
         slopes = np.zeros(model_df_lead_this[member_name].nunique())
@@ -3317,15 +3329,37 @@ def lead_time_trend_corr(
         # Calculate the trend line
         trend_line = slope_mean * model_df_lead_this[x_axis_name] + intercept_mean
 
+        # # print the shape of trend line
+        # print(trend_line.shape)
+
         # work out the final point on the trend line
         final_point = trend_line.iloc[-1]
 
-        # Calculate the detrended values
-        model_df_corr.loc[model_df_corr[lead_name] == lead, y_axis_name + suffix] = (
-            final_point - trend_line + model_df_corr[y_axis_name]
-        )
+        # # print the shape of model df copy.loc
+        # print(model_df_copy.loc[model_df_copy[lead_name] == lead, y_axis_name + suffix].shape)
 
-    return model_df_corr
+        # # print the values of this
+        # print(model_df_copy.loc[model_df_copy[lead_name] == lead, y_axis_name + suffix])
+
+        # Add a column containing the new detrended values to the model df this
+        model_df_lead_this[y_axis_name + suffix] = final_point - trend_line + model_df_lead_this[y_axis_name]
+
+        # print the model df lead this head
+        print(model_df_lead_this.head())
+
+        # print the model df lead this tail
+        print(model_df_lead_this.tail())
+
+        # concatenate the model df lead this to the model df dt
+        model_df_dt = pd.concat([model_df_dt, model_df_lead_this])
+
+        # # print the head of model df corr
+        # print(model_df_corr.head())
+
+        # # print the tail of model df corr
+        # print(model_df_corr.tail())
+
+    return model_df_dt
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")

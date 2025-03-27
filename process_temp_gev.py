@@ -194,6 +194,17 @@ def main():
         "init_year"
     ] + (block_minima_model_tas["winter_year"] - 1)
 
+    # print the model df for lead 2
+    print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
+
+    # print the effective dec years in the model df
+    block_minima_model_tas_winter_2 = block_minima_model_tas[
+        block_minima_model_tas["winter_year"] == 2
+    ]
+
+    # print the unique efefctive dec years
+    print(block_minima_model_tas_winter_2["effective_dec_year"].unique())
+
     # Compare the trends
     gev_funcs.compare_trends(
         model_df_full_field=df_model_tas_djf,
@@ -224,8 +235,119 @@ def main():
         figsize=(15, 5),
     )
 
+    # print the model df for lead 2
+    print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
+
     # Use a function to correct the lead time dependent trends
-    
+    block_minima_model_tas_lead_dt = gev_funcs.lead_time_trend_corr(
+        model_df=block_minima_model_tas,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_tas_c_min",
+        lead_name="winter_year",
+    )
+
+    # print the head of the dataframe
+    print(block_minima_model_tas_lead_dt.head())
+
+    # print the tail of the dataframe
+    print(block_minima_model_tas_lead_dt.tail())
+
+    # print the unique effective dec year in block minima model tas lead dt
+    print(block_minima_model_tas_lead_dt["effective_dec_year"].unique())
+
+    # print the number of Nans in the model data
+    # for the data tas c min dt column
+    print(block_minima_model_tas_lead_dt["data_tas_c_min_dt"].isnull().sum())
+
+    # pviot detrend the obs data
+    block_minima_obs_tas_dt = gev_funcs.pivot_detrend_obs(
+        df=block_minima_obs_tas,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_c_min",
+    )
+
+    # Compare the lead time corrected trends
+    gev_funcs.lead_time_trends(
+        model_df=block_minima_model_tas_lead_dt,
+        obs_df=block_minima_obs_tas_dt,
+        model_var_name="data_tas_c_min_dt",
+        obs_var_name="data_c_min_dt",
+        lead_name="winter_year",
+        ylabel="Temperature (C)",
+        suptitle="Temperature trends, 1961-2017, DJF block min T",
+        figsize=(15, 5),
+    )
+
+    # Compare the trends with the full field data
+    gev_funcs.compare_trends(
+        model_df_full_field=df_model_tas_djf,
+        obs_df_full_field=df_obs_tas,
+        model_df_block=block_minima_model_tas_lead_dt,
+        obs_df_block=block_minima_obs_tas_dt,
+        model_var_name_full_field="data_tas_c",
+        obs_var_name_full_field="data_c",
+        model_var_name_block="data_tas_c_min_dt",
+        obs_var_name_block="data_c_min_dt",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        ylabel="Temperature (C)",
+        suptitle="Temperature trends (block min detrended obs, model lead time detrended)",
+        figsize=(15, 5),
+        window_size=10,
+        centred_bool=True,
+        min_periods=1,
+    )
+
+    # perform the lead time depdent bias correction
+    # for the block minima
+    block_minima_model_tas_lead_dt_bc = gev_funcs.lead_time_mean_bias_correct(
+        model_df=block_minima_model_tas_lead_dt,
+        obs_df=block_minima_obs_tas_dt,
+        model_var_name="data_tas_c_min_dt",
+        obs_var_name="data_c_min_dt",
+        lead_name="winter_year",
+    )
+
+    # Set effective dec year as a datetime in years
+    block_minima_obs_tas_dt["effective_dec_year"] = pd.to_datetime(
+        block_minima_obs_tas_dt["effective_dec_year"], format="%Y"
+    )
+
+    # Set this as the index
+    block_minima_obs_tas_dt.set_index("effective_dec_year", inplace=True)
+
+    # Do the same for the model data
+    block_minima_model_tas_lead_dt_bc["effective_dec_year"] = pd.to_datetime(
+        block_minima_model_tas_lead_dt_bc["effective_dec_year"], format="%Y"
+    )
+
+    # plot the dot plot for the detrended obs
+    dot_plot(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_lead_dt_bc,
+        obs_val_name="data_c_min_dt",
+        model_val_name="data_tas_c_min_dt_bc",
+        model_time_name="effective_dec_year",
+        ylabel="Temperature (C)",
+        title="Lead time detrended model bc, 1961-2017, DJF block min T",
+        ylims=(-12, 6),
+        solid_line=np.min,
+        dashed_quant=0.20,
+    )
+
+    block_minima_model_tas_lead_dt_bc["effective_dec_year"] = block_minima_model_tas_lead_dt_bc[
+        "effective_dec_year"
+    ].dt.year.astype(int)
+
+    # # Test teh function for decadal RPd
+    gev_funcs.plot_return_periods_decades(
+        model_df=block_minima_model_tas_lead_dt_bc,
+        model_var_name="data_tas_c_min_dt_bc",
+        obs_df=block_minima_obs_tas_dt,
+        obs_var_name="data_c_min_dt",
+        decades=np.arange(1960, 2020, 10),
+        title="Decadal RPs, 1961-2017, DJF block min T",
+    )
 
     sys.exit()
 
@@ -359,15 +481,6 @@ def main():
         "effective_dec_year"
     ].dt.year.astype(int)
 
-    # # Test teh function for decadal RPd
-    # gev_funcs.plot_return_periods_decades(
-    #     model_df=block_minima_model_tas_dt_bc,
-    #     model_var_name="data_tas_c_min_rm_dt_bc",
-    #     obs_df=block_minima_obs_tas_dt,
-    #     obs_var_name="data_c_min_dt",
-    #     decades=np.arange(1960, 2020, 10),
-    #     title="Decadal RPs, 1961-2017, DJF block min T",
-    # )
 
     # print how long the script took
     print(f"Script took {time.time() - start_time:.2f} seconds")
