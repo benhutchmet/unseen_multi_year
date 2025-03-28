@@ -116,6 +116,20 @@ def main():
         lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
     )
 
+    # calculate the return period for ver cold days
+    gev_funcs.plot_return_periods_decades_obs(
+        obs_df=df_obs_tas,
+        obs_var_name="data_c",
+        decades=np.arange(1960, 2020, 10),
+        title="Decadal RPs, 1961-2017, DJF, UK, ERA5",
+        year_col_name="effective_dec_year",
+        num_samples=1000,
+        figsize=(10, 5),
+        bad_min=True,
+    )
+
+    sys.exit()
+
     # # make time the index for the obs data
     # df_obs_tas.set_index("time", inplace=True)
 
