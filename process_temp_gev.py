@@ -94,6 +94,50 @@ def main():
         os.path.join(dfs_dir, "ERA5_tas_United_Kingdom_1960-2018_daily_2024-11-26.csv")
     )
 
+    # # Ste up the path to the test data
+    # hannah_data_path = "/home/users/benhutch/energy-sotcr-2023/data/ERA5_UK_1940_2024_daily_SP_WP_demand_wind.csv"
+
+    # # Load the test data
+    # df_hannah_tas = pd.read_csv(hannah_data_path)
+
+    # # format date column as a datetime  
+    # df_hannah_tas["date"] = pd.to_datetime(df_hannah_tas["date"])
+
+    # # subset to months 12, 1, 2
+    # df_hannah_tas = df_hannah_tas[df_hannah_tas["date"].dt.month.isin([12, 1, 2])]
+
+    # # rename the date column to time
+    # df_hannah_tas.rename(columns={"date": "time"}, inplace=True)
+
+    # # create the effective dec year column
+    # df_hannah_tas["effective_dec_year"] = df_hannah_tas.apply(
+    #     lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
+    # )
+
+    # # print the head and tail of the hannah data
+    # print(df_hannah_tas.head())
+    # print(df_hannah_tas.tail())
+
+    # # restrict to just the UK_temp column and the effective dec year and time
+    # df_hannah_tas = df_hannah_tas[["time", "UK_temp", "effective_dec_year"]]
+
+    # # rmeove the nans
+    # df_hannah_tas.dropna(inplace=True)
+
+    # # calculate the return period for ver cold days
+    # gev_funcs.plot_return_periods_decades_obs(
+    #     obs_df=df_hannah_tas,
+    #     obs_var_name="UK_temp",
+    #     decades=np.arange(1940, 2030, 10),
+    #     title="Decadal RPs, 1940-2024, DJF, UK, ERA5",
+    #     year_col_name="effective_dec_year",
+    #     num_samples=1000,
+    #     figsize=(10, 5),
+    #     bad_min=True,
+    # )
+
+    # sys.exit()
+
     # Convert the 'time' column to datetime, assuming it represents days since "1950-01-01 00:00:00"
     df_obs_tas["time"] = pd.to_datetime(
         df_obs_tas["time"], origin="1950-01-01", unit="D"
@@ -116,19 +160,19 @@ def main():
         lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
     )
 
-    # calculate the return period for ver cold days
-    gev_funcs.plot_return_periods_decades_obs(
-        obs_df=df_obs_tas,
-        obs_var_name="data_c",
-        decades=np.arange(1960, 2020, 10),
-        title="Decadal RPs, 1961-2017, DJF, UK, ERA5",
-        year_col_name="effective_dec_year",
-        num_samples=1000,
-        figsize=(10, 5),
-        bad_min=True,
-    )
+    # # calculate the return period for ver cold days
+    # gev_funcs.plot_return_periods_decades_obs(
+    #     obs_df=df_obs_tas,
+    #     obs_var_name="data_c",
+    #     decades=np.arange(1960, 2020, 10),
+    #     title="Decadal RPs, 1961-2017, DJF, UK, ERA5",
+    #     year_col_name="effective_dec_year",
+    #     num_samples=1000,
+    #     figsize=(10, 5),
+    #     bad_min=True,
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # # make time the index for the obs data
     # df_obs_tas.set_index("time", inplace=True)
@@ -193,15 +237,28 @@ def main():
         process_min=True,
     )
 
+    # print the head of the df_model_tas_djf
+    print(df_model_tas_djf.head())
+    print(df_model_tas_djf.tail())
+
     # Apply the block minima transform to the model data
     block_minima_model_tas = gev_funcs.model_block_min_max(
         df=df_model_tas_djf,
         time_name="init_year",
         min_max_var_name="data_tas_c",
-        new_df_cols=[],
+        new_df_cols=["init_year", "member", "lead"],
         winter_year="winter_year",
         process_min=True,
     )
+
+    # print the head of the block minima model tas
+    print(block_minima_model_tas.head())
+    print(block_minima_model_tas.tail())
+
+    # print the unique init years in the model df
+    print(block_minima_model_tas["init_year"].unique())
+
+    sys.exit()
 
     # Ensure effective dec year is in the block minima model tas
     block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
