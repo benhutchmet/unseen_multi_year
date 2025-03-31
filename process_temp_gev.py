@@ -258,7 +258,18 @@ def main():
     # print the unique init years in the model df
     print(block_minima_model_tas["init_year"].unique())
 
-    sys.exit()
+    # Set up a fname for the dataframe
+    fname = "block_minima_model_tas_UK_1960-2017_DJF.csv"
+
+    # Set up the dir to save to
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # if the full path does not exist
+    if not os.path.exists(os.path.join(save_dir, fname)):
+        print(f"Saving {fname} to {save_dir}")
+        block_minima_model_tas.to_csv(os.path.join(save_dir, fname))
+
+    # sys.exit()
 
     # Ensure effective dec year is in the block minima model tas
     block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
@@ -392,6 +403,30 @@ def main():
         block_minima_model_tas_lead_dt_bc["effective_dec_year"], format="%Y"
     )
 
+    # Find the min value of data_c_min_dt for the obs
+    obs_min = np.min(block_minima_obs_tas_dt["data_c_min_dt"])
+
+    # Subset the block minima model tas lead dt bc
+    block_minima_model_tas_lead_dt_bc = block_minima_model_tas_lead_dt_bc[
+        block_minima_model_tas_lead_dt_bc["data_tas_c_min_dt_bc"] <= obs_min
+    ]
+
+    # reset the index of this dataframe
+    block_minima_model_tas_lead_dt_bc.reset_index(drop=True, inplace=True)
+
+    # print the length of this dataframe
+    print("Length of block_minima_model_tas_lead_dt_bc", len(block_minima_model_tas_lead_dt_bc))
+
+    # Set up a filename for the datraframe
+    fname = "block_minima_model_tas_lead_dt_bc_UK_1960-2017_DJF.csv"
+
+    #Set up the full path
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    if not os.path.exists(os.path.join(save_dir, fname)):
+        print(f"Saving {fname} to {save_dir}")
+        block_minima_model_tas_lead_dt_bc.to_csv(os.path.join(save_dir, fname))
+
     # plot the dot plot for the detrended obs
     dot_plot(
         obs_df=block_minima_obs_tas_dt,
@@ -405,6 +440,8 @@ def main():
         solid_line=np.min,
         dashed_quant=0.20,
     )
+
+    sys.exit()
 
     block_minima_model_tas_lead_dt_bc["effective_dec_year"] = block_minima_model_tas_lead_dt_bc[
         "effective_dec_year"
