@@ -233,9 +233,19 @@ def main():
         df=df_obs_tas,
         time_name="effective_dec_year",
         min_max_var_name="data_c",
-        new_df_cols=[],
+        new_df_cols=["time"],
         process_min=True,
     )
+
+    # print the heaad and tail of df obs tas
+    print(df_obs_tas.head())
+    print(df_obs_tas.tail())
+
+    # print the head of the block minima obs tas
+    print(block_minima_obs_tas.head())
+    print(block_minima_obs_tas.tail())
+
+    # sys.exit()
 
     # print the head of the df_model_tas_djf
     print(df_model_tas_djf.head())
@@ -426,6 +436,27 @@ def main():
     if not os.path.exists(os.path.join(save_dir, fname)):
         print(f"Saving {fname} to {save_dir}")
         block_minima_model_tas_lead_dt_bc.to_csv(os.path.join(save_dir, fname))
+
+    # find the 20th percentil of the observations
+    obs_20th = np.percentile(block_minima_obs_tas_dt["data_c_min_dt"], 20)
+
+    # Subset the block minima obs tas dt to the 20th percentile
+    block_minima_obs_tas_dt = block_minima_obs_tas_dt[
+        block_minima_obs_tas_dt["data_c_min_dt"] <= obs_20th
+    ]
+
+    # reset the index of this dataframe
+    block_minima_obs_tas_dt.reset_index(drop=True, inplace=True)
+
+    # Set up the filename for the dataframe
+    fname = "block_minima_obs_tas_dt_UK_1960-2017_DJF.csv"
+
+    # Set up the full path
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    if not os.path.exists(os.path.join(save_dir, fname)):
+        print(f"Saving {fname} to {save_dir}")
+        block_minima_obs_tas_dt.to_csv(os.path.join(save_dir, fname))
 
     # plot the dot plot for the detrended obs
     dot_plot(
