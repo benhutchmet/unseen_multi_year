@@ -170,6 +170,13 @@ def main():
             "lat1": 35,  # degrees north
             "lat2": 70,
         }
+    elif args.region == "NA":
+        gridbox = {
+            "lon1": -50,  # degrees east
+            "lon2": 30,
+            "lat1": 30,  # degrees north
+            "lat2": 80,
+        }
     else:
         raise ValueError("Region not recognised")
 
