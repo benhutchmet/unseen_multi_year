@@ -201,11 +201,19 @@ def main():
     )
 
     # Correct the lead time dependent trends
-    model_df_seasonal_trend_corr = gev_funcs.lead_time_trend_corr(
-        model_df=model_df_seasonal,
+    # model_df_seasonal_trend_corr = gev_funcs.lead_time_trend_corr(
+    #     model_df=model_df_seasonal,
+    #     x_axis_name="effective_dec_year",
+    #     y_axis_name="seasonal_mean",
+    #     lead_name="winter_year",
+    # )
+
+    # correct the 10 year rolling mean trend in the model data
+    model_df_seasonal_trend_corr = gev_funcs.pivot_detrend_model_rolling(
+        df=model_df_seasonal,
         x_axis_name="effective_dec_year",
         y_axis_name="seasonal_mean",
-        lead_name="winter_year",
+        suffix="_dt",
     )
 
     # Correct the trend in the obs data

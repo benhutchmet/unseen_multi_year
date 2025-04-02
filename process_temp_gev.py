@@ -256,7 +256,7 @@ def main():
         print(f"Saving {fname} to {save_dir}")
         block_minima_obs_tas.to_csv(os.path.join(save_dir, fname))
 
-    sys.exit()
+    # sys.exit()
 
     # print the head of the df_model_tas_djf
     print(df_model_tas_djf.head())
@@ -341,12 +341,20 @@ def main():
     # print the model df for lead 2
     print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
 
-    # Use a function to correct the lead time dependent trends
-    block_minima_model_tas_lead_dt = gev_funcs.lead_time_trend_corr(
-        model_df=block_minima_model_tas,
+    # # Use a function to correct the lead time dependent trends
+    # block_minima_model_tas_lead_dt = gev_funcs.lead_time_trend_corr(
+    #     model_df=block_minima_model_tas,
+    #     x_axis_name="effective_dec_year",
+    #     y_axis_name="data_tas_c_min",
+    #     lead_name="winter_year",
+    # )
+
+    # Use a function to correct the overall rolling mean trends
+    block_minima_model_tas_lead_dt = gev_funcs.pivot_detrend_model_rolling(
+        df=block_minima_model_tas,
         x_axis_name="effective_dec_year",
         y_axis_name="data_tas_c_min",
-        lead_name="winter_year",
+        suffix="_rm_dt",
     )
 
     # print the head of the dataframe
@@ -360,7 +368,7 @@ def main():
 
     # print the number of Nans in the model data
     # for the data tas c min dt column
-    print(block_minima_model_tas_lead_dt["data_tas_c_min_dt"].isnull().sum())
+    print(block_minima_model_tas_lead_dt["data_tas_c_min_rm_dt"].isnull().sum())
 
     # pviot detrend the obs data
     block_minima_obs_tas_dt = gev_funcs.pivot_detrend_obs(
@@ -373,7 +381,7 @@ def main():
     gev_funcs.lead_time_trends(
         model_df=block_minima_model_tas_lead_dt,
         obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min_dt",
+        model_var_name="data_tas_c_min_rm_dt",
         obs_var_name="data_c_min_dt",
         lead_name="winter_year",
         ylabel="Temperature (C)",
@@ -389,7 +397,7 @@ def main():
         obs_df_block=block_minima_obs_tas_dt,
         model_var_name_full_field="data_tas_c",
         obs_var_name_full_field="data_c",
-        model_var_name_block="data_tas_c_min_dt",
+        model_var_name_block="data_tas_c_min_rm_dt",
         obs_var_name_block="data_c_min_dt",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
@@ -406,9 +414,21 @@ def main():
     block_minima_model_tas_lead_dt_bc = gev_funcs.lead_time_mean_bias_correct(
         model_df=block_minima_model_tas_lead_dt,
         obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min_dt",
+        model_var_name="data_tas_c_min_rm_dt",
         obs_var_name="data_c_min_dt",
         lead_name="winter_year",
+    )
+
+    # plot the lead time dependent trends
+    gev_funcs.lead_time_trends(
+        model_df=block_minima_model_tas_lead_dt_bc,
+        obs_df=block_minima_obs_tas_dt,
+        model_var_name="data_tas_c_min_rm_dt_bc",
+        obs_var_name="data_c_min_dt",
+        lead_name="winter_year",
+        ylabel="Temperature (C)",
+        suptitle="Temperature trends, 1961-2017, DJF block min T",
+        figsize=(15, 5),
     )
 
     # Set effective dec year as a datetime in years
@@ -424,63 +444,64 @@ def main():
         block_minima_model_tas_lead_dt_bc["effective_dec_year"], format="%Y"
     )
 
-    # Find the min value of data_c_min_dt for the obs
-    obs_min = np.min(block_minima_obs_tas_dt["data_c_min_dt"])
+    # # Find the min value of data_c_min_dt for the obs
+    # obs_min = np.min(block_minima_obs_tas_dt["data_c_min_dt"])
 
-    # Subset the block minima model tas lead dt bc
-    block_minima_model_tas_lead_dt_bc = block_minima_model_tas_lead_dt_bc[
-        block_minima_model_tas_lead_dt_bc["data_tas_c_min_dt_bc"] <= obs_min
-    ]
+    # # Subset the block minima model tas lead dt bc
+    # block_minima_model_tas_lead_dt_bc = block_minima_model_tas_lead_dt_bc[
+    #     block_minima_model_tas_lead_dt_bc["data_tas_c_min_dt_bc"] <= obs_min
+    # ]
 
-    # reset the index of this dataframe
-    block_minima_model_tas_lead_dt_bc.reset_index(drop=True, inplace=True)
+    # # reset the index of this dataframe
+    # block_minima_model_tas_lead_dt_bc.reset_index(drop=True, inplace=True)
 
-    # print the length of this dataframe
-    print("Length of block_minima_model_tas_lead_dt_bc", len(block_minima_model_tas_lead_dt_bc))
+    # # print the length of this dataframe
+    # print("Length of block_minima_model_tas_lead_dt_bc", len(block_minima_model_tas_lead_dt_bc))
 
-    # Set up a filename for the datraframe
-    fname = "block_minima_model_tas_lead_dt_bc_UK_1960-2017_DJF.csv"
+    # # Set up a filename for the datraframe
+    # fname = "block_minima_model_tas_lead_dt_bc_UK_1960-2017_DJF.csv"
 
-    #Set up the full path
-    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+    # #Set up the full path
+    # save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
 
-    if not os.path.exists(os.path.join(save_dir, fname)):
-        print(f"Saving {fname} to {save_dir}")
-        block_minima_model_tas_lead_dt_bc.to_csv(os.path.join(save_dir, fname))
+    # if not os.path.exists(os.path.join(save_dir, fname)):
+    #     print(f"Saving {fname} to {save_dir}")
+    #     block_minima_model_tas_lead_dt_bc.to_csv(os.path.join(save_dir, fname))
 
-    # find the 20th percentil of the observations
-    obs_20th = np.percentile(block_minima_obs_tas_dt["data_c_min_dt"], 20)
+    # # find the 20th percentil of the observations
+    # obs_20th = np.percentile(block_minima_obs_tas_dt["data_c_min_dt"], 20)
 
-    # Subset the block minima obs tas dt to the 20th percentile
-    block_minima_obs_tas_dt = block_minima_obs_tas_dt[
-        block_minima_obs_tas_dt["data_c_min_dt"] <= obs_20th
-    ]
+    # # Subset the block minima obs tas dt to the 20th percentile
+    # block_minima_obs_tas_dt = block_minima_obs_tas_dt[
+    #     block_minima_obs_tas_dt["data_c_min_dt"] <= obs_20th
+    # ]
 
-    # reset the index of this dataframe
-    block_minima_obs_tas_dt.reset_index(drop=True, inplace=True)
+    # # reset the index of this dataframe
+    # block_minima_obs_tas_dt.reset_index(drop=True, inplace=True)
 
-    # Set up the filename for the dataframe
-    fname = "block_minima_obs_tas_dt_UK_1960-2017_DJF.csv"
+    # # Set up the filename for the dataframe
+    # fname = "block_minima_obs_tas_dt_UK_1960-2017_DJF.csv"
 
-    # Set up the full path
-    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+    # # Set up the full path
+    # save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
 
-    if not os.path.exists(os.path.join(save_dir, fname)):
-        print(f"Saving {fname} to {save_dir}")
-        block_minima_obs_tas_dt.to_csv(os.path.join(save_dir, fname))
+    # if not os.path.exists(os.path.join(save_dir, fname)):
+    #     print(f"Saving {fname} to {save_dir}")
+    #     block_minima_obs_tas_dt.to_csv(os.path.join(save_dir, fname))
 
     # plot the dot plot for the detrended obs
     dot_plot(
         obs_df=block_minima_obs_tas_dt,
         model_df=block_minima_model_tas_lead_dt_bc,
         obs_val_name="data_c_min_dt",
-        model_val_name="data_tas_c_min_dt_bc",
+        model_val_name="data_tas_c_min_rm_dt_bc",
         model_time_name="effective_dec_year",
         ylabel="Temperature (C)",
         title="Lead time detrended model bc, 1961-2017, DJF block min T",
-        ylims=(-12, 6),
+        ylims=(-15, 6),
         solid_line=np.min,
         dashed_quant=0.20,
+        figsize=(12, 5),
     )
 
     sys.exit()

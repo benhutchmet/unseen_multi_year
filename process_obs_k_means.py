@@ -58,7 +58,88 @@ def normalise_data(data):
     scaler = StandardScaler()
     return scaler.fit_transform(data)
 
-import numpy as np
+# Define a function for loading all of the model psl data
+def load_model_data(
+    var_name: str,
+    region: str,
+    season: str,
+    years_list: list,
+    temp_res: str = "day",  # temporal resolution
+    save_dir: str = "/gws/nopw/j04/canal/users/benhutch/unseen/saved_arrs/model/",
+    model: str = "HadGEM3-GC31-MM",
+    arr_shape: int = 3750,
+) -> np.ndarray:
+    """
+    Loads the model data for the given variable and region.
+
+    Parameters:
+    -----------
+
+    var_name: str
+        The name of the variable to load.
+    region: str
+        The region to load the data for.
+    season: str
+        The season to load the data for.
+    years_list: list
+        The list of years to load the data for.
+    temp_res: str
+        The temporal resolution of the data.
+    save_dir: str
+        The directory to save the data to.
+    model: str
+        The model to load the data for.
+    arr_shape: int
+        The shape of the arrays to load.
+
+    Returns:
+    --------
+
+    np.ndarray
+        The model data for the given variable and region.
+    
+    """
+
+    # First load a test array for the first year of years list
+    test_arr_path = os.path.join(
+        save_dir,
+        f"{model}_{var_name}_{region}_{years_list[0]}_{season}_{temp_res}.npy",
+    )
+
+    # if the file does not exist then raise an error
+    if not os.path.exists(test_arr_path):
+        raise ValueError(f"File does not exist: {test_arr_path}")
+    
+    # Load the test array
+    test_arr = np.load(test_arr_path)
+
+    # Set up the shape of the full model array
+    model_arr_full = np.zeros((len(years_list), test_arr.shape[1], test_arr.shape[2], test_arr.shape[3], test_arr.shape[4]))
+
+    # Loop over the years list
+    for i, year in tqdm(enumerate(years_list), desc="Looping over years"):
+        # Form the file path
+        model_arr_path = os.path.join(
+            save_dir,
+            f"{model}_{var_name}_{region}_{year}_{season}_{temp_res}.npy",
+        )
+
+        # if the file does not exist then raise an error
+        if not os.path.exists(model_arr_path):
+            raise ValueError(f"File does not exist: {model_arr_path}")
+        
+        # Load the data for this year
+        arr_this_year = np.load(model_arr_path)
+
+        # if the shape of the 2th dimension is not equal to the test array then raise an error
+        if arr_this_year.shape[2] != arr_shape:
+            print(f"Shape of array for year {year} is {arr_this_year.shape}")
+            arr_this_year = arr_this_year[:, :, 0:arr_shape, :, :]
+
+        # add the data to the model array
+        model_arr_full[i] = arr_this_year
+
+    return model_arr_full
 
 def assign_regimes(obs_data, cluster_centroids, threshold=1.0):
     """
@@ -733,58 +814,145 @@ def main():
     # show the plot
     plt.show()
 
-    # # load the red dots array
-    # red_dots_df = pd.read_csv(model_red_df_path)
+    # load the red dots array
+    red_dots_df = pd.read_csv(model_red_df_path)
 
-    # # print the type of effective dec year in the obs df
-    # print(type(obs_df_dt["effective_dec_year"].values[0]))
+    # print the type of effective dec year in the obs df
+    print(type(obs_df_dt["effective_dec_year"].values[0]))
 
-    # # print the type of effective dec year in the red dots df
-    # print(type(red_dots_df["effective_dec_year"].values[0]))
+    # print the type of effective dec year in the red dots df
+    print(type(red_dots_df["effective_dec_year"].values[0]))
 
-    # # convert the effective dec year to a string
-    # obs_df_dt["effective_dec_year"] = obs_df_dt["effective_dec_year"].astype(str)
+    # convert the effective dec year to a string
+    obs_df_dt["effective_dec_year"] = obs_df_dt["effective_dec_year"].astype(str)
 
-    # # extract the year from the effective dec year
-    # obs_df_dt["effective_dec_year"] = obs_df_dt["effective_dec_year"].apply(lambda x: x.split("-")[0])
+    # extract the year from the effective dec year
+    obs_df_dt["effective_dec_year"] = obs_df_dt["effective_dec_year"].apply(lambda x: x.split("-")[0])
 
-    # # Set up the array to append the data to
-    # red_dots_arr = np.zeros((len(red_dots_df), len(lats), len(lons))
-                            
-    # # loop over the rows in the red dots df
-    # # Loop over the rows in the red dots df
-    # for i, row in tqdm(red_dots_df.iterrows(), desc="Looping over red dots df"):
-    #     # Extract the init year and winter year
-    #     init_year = row["init_year"]
-    #     member = row["member"]
-    #     lead = row["lead"]
+    # Set up the array to append the data to
+    red_dots_arr = np.zeros((len(red_dots_df), len(lats), len(lons)))
 
-    #     # Include the effective dec year
-    #     effective_dec_year = row["effective_dec_year"]
+    # set up the model years
+    model_years = np.array([str(year) for year in range(1960, 2018)])
 
-    #     # Strip the first 4 characters and format as an int
-    #     effective_dec_year_int = int(effective_dec_year[:4])
+    # set up the members list
+    members_list = np.array([10, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
-    #     # print the init year and member and lead
-    #     print(init_year, member, lead, effective_dec_year_int)
+    # use the function to load the model psl arr
+    model_psl_arr = load_model_data(
+        var_name=var_name,
+        region=region,
+        season=season,
+        years_list=model_years,
+        temp_res=freq,
+        save_dir="/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/",
+        model="HadGEM3-GC31-MM",
+        arr_shape=3750,
+    )
 
-    #     # print the type of effective dec year
-    #     print(type(effective_dec_year))
+    # Set up the tuples list to append to
+    tuples_list = []
 
-    #     # Find the index of the year in model_years
-    #     init_year_idx = np.where(model_years == init_year)[0][0]
+    # loop over the rows in the red dots df
+    # Loop over the rows in the red dots df
+    for i, row in tqdm(red_dots_df.iterrows(), desc="Looping over red dots df"):
+        # Extract the init year and winter year
+        init_year = row["init_year"]
+        member = row["member"]
+        lead = row["lead"]
 
-    #     # Find the index of the member in members list
-    #     member_idx = np.where(members_list == member)[0][0]
+        # Include the effective dec year
+        effective_dec_year = row["effective_dec_year"]
 
-    #     # Get the lead idx
-    #     lead_idx = int(lead - 1)
+        # Strip the first 4 characters and format as an int
+        effective_dec_year_int = int(effective_dec_year[:4])
 
-    #     # Save the indices as a tuple
-    #     tuples_list.append((init_year_idx, member_idx, lead_idx, effective_dec_year_int))
+        # print the init year and member and lead
+        print(init_year, member, lead, effective_dec_year_int)
 
-    #     # Extract the data
-    #     red_dots_arr[i, :, :] = model_psl_arr[init_year_idx, member_idx, lead_idx, :, :]
+        # print the type of effective dec year
+        print(type(effective_dec_year))
+
+        # Find the index of the year in model_years
+        init_year_idx = np.where(model_years == init_year)[0][0]
+
+        # Find the index of the member in members list
+        member_idx = np.where(members_list == member)[0][0]
+
+        # Get the lead idx
+        lead_idx = int(lead - 1)
+
+        # Save the indices as a tuple
+        tuples_list.append((init_year_idx, member_idx, lead_idx, effective_dec_year_int))
+
+        # Extract the data
+        red_dots_arr[i, :, :] = model_psl_arr[init_year_idx, member_idx, lead_idx, :, :]
+
+    # assign the red dots arr to the patterns defined in the obs
+    red_dots_arr_labels = assign_regimes(
+        obs_data=red_dots_arr,
+        cluster_centroids=cluster_centroids,
+        threshold=1.0
+    )
+
+    # add these labels to the red dots df
+    red_dots_df["assigned_labels"] = red_dots_arr_labels
+
+    # Set up the figure
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(10, 5), sharey=True, gridspec_kw={"width_ratios": [4, 1]}, layout="compressed")
+
+    # set up the colours
+    colours = ["grey", "r", "b", "g", "y", "m"]
+
+    # loop over the cluster labels
+    for i in range(optimal_K + 1):
+        # get the data for this cluster
+        cluster_data = red_dots_df[red_dots_df["assigned_labels"] == i]
+
+        # if i == 0:
+        if i == 0:
+            # plot the scatter
+            axs[0].scatter(cluster_data["effective_dec_year"], cluster_data["data_c_min"], label=f"Neutral", color=colours[i])
+        else:
+            # plot the scatter
+            axs[0].scatter(cluster_data["effective_dec_year"], cluster_data["data_c_min"], label=f"Cluster {i}", color=colours[i])
+
+    # add the legend
+    axs[0].legend()
+
+    # set the x label
+    axs[0].set_xlabel("December year")
+
+    # set the y label
+    axs[0].set_ylabel("Temperature (C)")
+
+    # set the title
+    axs[0].set_title("HadGEM3-GC31-MM DJF extreme block min T days by cluster, 1960-2017, re-assigned")
+
+    # loop over the cluster labels
+    for i in range(optimal_K + 1):
+        # get the data for this cluster
+        cluster_data = red_dots_df[red_dots_df["assigned_labels"] == i]
+
+        # plot the boxplot
+        axs[1].boxplot(
+            cluster_data["data_tas_c_min_dt_bc"],
+            positions=[i],
+            patch_artist=True,
+            boxprops=dict(facecolor="white", color=colours[i]),
+            whiskerprops=dict(color=colours[i]),
+            capprops=dict(color=colours[i]),
+            flierprops=dict(markerfacecolor=colours[i], markeredgecolor=colours[i]),
+            medianprops=dict(color=colours[i]),
+            vert=True,
+            widths=0.5,
+        )
+
+    # set the xticks
+    axs[1].set_xticks([i for i in range(optimal_K + 1)])
+
+    # show the plot
+    plt.show()
     
     # # fit just a single kmeans to the data
     # kmeans = KMeans(n_clusters=optimal_K, random_state=None, n_init=10, max_iter=300)
