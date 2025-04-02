@@ -245,7 +245,18 @@ def main():
     print(block_minima_obs_tas.head())
     print(block_minima_obs_tas.tail())
 
-    # sys.exit()
+    # Set up a fname for the dataframe
+    fname = "block_minima_obs_tas_UK_1960-2017_DJF_2_April.csv"
+
+    # Set up the dir to save to
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # if the full path does not exist
+    if not os.path.exists(os.path.join(save_dir, fname)):
+        print(f"Saving {fname} to {save_dir}")
+        block_minima_obs_tas.to_csv(os.path.join(save_dir, fname))
+
+    sys.exit()
 
     # print the head of the df_model_tas_djf
     print(df_model_tas_djf.head())
