@@ -39,6 +39,8 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from iris.util import equalise_attributes
 
+# local imports
+from gev_functions import pivot_detrend_obs
 
 # Set up the function for calculating the pattern correlation
 def pattern_correlation(field1, field2):
@@ -55,6 +57,53 @@ def apply_latitude_weights(data, lats):
 def normalise_data(data):
     scaler = StandardScaler()
     return scaler.fit_transform(data)
+
+import numpy as np
+
+def assign_regimes(obs_data, cluster_centroids, threshold=1.0):
+    """
+    Assigns each day to the most representative regime based on projection scores.
+    If the maximum projection score is below a threshold (default = 1 std), 
+    the day is classified as a neutral regime (-1).
+    
+    Parameters:
+    -----------
+    obs_data : np.ndarray
+        Daily MSLP anomaly fields with shape (n_days, lats, lons).
+    cluster_centroids : np.ndarray
+        Cluster centroids with shape (K, lats, lons).
+    threshold : float, optional
+        Threshold for projection standard deviation to assign a regime (default=1.0).
+    
+    Returns:
+    --------
+    np.ndarray
+        Array of assigned regimes for each day (size = n_days).
+    """
+
+    # Reshape the data to (n_days, features)
+    X_obs = obs_data.reshape(obs_data.shape[0], -1)  # (n_days, features)
+    X_centroids = cluster_centroids.reshape(cluster_centroids.shape[0], -1)  # (K, features)
+
+    # Compute projection of each day onto each cluster centroid
+    projection_scores = X_obs @ X_centroids.T  # Shape (n_days, K)
+
+    # Normalize projection scores
+    mean_proj = np.mean(projection_scores, axis=0)
+    std_proj = np.std(projection_scores, axis=0)
+    projection_scores_normalized = (projection_scores - mean_proj) / std_proj  # Shape (n_days, K)
+
+    # Find the highest projection index
+    highest_regime = np.argmax(projection_scores_normalized, axis=1)  # (n_days,)
+
+    # Assign regime only if projection is above the threshold
+    assigned_labels = np.where(
+        np.max(projection_scores_normalized, axis=1) >= threshold,  # Condition
+        highest_regime,  # Assign regime
+        -1  # Neutral regime
+    )
+
+    return assigned_labels
 
 
 # Define a function for calculating the pattern correlation ratio
@@ -249,6 +298,7 @@ def main():
 
     # Set up the df to load from
     obs_df_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_obs_tas_UK_1960-2017_DJF_2_April.csv"
+    model_red_df_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_model_tas_lead_dt_bc_UK_1960-2017_DJF.csv"
     metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
     saved_obs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
     var_name = "psl"
@@ -480,7 +530,7 @@ def main():
     # plt.show()
 
     # Set up our optimal K
-    optimal_K = 4
+    optimal_K = 5
 
     # Perform bootstrapped clustering
     cluster_labels, cluster_centroids = bootstrapped_clustering(
@@ -499,30 +549,275 @@ def main():
     # print the shape of the cluster labels
     print(cluster_labels.shape)
 
-    # de-normalise the cluster centroids
-    cluster_centroids = scaler.inverse_transform(cluster_centroids)
+    # # de-normalise the cluster centroids
+    # cluster_centroids = scaler.inverse_transform(cluster_centroids)
 
     # reshape the cluster centroids
     cluster_centroids = cluster_centroids.reshape(
         (cluster_centroids.shape[0], len(lats), len(lons))
     )
 
-    # Set up a figure with 2 cols and 2 rows
-    fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(15, 10), subplot_kw={"projection": ccrs.PlateCarree()})
+    # Apply the pivot detrend to the obs df
+    obs_df_dt = pivot_detrend_obs(
+        df=obs_df,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_c_min"
+    )
+
+    # add a new column to the dataframe for cluster labels
+    obs_df_dt["cluster_labels"] = cluster_labels
+
+    # print the head of the dataframe
+    print(obs_df_dt.head())
+
+    # # Set up a figure to plot the scatter
+    # fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(10, 5), sharey=True, gridspec_kw={"width_ratios": [4, 1]}, layout="compressed")
+
+    # # set up the colours
+    # colours = ["r", "b", "g", "y", "m"]
+
+    # # loop over the cluster labels
+    # for i in range(optimal_K):
+    #     # get the data for this cluster
+    #     cluster_data = obs_df_dt[obs_df_dt["cluster_labels"] == i]
+
+    #     # plot the scatter
+    #     axs[0].scatter(cluster_data["effective_dec_year"], cluster_data["data_c_min_dt"], label=f"Cluster {i+1}", color=colours[i])
+
+    # # add the legend
+    # axs[0].legend()
+
+    # # set the x label
+    # axs[0].set_xlabel("December year")
+
+    # # set the y label
+    # axs[0].set_ylabel("Temperature (C)")
+
+    # # set the title
+    # axs[0].set_title("ERA5 DJF block min T days by cluster, 1961-2017")
+
+    # # loop over the cluster labels
+    # for i in range(optimal_K):
+    #     # get the data for this cluster
+    #     cluster_data = obs_df_dt[obs_df_dt["cluster_labels"] == i]
+
+    #     # plot the boxplot
+    #     axs[1].boxplot(
+    #         cluster_data["data_c_min_dt"],
+    #         positions=[i + 1],
+    #         patch_artist=True,
+    #         boxprops=dict(facecolor="white", color=colours[i]),
+    #         whiskerprops=dict(color=colours[i]),
+    #         capprops=dict(color=colours[i]),
+    #         flierprops=dict(markerfacecolor=colours[i], markeredgecolor=colours[i]),
+    #         medianprops=dict(color=colours[i]),
+    #         vert=True,
+    #         widths=0.5,
+    #     )
+
+    # # set the xticks
+    # axs[1].set_xticks([i + 1 for i in range(optimal_K)])
+
+    # # show the plot
+    # plt.show()
+
+    # apply the function to assign regimes
+    assigned_labels = assign_regimes(
+        obs_data=obs_data_arr,
+        cluster_centroids=cluster_centroids,
+        threshold=1.0
+    )
+
+    # print the assigned labels
+    print(assigned_labels)
+
+    # print the shape of the assigned labels
+    print(assigned_labels.shape)
+
+    # add the assigned labels to the dataframe
+    obs_df_dt["assigned_labels"] = assigned_labels
+
+    # shift the assigned labels by 1
+    obs_df_dt["assigned_labels"] = obs_df_dt["assigned_labels"] + 1
+
+    # print the head of obs_df_dt
+    print(obs_df_dt.head())
+
+    # ptoiny the tail of obs_df_dt
+    print(obs_df_dt.tail())
+
+    # redo the same figure, but using the updated labels
+    # Set up a figure to plot the scatter
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(10, 5), sharey=True, gridspec_kw={"width_ratios": [4, 1]}, layout="compressed")
+
+    # set up the colours
+    colours = ["grey", "r", "b", "g", "y", "m"]
+
+    # loop over the cluster labels
+    for i in range(optimal_K + 1):
+        # get the data for this cluster
+        cluster_data = obs_df_dt[obs_df_dt["assigned_labels"] == i]
+
+        # if i == 0:
+        if i == 0:
+            # plot the scatter
+            axs[0].scatter(cluster_data["effective_dec_year"], cluster_data["data_c_min_dt"], label=f"Neutral", color=colours[i])
+        else:
+            # plot the scatter
+            axs[0].scatter(cluster_data["effective_dec_year"], cluster_data["data_c_min_dt"], label=f"Cluster {i}", color=colours[i])
+
+    # add the legend
+    axs[0].legend()
+
+    # set the x label
+    axs[0].set_xlabel("December year")
+
+    # set the y label
+    axs[0].set_ylabel("Temperature (C)")
+
+    # set the title
+    axs[0].set_title("ERA5 DJF block min T days by cluster, 1961-2017, re-assigned")
+
+    # loop over the cluster labels
+    for i in range(optimal_K + 1):
+        # get the data for this cluster
+        cluster_data = obs_df_dt[obs_df_dt["assigned_labels"] == i]
+
+        # plot the boxplot
+        axs[1].boxplot(
+            cluster_data["data_c_min_dt"],
+            positions=[i],
+            patch_artist=True,
+            boxprops=dict(facecolor="white", color=colours[i]),
+            whiskerprops=dict(color=colours[i]),
+            capprops=dict(color=colours[i]),
+            flierprops=dict(markerfacecolor=colours[i], markeredgecolor=colours[i]),
+            medianprops=dict(color=colours[i]),
+            vert=True,
+            widths=0.5,
+        )
+
+    # set the xticks
+    axs[1].set_xticks([i for i in range(optimal_K + 1)])
+
+    # show the plot
+    plt.show()
+
+        # Set up a figure with 2 cols and 2 rows
+    fig, axs = plt.subplots(nrows=3, ncols=2, figsize=(15, 10), subplot_kw={"projection": ccrs.PlateCarree()}, layout="compressed")
 
     # loop over the cluster centroids
     for i, ax in enumerate(axs.flatten()):
+        # if i is greater than the number of clusters then break
+        if i >= optimal_K:
+            break
+        
         # set up the plot
         im = ax.contourf(lons, lats, cluster_centroids[i], cmap="coolwarm", extend="both")
 
         # add coastlines
         ax.coastlines()
 
+        # calculate the % of days in each cluster
+        cluster_size = np.sum(obs_df_dt["assigned_labels"] == i) / len(obs_df_dt) * 100
+
         # add the title
-        ax.set_title(f"Cluster {i+1}")
+        ax.set_title(f"Cluster {i+1} ({cluster_size:.1f}%)")
 
     # add a colorbar
     fig.colorbar(im, ax=axs, orientation="horizontal", label="MSLP", pad=0.1, shrink=0.8)
+
+    # Set up a super title
+    fig.suptitle("K-means clustering of MSLP (bootstrapped)")
+
+    # show the plot
+    plt.show()
+
+    # # load the red dots array
+    # red_dots_df = pd.read_csv(model_red_df_path)
+
+    # # print the type of effective dec year in the obs df
+    # print(type(obs_df_dt["effective_dec_year"].values[0]))
+
+    # # print the type of effective dec year in the red dots df
+    # print(type(red_dots_df["effective_dec_year"].values[0]))
+
+    # # convert the effective dec year to a string
+    # obs_df_dt["effective_dec_year"] = obs_df_dt["effective_dec_year"].astype(str)
+
+    # # extract the year from the effective dec year
+    # obs_df_dt["effective_dec_year"] = obs_df_dt["effective_dec_year"].apply(lambda x: x.split("-")[0])
+
+    # # Set up the array to append the data to
+    # red_dots_arr = np.zeros((len(red_dots_df), len(lats), len(lons))
+                            
+    # # loop over the rows in the red dots df
+    # # Loop over the rows in the red dots df
+    # for i, row in tqdm(red_dots_df.iterrows(), desc="Looping over red dots df"):
+    #     # Extract the init year and winter year
+    #     init_year = row["init_year"]
+    #     member = row["member"]
+    #     lead = row["lead"]
+
+    #     # Include the effective dec year
+    #     effective_dec_year = row["effective_dec_year"]
+
+    #     # Strip the first 4 characters and format as an int
+    #     effective_dec_year_int = int(effective_dec_year[:4])
+
+    #     # print the init year and member and lead
+    #     print(init_year, member, lead, effective_dec_year_int)
+
+    #     # print the type of effective dec year
+    #     print(type(effective_dec_year))
+
+    #     # Find the index of the year in model_years
+    #     init_year_idx = np.where(model_years == init_year)[0][0]
+
+    #     # Find the index of the member in members list
+    #     member_idx = np.where(members_list == member)[0][0]
+
+    #     # Get the lead idx
+    #     lead_idx = int(lead - 1)
+
+    #     # Save the indices as a tuple
+    #     tuples_list.append((init_year_idx, member_idx, lead_idx, effective_dec_year_int))
+
+    #     # Extract the data
+    #     red_dots_arr[i, :, :] = model_psl_arr[init_year_idx, member_idx, lead_idx, :, :]
+    
+    # # fit just a single kmeans to the data
+    # kmeans = KMeans(n_clusters=optimal_K, random_state=None, n_init=10, max_iter=300)
+    # cluster_labels = kmeans.fit_predict(obs_data_arr)
+    # cluster_centroids = kmeans.cluster_centers_
+
+    # # reshape the cluster centroids
+    # cluster_centroids = cluster_centroids.reshape(
+    #     (cluster_centroids.shape[0], len(lats), len(lons))
+    # )
+
+    # # Set up a figure with 2 cols and 2 rows
+    # fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(15, 10), subplot_kw={"projection": ccrs.PlateCarree()}, layout="compressed")
+
+    # # loop over the cluster centroids
+    # for i, ax in enumerate(axs.flatten()):
+    #     # set up the plot
+    #     im = ax.contourf(lons, lats, cluster_centroids[i], cmap="coolwarm", extend="both")
+
+    #     # add coastlines
+    #     ax.coastlines()
+
+    #     # calculate the % of days in each cluster
+    #     cluster_size = np.sum(cluster_labels == i) / len(cluster_labels) * 100
+
+    #     # add the title
+    #     ax.set_title(f"Cluster {i+1} ({cluster_size:.1f}%)")
+
+    # # add a colorbar
+    # fig.colorbar(im, ax=axs, orientation="horizontal", label="MSLP", pad=0.1, shrink=0.8)
+
+    # # Set up a super title
+    # fig.suptitle("K-means clustering of MSLP (single fit)")
 
     # print the time taken
     print("Time taken: ", time.time() - start_time)
