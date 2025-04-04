@@ -444,6 +444,30 @@ def main():
         block_minima_model_tas_lead_dt_bc["effective_dec_year"], format="%Y"
     )
 
+    # find the 20th percentile value in the obs
+    obs_20th = np.percentile(block_minima_obs_tas_dt["data_c_min_dt"], 20)
+
+    # subset the block minima obs tas dt to the 20th percentile
+    block_minima_model_tas_lead_dt_bc = block_minima_model_tas_lead_dt_bc[
+        block_minima_model_tas_lead_dt_bc["data_tas_c_min_rm_dt_bc"] <= obs_20th
+    ]
+
+    # reset the index of this dataframe
+    block_minima_model_tas_lead_dt_bc.reset_index(drop=True, inplace=True)
+
+    # Set up a fname for this dataframe
+    fname = "block_minima_model_tas_dt_UK_1960-2017_DJF_yellow_dots.csv"
+
+    # Set up the dir to save to
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # if the full path does not exist
+    if not os.path.exists(os.path.join(save_dir, fname)):
+        print(f"Saving {fname} to {save_dir}")
+        block_minima_model_tas_lead_dt_bc.to_csv(os.path.join(save_dir, fname))
+
+    sys.exit()
+
     # # Find the min value of data_c_min_dt for the obs
     # obs_min = np.min(block_minima_obs_tas_dt["data_c_min_dt"])
 

@@ -17,6 +17,7 @@ import warnings
 
 # Third-party imports
 import numpy as np
+import dask.array as da
 import xarray as xr
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -65,7 +66,7 @@ def load_model_data(
     season: str,
     years_list: list,
     temp_res: str = "day",  # temporal resolution
-    save_dir: str = "/gws/nopw/j04/canal/users/benhutch/unseen/saved_arrs/model/",
+    save_dir: str = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/",
     model: str = "HadGEM3-GC31-MM",
     arr_shape: int = 3750,
 ) -> np.ndarray:
@@ -129,6 +130,7 @@ def load_model_data(
             raise ValueError(f"File does not exist: {model_arr_path}")
         
         # Load the data for this year
+        # arr_this_year = np.load(model_arr_path)
         arr_this_year = np.load(model_arr_path)
 
         # if the shape of the 2th dimension is not equal to the test array then raise an error
@@ -382,6 +384,7 @@ def main():
     model_red_df_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_model_tas_lead_dt_bc_UK_1960-2017_DJF.csv"
     metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
     saved_obs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
+    saved_model_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     var_name = "psl"
     region = "NA"  # wider North Atlantic region
     season = "DJF"
@@ -759,6 +762,22 @@ def main():
     # set the title
     axs[0].set_title("ERA5 DJF block min T days by cluster, 1961-2017, re-assigned")
 
+    # set up the plots directory
+    plots_dir = "/home/users/benhutch/unseen_multi_year/plots/"
+
+    # Set up the current date time
+    now = datetime.now()
+
+    # Set up a fname for this plot
+    fname = os.path.join(plots_dir, f"ERA5_{var_name}_{region}_{optimal_K}_clusters_{now}.png")
+
+    # create the path to the file
+    if not os.path.exists(plots_dir):
+        os.makedirs(plots_dir)
+
+    # create the full path to the files
+    full_path = os.path.join(plots_dir, fname)
+
     # loop over the cluster labels
     for i in range(optimal_K + 1):
         # get the data for this cluster
@@ -780,6 +799,9 @@ def main():
 
     # set the xticks
     axs[1].set_xticks([i for i in range(optimal_K + 1)])
+
+    # save the plot
+    plt.savefig(full_path, dpi=300)
 
     # show the plot
     plt.show()
@@ -810,6 +832,15 @@ def main():
 
     # Set up a super title
     fig.suptitle("K-means clustering of MSLP (bootstrapped)")
+
+    # Set up a fname for this figure
+    fname = os.path.join(plots_dir, f"ERA5_{var_name}_{region}_{optimal_K}_clusters_map_{now}.png")
+
+    # create the path to the file
+    full_path_clusters = os.path.join(plots_dir, fname)
+
+    # save the plot
+    plt.savefig(full_path_clusters, dpi=300)
 
     # show the plot
     plt.show()
@@ -850,8 +881,22 @@ def main():
         arr_shape=3750,
     )
 
+    # set up a fname for the model psl array
+    model_psl_arr_fname = os.path.join(
+        saved_model_dir,
+        f"HadGEM3-GC31-MM_{var_name}_{region}_{season}_day_{model_years[0]}-{model_years[-1]}.npy",
+    )
+
+    # if the file does not exist then save it
+    if not os.path.exists(model_psl_arr_fname):
+        # save the model psl array
+        np.save(model_psl_arr_fname, model_psl_arr)
+
     # Set up the tuples list to append to
     tuples_list = []
+
+    # format model years as ints
+    model_years = np.array([int(year) for year in model_years])
 
     # loop over the rows in the red dots df
     # Loop over the rows in the red dots df
@@ -872,6 +917,9 @@ def main():
 
         # print the type of effective dec year
         print(type(effective_dec_year))
+
+        # make sure init year is an int
+        init_year = int(init_year)
 
         # Find the index of the year in model_years
         init_year_idx = np.where(model_years == init_year)[0][0]
@@ -950,6 +998,15 @@ def main():
 
     # set the xticks
     axs[1].set_xticks([i for i in range(optimal_K + 1)])
+
+    # set up the filename
+    fname = os.path.join(plots_dir, f"HadGEM3-GC31-MM_{var_name}_{region}_{optimal_K}_clusters_{now}.png")
+
+    # create the path to the file
+    full_path = os.path.join(plots_dir, fname)
+
+    # save the plot
+    plt.savefig(full_path, dpi=300)
 
     # show the plot
     plt.show()

@@ -17,7 +17,8 @@ Usage:
         --region "UK" \
         --init_year "1960" \
         --season "DJF" \
-        --winter "1"
+        --winter "1" \
+        --frequency "day"
 
 Arguments:
 ----------
@@ -27,6 +28,7 @@ Arguments:
     --init_year : int : initialisation year (e.g. 1960)
     --season : str : season name (e.g. DJF, MAM, JJA, SON)
     --winter : int : winter number (e.g. 1, 2, 3)
+    --frequency : str : frequency of the data (e.g. day, month, year)
     
 Returns:
 --------
@@ -123,6 +125,9 @@ def main():
         "--season", type=str, help="season name (e.g. DJF, MAM, JJA, SON)"
     )
     parser.add_argument("--winter", type=int, help="winter number (e.g. 1, 2, 3)")
+    parser.add_argument(
+        "--frequency", type=str, help="frequency of the data (e.g. day, month, year)"
+    )
 
     # Parse the arguments
     args = parser.parse_args()
@@ -134,7 +139,19 @@ def main():
     print(f"Init Year: {args.init_year}")
     print(f"Season: {args.season}")
     print(f"Winter: {args.winter}")
+    print(f"Frequency: {args.frequency}")
     print("========================================")
+
+    # if the args.frequency is Amon
+    if args.frequency == "Amon":
+        print("Setting different output dir")
+
+        # Set up the new amon output dir
+        output_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/Amon"
+
+        # if the output dir does not exist, create it
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
     # # if the variable is not sfcWind exit with an error
     # if args.variable != "sfcWind":
@@ -177,6 +194,9 @@ def main():
             "lat1": 30,  # degrees north
             "lat2": 80,
         }
+    elif args.region == "global":
+        print("Global region selected")
+        gridbox = None
     else:
         raise ValueError("Region not recognised")
 
@@ -184,7 +204,7 @@ def main():
     obs_array_fname = (
         f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day.npy"
     )
-    model_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_day.npy"
+    model_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}.npy"
 
     # set up the full obs and model atrray paths
     obs_array_path = os.path.join(output_dir, "obs", obs_array_fname)
@@ -205,32 +225,32 @@ def main():
     # # obs_data = iris.load_cube(test_obs_wind_path, "si10")
     # obs_data = iris.load_cube(test_obs_tas_path, "t2m")
 
-    if args.variable == "tas":
-        # Set up the obs_path
-        obs_path = (
-            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc"
-        )
+    # if args.variable == "tas":
+    #     # Set up the obs_path
+    #     obs_path = (
+    #         "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc"
+    #     )
 
-        # Load the obs data
-        obs_data = iris.load_cube(obs_path, "t2m")
-    elif args.variable == "sfcWind":
-        # Set up the obs_path
-        obs_path = (
-            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
-        )
+    #     # Load the obs data
+    #     obs_data = iris.load_cube(obs_path, "t2m")
+    # elif args.variable == "sfcWind":
+    #     # Set up the obs_path
+    #     obs_path = (
+    #         "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
+    #     )
 
-        # Load the obs data
-        obs_data = iris.load_cube(obs_path, "si10")
-    elif args.variable == "psl":
-        # Set up the obs path
-        obs_path = (
-            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_msl_daily_1960_2020_daymean.nc"
-        )
+    #     # Load the obs data
+    #     obs_data = iris.load_cube(obs_path, "si10")
+    # elif args.variable == "psl":
+    #     # Set up the obs path
+    #     obs_path = (
+    #         "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_msl_daily_1960_2020_daymean.nc"
+    #     )
 
-        # Load the data
-        obs_data = iris.load_cube(obs_path, "msl")
-    else:
-        raise ValueError("Variable not recognised")
+    #     # Load the data
+    #     obs_data = iris.load_cube(obs_path, "msl")
+    # else:
+    #     raise ValueError("Variable not recognised")
 
     # Loop over the members list
     # Set up an empty list to store the data
@@ -257,7 +277,7 @@ def main():
             last_fcst_year=args.init_year + 10,
             months=months,
             member=member_this,
-            frequency="day",
+            frequency=args.frequency,
             parallel=False,
         )
 
@@ -276,21 +296,21 @@ def main():
     # print the model cube
     print(model_cube)
 
-    # print the obs data
-    print(obs_data)
+    # # print the obs data
+    # print(obs_data)
 
-    # Constrain the obs to the winter
-    # FIXME: hardcoded as DJF for now
-    obs_data = obs_data.extract(
-        iris.Constraint(
-            time=lambda cell: datetime(int(args.init_year), 12, 1)
-            <= cell.point
-            < datetime(int(args.init_year) + 1, 3, 1)
-        )
-    )
+    # # Constrain the obs to the winter
+    # # FIXME: hardcoded as DJF for now
+    # obs_data = obs_data.extract(
+    #     iris.Constraint(
+    #         time=lambda cell: datetime(int(args.init_year), 12, 1)
+    #         <= cell.point
+    #         < datetime(int(args.init_year) + 1, 3, 1)
+    #     )
+    # )
 
-    # print the obs data
-    print(obs_data)
+    # # print the obs data
+    # print(obs_data)
 
     # Set up the leads to extract from the model data
     # leads_djf_model = np.arange(
@@ -306,26 +326,29 @@ def main():
     # # Extract the relevant leads
     # model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
 
-    # Extract the data for the gridbox
-    obs_data_box = obs_data.intersection(
-        longitude=(gridbox["lon1"], gridbox["lon2"]),
-        latitude=(gridbox["lat1"], gridbox["lat2"]),
-    )
+    # # Extract the data for the gridbox
+    # obs_data_box = obs_data.intersection(
+    #     longitude=(gridbox["lon1"], gridbox["lon2"]),
+    #     latitude=(gridbox["lat1"], gridbox["lat2"]),
+    # )
 
-    # Extract the data for the gridbox
-    model_cube_box = model_cube.intersection(
-        longitude=(gridbox["lon1"], gridbox["lon2"]),
-        latitude=(gridbox["lat1"], gridbox["lat2"]),
-    )
+    if args.region == "global":
+        model_cube_box = model_cube
+    else:
+        # Extract the data for the gridbox
+        model_cube_box = model_cube.intersection(
+            longitude=(gridbox["lon1"], gridbox["lon2"]),
+            latitude=(gridbox["lat1"], gridbox["lat2"]),
+        )
 
-    # Regrid the obs data to the model data
-    obs_data_box_regrid = obs_data_box.regrid(model_cube_box, iris.analysis.Linear())
+    # # Regrid the obs data to the model data
+    # obs_data_box_regrid = obs_data_box.regrid(model_cube_box, iris.analysis.Linear())
 
     # Set up the name for the lats array
-    lats_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_day_lats.npy"
-    lons_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_day_lons.npy"
-    members = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_day_members.npy"
-    obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day_times.npy"
+    lats_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lats.npy"
+    lons_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lons.npy"
+    members = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_members.npy"
+    # obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_times.npy"
 
     # Set up the paths for the lats and lons
     lats_array_path = os.path.join(meta_dir, lats_array_fname)
@@ -334,8 +357,8 @@ def main():
     # Set up the path for the members
     members_path = os.path.join(meta_dir, members)
 
-    # Set up the path for the obs times
-    obs_times_path = os.path.join(meta_dir, obs_times)
+    # # Set up the path for the obs times
+    # obs_times_path = os.path.join(meta_dir, obs_times)
 
     # if the lats array already exists, exit with an error
     if os.path.exists(lats_array_path):
@@ -358,16 +381,16 @@ def main():
         # save the members array
         np.save(members_path, members_list)
 
-    # if the obs times array already exists, exit with an error
-    if os.path.exists(obs_times_path):
-        print(f"{obs_times_path} already exists")
-    else:
-        # save the obs times array
-        np.save(obs_times_path, obs_data_box_regrid.coord("time").points)
+    # # if the obs times array already exists, exit with an error
+    # if os.path.exists(obs_times_path):
+    #     print(f"{obs_times_path} already exists")
+    # else:
+    #     # save the obs times array
+    #     np.save(obs_times_path, obs_data_box_regrid.coord("time").points)
 
-    # Set up the obs data array
-    obs_data_array = obs_data_box_regrid.data
-    obs_data_array = obs_data_array.filled(np.nan)
+    # # Set up the obs data array
+    # obs_data_array = obs_data_box_regrid.data
+    # obs_data_array = obs_data_array.filled(np.nan)
 
     # Set up the model data array
     model_data_array = model_cube_box.data
@@ -386,8 +409,8 @@ def main():
     # print(model_data_array)
     # print("=================================")
 
-    # Save the obs data array
-    np.save(obs_array_path, obs_data_array)
+    # # Save the obs data array
+    # np.save(obs_array_path, obs_data_array)
 
     # Save the model data array
     np.save(model_array_path, model_data_array)
