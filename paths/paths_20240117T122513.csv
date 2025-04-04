@@ -39,3 +39,5 @@ rsds,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/gws/nopw/j04/canari/users/benhutch/dcp
 psl,day,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast
 tos,Omon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/
 zg,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/
+vas,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/
+uas,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/

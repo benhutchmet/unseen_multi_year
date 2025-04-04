@@ -206,9 +206,21 @@ def main():
     )
     model_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}.npy"
 
+    # form the directory
+    obs_dir = os.path.join(output_dir, "obs")
+    model_dir = os.path.join(output_dir, "model")
+
+    # if the obs dir does not exist, create it
+    if not os.path.exists(obs_dir):
+        os.makedirs(obs_dir)
+
+    # if the model dir does not exist, create it
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
     # set up the full obs and model atrray paths
-    obs_array_path = os.path.join(output_dir, "obs", obs_array_fname)
-    model_array_path = os.path.join(output_dir, "model", model_array_fname)
+    obs_array_path = os.path.join(obs_dir, obs_array_fname)
+    model_array_path = os.path.join(model_dir, model_array_fname)
 
     # if the obs array already exists, exit with an error
     if os.path.exists(obs_array_path):

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name="process_fidelity_testing"
 #SBATCH --time=10:00:00
-#SBATCH --mem=250000
+#SBATCH --mem=50000
 #SBATCH --account=canari
 #SBATCH --partition=standard
 #SBATCH --qos=standard
@@ -34,6 +34,7 @@ region=$2
 season=$3
 winter_year=$4
 year=${SLURM_ARRAY_TASK_ID}
+frequency="Amon"
 
 # Echo the args used
 echo "Variable: ${variable}"
@@ -48,7 +49,8 @@ python ${process_script} \
     --region ${region} \
     --init_year ${year} \
     --season ${season} \
-    --winter ${winter_year}
+    --winter ${winter_year} \
+    --frequency ${frequency}
 
 # End of file
 echo "End of file"
