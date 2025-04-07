@@ -1730,6 +1730,209 @@ def plot_detrend_ts(
     return None
 
 
+# Define a function for plotting the time series
+def plot_detrend_ts_subplots(
+    obs_df_left: pd.DataFrame,
+    model_df_left: pd.DataFrame,
+    obs_df_right: pd.DataFrame,
+    model_df_right: pd.DataFrame,
+    obs_var_name_left: str,
+    model_var_name_left: str,
+    obs_var_name_right: str,
+    model_var_name_right: str,
+    obs_time_name: str,
+    model_time_name: str,
+    ylabel_left: str,
+    ylabel_right: str,
+    ylim: tuple = None,
+    detrend_suffix: str = "_dt",
+    plot_min: bool = True,
+    model_member_name: str = "member",
+    figsize: tuple = (15, 5),
+) -> None:
+    """
+    Plot the detrended time series for two different variables
+
+    Parameters
+    ----------
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    obs_time_name : str
+        Name of the column to use as the time axis in the observed DataFrame.
+    model_time_name : str
+        Name of the column to use as the time axis in the model DataFrame.
+    ylabel : str
+        Label for the y-axis.
+    title : str
+        Title of the plot.
+    detrend_suffix : str, optional
+        Suffix of the detrended column, by default "_dt".
+    plot_min : bool, optional
+        Whether to plot the minima (True) or maxima (False), by default True.
+    model_member_name : str, optional
+        Name of the column to use as the member identifier in the model DataFrame, by default "member".
+    figsize : tuple, optional
+        Figure size, by default (10, 5).
+
+    Returns
+    -------
+    None
+    """
+    # Set up the figure
+    fig, axs = plt.subplots(ncols=2, nrows=1, figsize=figsize)
+
+    # Set up lists of the dataframes to iterate over
+    obs_dfs = [obs_df_left, obs_df_right]
+    model_dfs = [model_df_left, model_df_right]
+    obs_var_names = [obs_var_name_left, obs_var_name_right]
+    model_var_names = [model_var_name_left, model_var_name_right]
+    ylabels = [ylabel_left, ylabel_right]
+
+    # Loop over the axes
+    for i, ax in enumerate(axs):
+        # Get the observed and model dataframes
+        obs_df_this = obs_dfs[i]
+        model_df_this = model_dfs[i]
+        obs_var_name_this = obs_var_names[i]
+        model_var_name_this = model_var_names[i]
+        ylabel_this = ylabels[i]
+
+        # Loop ovr the unique members
+        for i, member in enumerate(model_df_this[model_member_name].unique()):
+            # Get the data for this member
+            data_this = model_df_this[model_df_this[model_member_name] == member]
+
+            # if i = 0
+            if i == 0:
+                if detrend_suffix is not None:
+                    # plot the data detrended in grey with a label
+                    ax.plot(
+                        data_this[model_time_name],
+                        data_this[f"{model_var_name_this}{detrend_suffix}"],
+                        color="grey",
+                        alpha=0.2,
+                        label="Model ens dtr",
+                    )
+                else:
+                    # plot the data in grey with a label
+                    ax.plot(
+                        data_this[model_time_name],
+                        data_this[model_var_name_this],
+                        color="grey",
+                        alpha=0.2,
+                        label="Model ens",
+                    )
+            else:
+                if detrend_suffix is not None:
+                    # plot the data detrended in grey
+                    ax.plot(
+                        data_this[model_time_name],
+                        data_this[f"{model_var_name_this}{detrend_suffix}"],
+                        color="grey",
+                        alpha=0.2,
+                    )
+                else:
+                    # plot the data in grey
+                    ax.plot(
+                        data_this[model_time_name],
+                        data_this[model_var_name_this],
+                        color="grey",
+                        alpha=0.2,
+                    )
+
+        # Plot the observed data
+        ax.plot(
+            obs_df_this[obs_time_name],
+            obs_df_this[obs_var_name_this],
+            color="black",
+            linestyle="--",
+            label="Obs",
+        )
+
+        # if detrend suffix is not none
+        if detrend_suffix is not None:
+            ax.plot(
+                obs_df_this[obs_time_name],
+                obs_df_this[f"{obs_var_name_this}{detrend_suffix}"],
+                color="black",
+                label="Obs dtr",
+            )
+
+        if plot_min:
+            # Include a solid black line for the min value of the observed data (no dt)
+            ax.axhline(obs_df_this[obs_var_name_this].min(), color="black", linestyle="--")
+
+            # if detrend suffix is not None
+            if detrend_suffix is not None:
+                # Include a solid black line for the min value of the observed data (dt)
+                ax.axhline(obs_df_this[f"{obs_var_name_this}{detrend_suffix}"].min(), color="black")
+        else:
+            # Include a solid black line for the max value of the observed data (dt)
+            ax.axhline(obs_df_this[f"{obs_var_name_this}"].max(), color="black", linestyle="--")
+
+            if detrend_suffix is not None:
+                # Include a solid black line for the max value of the observed data (dt)
+                ax.axhline(obs_df_this[f"{obs_var_name_this}{detrend_suffix}"].max(), color="black")
+
+        # # Include text on these lines
+        # ax.text(
+        #     obs_df[obs_time_name].min(),
+        #     obs_df[obs_var_name].max() - 0.1,
+        #     "Obs max",
+        #     color="black",
+        #     verticalalignment="top",
+        # )
+
+        # ax.text(
+        #     obs_df[obs_time_name].min(),
+        #     obs_df[f"{obs_var_name}{detrend_suffix}"].max() - 0.1,
+        #     "Obs max dtr",
+        #     color="black",
+        #     verticalalignment="top",
+        # )
+
+        # Add a red line for the ensemble mean of the model data (no dt)
+        ax.plot(
+            model_df_this[model_time_name].unique(),
+            model_df_this.groupby(model_time_name)[model_var_name_this].mean(),
+            color="red",
+            linestyle="--",
+            label="Model ensmean",
+        )
+
+        if detrend_suffix is not None:
+            # Add a red line for the ensemble mean of the model data (dt)
+            ax.plot(
+                model_df_this[model_time_name].unique(),
+                model_df_this.groupby(model_time_name)[
+                    f"{model_var_name_this}{detrend_suffix}"
+                ].mean(),
+                color="red",
+                label="Model ensmean dtr",
+            )
+
+        # Include gridlines
+        ax.grid(True)
+
+        # if ylim is not None
+        if ylim is not None:
+            # set the y-axis limits
+            ax.set_ylim(ylim)
+
+        # Include the y label
+        ax.set_ylabel(ylabel_this)
+
+        # Include a legend
+        ax.legend(loc="upper center", ncol=3)
+
+    return None
+
 # Define a function to plot the scatter cmap plots
 def plot_scatter_cmap(
     obs_df: pd.DataFrame,

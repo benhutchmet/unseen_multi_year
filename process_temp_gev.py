@@ -292,21 +292,21 @@ def main():
 
     # sys.exit()
 
-    # Ensure effective dec year is in the block minima model tas
-    block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
-        "init_year"
-    ] + (block_minima_model_tas["winter_year"] - 1)
+    # # Ensure effective dec year is in the block minima model tas
+    # block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
+    #     "init_year"
+    # ] + (block_minima_model_tas["winter_year"] - 1)
 
-    # print the model df for lead 2
-    print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
+    # # print the model df for lead 2
+    # print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
 
-    # print the effective dec years in the model df
-    block_minima_model_tas_winter_2 = block_minima_model_tas[
-        block_minima_model_tas["winter_year"] == 2
-    ]
+    # # print the effective dec years in the model df
+    # block_minima_model_tas_winter_2 = block_minima_model_tas[
+    #     block_minima_model_tas["winter_year"] == 2
+    # ]
 
-    # print the unique efefctive dec years
-    print(block_minima_model_tas_winter_2["effective_dec_year"].unique())
+    # # print the unique efefctive dec years
+    # print(block_minima_model_tas_winter_2["effective_dec_year"].unique())
 
     # Compare the trends
     gev_funcs.compare_trends(
@@ -338,8 +338,8 @@ def main():
         figsize=(15, 5),
     )
 
-    # print the model df for lead 2
-    print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
+    # # print the model df for lead 2
+    # print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
 
     # # Use a function to correct the lead time dependent trends
     # block_minima_model_tas_lead_dt = gev_funcs.lead_time_trend_corr(
