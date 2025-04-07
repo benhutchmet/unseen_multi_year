@@ -28,7 +28,7 @@ import cftime
 from tqdm import tqdm
 from matplotlib import gridspec
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import Any, Callable, Union, List, Any, Tuple
 
 from scipy.optimize import curve_fit
 from scipy.stats import linregress, percentileofscore, gaussian_kde, skew, kurtosis
@@ -1543,6 +1543,291 @@ def plot_gev_params(
     return None
 
 
+# Define the gev plotting function
+def plot_gev_params_subplots(
+    gev_params_top_raw: dict,
+    gev_params_top_bc: dict,
+    gev_params_bottom_raw: dict,
+    gev_params_bottom_bc: dict,
+    obs_df_top: pd.DataFrame,
+    model_df_top: pd.DataFrame,
+    obs_df_bottom: pd.DataFrame,
+    model_df_bottom: pd.DataFrame,
+    obs_var_name_top: str,
+    model_var_name_top: str,
+    obs_var_name_bottom: str,
+    model_var_name_bottom: str,
+    title_top: str,
+    title_bottom: str,
+    obs_label: str = "Observed",
+    model_label: str = "Model",
+    figsize: tuple = (15, 10),
+) -> None:
+    """
+    Plot the GEV parameters.
+
+    Parameters
+    ----------
+    gev_params : dict
+        Dictionary of GEV parameters.
+    obs_df : pd.DataFrame
+        DataFrame of observed data.
+    model_df : pd.DataFrame
+        DataFrame of model data.
+    obs_var_name : str
+        Name of the column to use in the observed DataFrame.
+    model_var_name : str
+        Name of the column to use in the model DataFrame.
+    title : str
+        Title of the plot.
+    obs_label : str, optional
+        Label for the observed data, by default "Observed".
+    model_label : str, optional
+        Label for the model data, by default "Model".
+    figsize : tuple, optional
+        Figure size, by default (12, 8).
+
+    Returns
+    -------
+    None
+    """
+    # Set up the figure
+    fig = plt.figure(figsize=figsize)
+    gs = gridspec.GridSpec(2, 4, width_ratios=[1.5, 1, 1, 1])
+
+    # Create the subplots for the first row
+    ax0 = plt.subplot(gs[0, 0])
+    ax1 = plt.subplot(gs[0, 1])
+    ax2 = plt.subplot(gs[0, 2])
+    ax3 = plt.subplot(gs[0, 3])
+
+    # Create the subplots for the second row
+    ax4 = plt.subplot(gs[1, 0])
+    ax5 = plt.subplot(gs[1, 1])
+    ax6 = plt.subplot(gs[1, 2])
+    ax7 = plt.subplot(gs[1, 3])
+
+    # Set up the list of axes
+    axes = [[ax0, ax1, ax2, ax3], [ax4, ax5, ax6, ax7]]
+    # Set up the list of gev params
+    gev_params_list = [
+        [gev_params_top_raw, gev_params_top_bc],
+        [gev_params_bottom_raw, gev_params_bottom_bc],
+    ]
+    # Set up the list of obs df
+    obs_dfs = [obs_df_top, obs_df_bottom]
+    # Set up the list of model df
+    model_dfs = [model_df_top, model_df_bottom]
+
+    # Set up the list of obs var names
+    obs_var_names = [obs_var_name_top, obs_var_name_bottom]
+    # Set up the list of model var names
+    model_var_names = [model_var_name_top, model_var_name_bottom]
+
+    # Set up the list of titles
+    titles = [title_top, title_bottom]
+
+    # Loop over the axes
+    for i, ax_row in enumerate(axes):
+        # Set up the axes
+        ax0 = ax_row[0]
+        ax1 = ax_row[1]
+        ax2 = ax_row[2]
+        ax3 = ax_row[3]
+
+        # Set up the model df
+        model_df = model_dfs[i]
+
+        # Set up the obs df
+        obs_df = obs_dfs[i]
+
+        # Set up the obs var name
+        obs_var_name = obs_var_names[i]
+
+        # Set up the model var name
+        model_var_name = model_var_names[i]
+
+        # Set up the gev params
+        gev_params_non_bc = gev_params_list[i][0]
+
+        # Set up the gev params bc
+        gev_params = gev_params_list[i][1] # Set default as BC
+
+        # Set up the title
+        title = titles[i]
+
+        # Plot the model dsitribution
+        ax0.hist(
+            model_df[model_var_name],
+            bins=20,
+            color="red",
+            alpha=0.5,
+            label=model_label,
+            density=True,
+        )
+
+        # Plot the distributions
+        ax0.hist(
+            obs_df[obs_var_name],
+            bins=20,
+            color="black",
+            alpha=0.5,
+            label=obs_label,
+            density=True,
+        )
+
+        # plot the model mean gev
+        xvals_model = np.linspace(
+            np.min(model_df[model_var_name]), np.max(model_df[model_var_name]), 100
+        )
+
+        # # Plot the GEV distribution
+        # ax0.plot(
+        #     xvals_model,
+        #     gev.pdf(
+        #         xvals_model,
+        #         gev_params["model_shape"][0].mean(),
+        #         gev_params["model_loc"][0].mean(),
+        #         gev_params["model_scale"][0].mean(),
+        #     ),
+        #     color="red",
+        #     linestyle="--",
+        # )
+
+        # # print the mean of the model shape
+        # print(f"Model shape mean: {gev_params['model_shape'][0].mean()}")
+        # print(f"Model shape std: {gev_params['model_shape'][0].std()}")
+        # print(f"Model loc mean: {gev_params['model_loc'][0].mean()}")
+
+        # # plot the obs mean gev
+        # ax0.plot(
+        #     xvals_model,
+        #     gev.pdf(
+        #         xvals_model,
+        #         gev_params["obs_shape"],
+        #         gev_params["obs_loc"],
+        #         gev_params["obs_scale"],
+        #     ),
+        #     color="black",
+        #     linestyle="--",
+        # )
+
+        # # print the obs shape
+        # print(f"Obs shape: {gev_params['obs_shape']}")
+        # print(f"Obs loc: {gev_params['obs_loc']}")
+        # print(f"Obs scale: {gev_params['obs_scale']}")
+
+        # Set the title
+        ax0.set_title(title)
+
+        # Include a legend
+        ax0.legend(loc="upper right")
+
+        # Plot the histogram of the loc values in red
+        ax1.hist(gev_params["model_loc"][0], bins=30, color="red", alpha=0.5)
+
+        # Mark the 2.5%tile as a dashed vertical line
+        ax1.axvline(
+            np.percentile(gev_params["model_loc"][0], 2.5),
+            color="red",
+            linestyle="--",
+            label="2.5%tile",
+        )
+
+        # Mark the 97.5%tile as a dashed vertical line
+        ax1.axvline(
+            np.percentile(gev_params["model_loc"][0], 97.5),
+            color="red",
+            linestyle="--",
+            label="97.5%tile",
+        )
+
+        # Plot the observed line as a blue vertical line
+        ax1.axvline(gev_params["obs_loc"], color="blue", lw=3, label="Observed")
+
+        # include a dashed red vertical line
+        # to show the mean location parameter without bias adjustment
+        ax1.axvline(
+            gev_params_non_bc["model_loc"][0].mean(), color="red", lw=3, linestyle="--"
+        )
+
+        # Include a title for the loc
+        obs_percentile_loc = percentileofscore(
+            gev_params["model_loc"][0], gev_params["obs_loc"]
+        )
+
+        # Set the title
+        ax1.set_title(f"location, {obs_percentile_loc:.2f}%")
+
+        # Plot the scale values
+        ax2.hist(gev_params["model_scale"][0], bins=30, color="red", alpha=0.5)
+
+        # Mark the 2.5%tile as a dashed vertical line
+        ax2.axvline(
+            np.percentile(gev_params["model_scale"][0], 2.5),
+            color="red",
+            linestyle="--",
+            label="2.5%tile",
+        )
+
+        # Mark the 97.5%tile as a dashed vertical line
+        ax2.axvline(
+            np.percentile(gev_params["model_scale"][0], 97.5),
+            color="red",
+            linestyle="--",
+            label="97.5%tile",
+        )
+
+        # Plot the observed line as a blue vertical line
+        ax2.axvline(gev_params["obs_scale"], color="blue", lw=3, label="Observed")
+
+        # Include a title for the scale
+        obs_percentile_scale = percentileofscore(
+            gev_params["model_scale"][0], gev_params["obs_scale"]
+        )
+
+        # Set the title
+        ax2.set_title(f"scale, {obs_percentile_scale:.2f}%")
+
+        # Plot the shape values
+        ax3.hist(gev_params["model_shape"][0], bins=30, color="red", alpha=0.5)
+
+        # Mark the 2.5%tile as a dashed vertical line
+        ax3.axvline(
+            np.percentile(gev_params["model_shape"][0], 2.5),
+            color="red",
+            linestyle="--",
+            label="2.5%tile",
+        )
+
+        # Mark the 97.5%tile as a dashed vertical line
+        ax3.axvline(
+            np.percentile(gev_params["model_shape"][0], 97.5),
+            color="red",
+            linestyle="--",
+            label="97.5%tile",
+        )
+
+        # Plot the observed line as a blue vertical line
+        ax3.axvline(gev_params["obs_shape"], color="blue", lw=3, label="Observed")
+
+        # Include a title for the shape
+        obs_percentile_shape = percentileofscore(
+            gev_params["model_shape"][0], gev_params["obs_shape"]
+        )
+
+        # Set the title
+        ax3.set_title(f"shape, {obs_percentile_shape:.2f}%")
+
+        # remove the y-axis ticks
+        for ax in [ax0, ax1, ax2, ax3]:
+            ax.yaxis.set_ticks([])
+
+    # Set up a tight layout
+    plt.tight_layout()
+
+    return None
+
 # Define a function for plotting the time series
 def plot_detrend_ts(
     obs_df: pd.DataFrame,
@@ -1745,7 +2030,8 @@ def plot_detrend_ts_subplots(
     ylabel_left: str,
     ylabel_right: str,
     ylim: tuple = None,
-    detrend_suffix: str = "_dt",
+    detrend_suffix_left: str = "_dt",
+    detrend_suffix_right: str = "_dt",
     plot_min: bool = True,
     model_member_name: str = "member",
     figsize: tuple = (15, 5),
@@ -1785,7 +2071,7 @@ def plot_detrend_ts_subplots(
     None
     """
     # Set up the figure
-    fig, axs = plt.subplots(ncols=2, nrows=1, figsize=figsize)
+    fig, axs = plt.subplots(ncols=2, nrows=1, figsize=figsize, layout="compressed")
 
     # Set up lists of the dataframes to iterate over
     obs_dfs = [obs_df_left, obs_df_right]
@@ -1793,6 +2079,7 @@ def plot_detrend_ts_subplots(
     obs_var_names = [obs_var_name_left, obs_var_name_right]
     model_var_names = [model_var_name_left, model_var_name_right]
     ylabels = [ylabel_left, ylabel_right]
+    detrend_suffixes = [detrend_suffix_left, detrend_suffix_right]
 
     # Loop over the axes
     for i, ax in enumerate(axs):
@@ -1802,49 +2089,55 @@ def plot_detrend_ts_subplots(
         obs_var_name_this = obs_var_names[i]
         model_var_name_this = model_var_names[i]
         ylabel_this = ylabels[i]
+        detrend_suffix = detrend_suffixes[i]
 
-        # Loop ovr the unique members
-        for i, member in enumerate(model_df_this[model_member_name].unique()):
-            # Get the data for this member
-            data_this = model_df_this[model_df_this[model_member_name] == member]
+        # loop over the unique init years
+        for y, init_year in enumerate(model_df_this["init_year"].unique()):
+            # Loop ovr the unique members
+            for i, member in enumerate(model_df_this[model_member_name].unique()):
+                # Get the data for this member and init year
+                data_this = model_df_this[
+                    (model_df_this["init_year"] == init_year)
+                    & (model_df_this[model_member_name] == member)
+                ]
 
-            # if i = 0
-            if i == 0:
-                if detrend_suffix is not None:
-                    # plot the data detrended in grey with a label
-                    ax.plot(
-                        data_this[model_time_name],
-                        data_this[f"{model_var_name_this}{detrend_suffix}"],
-                        color="grey",
-                        alpha=0.2,
-                        label="Model ens dtr",
-                    )
+                # if i = 0
+                if i == 0 and y == 0:
+                    if detrend_suffix is not None:
+                        # plot the data detrended in grey with a label
+                        ax.plot(
+                            data_this[model_time_name],
+                            data_this[f"{model_var_name_this}{detrend_suffix}"],
+                            color="grey",
+                            alpha=0.2,
+                            label="Model ens dtr",
+                        )
+                    else:
+                        # plot the data in grey with a label
+                        ax.plot(
+                            data_this[model_time_name],
+                            data_this[model_var_name_this],
+                            color="grey",
+                            alpha=0.2,
+                            label="Model ens",
+                        )
                 else:
-                    # plot the data in grey with a label
-                    ax.plot(
-                        data_this[model_time_name],
-                        data_this[model_var_name_this],
-                        color="grey",
-                        alpha=0.2,
-                        label="Model ens",
-                    )
-            else:
-                if detrend_suffix is not None:
-                    # plot the data detrended in grey
-                    ax.plot(
-                        data_this[model_time_name],
-                        data_this[f"{model_var_name_this}{detrend_suffix}"],
-                        color="grey",
-                        alpha=0.2,
-                    )
-                else:
-                    # plot the data in grey
-                    ax.plot(
-                        data_this[model_time_name],
-                        data_this[model_var_name_this],
-                        color="grey",
-                        alpha=0.2,
-                    )
+                    if detrend_suffix is not None:
+                        # plot the data detrended in grey
+                        ax.plot(
+                            data_this[model_time_name],
+                            data_this[f"{model_var_name_this}{detrend_suffix}"],
+                            color="grey",
+                            alpha=0.2,
+                        )
+                    else:
+                        # plot the data in grey
+                        ax.plot(
+                            data_this[model_time_name],
+                            data_this[model_var_name_this],
+                            color="grey",
+                            alpha=0.2,
+                        )
 
         # Plot the observed data
         ax.plot(
@@ -3775,6 +4068,463 @@ def lead_time_trend_corr(
         # print(model_df_corr.tail())
 
     return model_df_dt
+
+# Set up a function for the dot plot
+def dot_plot_subplots(
+    obs_df_left: pd.DataFrame,
+    model_df_left: pd.DataFrame,
+    obs_df_right: pd.DataFrame,
+    model_df_right: pd.DataFrame,
+    obs_val_name_left: str,
+    model_val_name_left: str,
+    obs_val_name_right: str,
+    model_val_name_right: str,
+    model_time_name: str,
+    ylabel_left: str,
+    ylabel_right: str,
+    title_left: str,
+    title_right: str,
+    obs_label: str = "Observed",
+    model_label: str = "Modelled",
+    very_bad_label: str = "unseen events",
+    bad_label: str = "extreme events",
+    normal_label: str = "events",
+    ylims_left: tuple = (0, 120),
+    ylims_right: tuple = (0, 120),
+    dashed_quant: float = 0.8,
+    solid_line: Callable[[np.ndarray], float] = np.max,
+    figsize: tuple = (10, 5),
+    save_prefix: str = "dot_plot",
+    save_dir: str = "/gws/nopw/j04/canari/users/benhutch/plots",
+    simple_detrend: bool = False,
+) -> None:
+    """
+    Plots the dotplot for e.g. no. exceedance days.
+
+    Parameters
+    ==========
+
+    obs_df: pd.DataFrame
+        The DataFrame for the obs
+
+    model_df: pd.DataFrame
+        The DataFrame for the model
+
+    obs_val_name: str
+        The name of the obs value column
+
+    model_val_name: str
+        The name of the model value column
+
+    model_time_name: str
+        The name of the model time column
+
+    ylabel: str
+        The y-axis label for the figure
+
+    title: str
+        The title for the figure
+
+    obs_label: str
+        The label for the obs data. Default is "Observed".
+
+    model_label: str
+        The label for the model data. Default is "Modelled".
+
+    very_bad_label: str
+        The label for the very bad events. Default is "unseen events".
+
+    bad_label: str
+        The label for the bad events. Default is "extreme events".
+
+    normal_label: str
+        The label for the normal events. Default is "events".
+
+    ylims: tuple
+        The y-axis limits. Default is (0, 120).
+
+    dashed_quant: float
+        The quantile to use for the dashed line. Default is 0.8.
+
+    solid_line: Callable[[np.ndarray], float]
+        The function to use for the solid line. Default is np.max.
+
+    figsize: tuple
+        The figure size. Default is (10, 5).
+
+    save_prefix: str
+        The prefix to use when saving the plots. Default is "dot_plot".
+
+    save_dir: str
+        The directory to save the plots to. Default is "/gws/nopw/j04/canari/users/benhutch/plots".
+
+    simple_detrend: bool
+        Whether to use a simple detrending method. Default is False.
+
+    Returns
+    =======
+
+    None
+
+    """
+
+    # # if simple detrend is True
+    # if simple_detrend:
+    #     print("Detrending the obs data")
+
+    #     # Ensure the data is in the correct format and handle NaN values
+    #     obs_data = obs_df[obs_val_name].values
+    #     model_data = model_df[model_val_name].values
+
+    #     if np.isnan(obs_data).any() or np.isnan(model_data).any():
+    #         raise ValueError("Data contains NaN values. Please handle NaNs before detrending.")
+
+    #     # Detrend the obs data
+    #     obs_df[obs_val_name] = signal.detrend(obs_data)
+
+    #     # Detrend the model data
+    #     model_df[model_val_name] = signal.detrend(model_data)
+
+    # # Assert that the index of the obs df is a datetime in years
+    # assert isinstance(
+    #     obs_df.index, pd.DatetimeIndex
+    # ), "Index  of obs must be a datetime"
+
+    # Set up the figure with 1 row and 4 columns
+    fig, axs = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=(20, 5),  # Adjust the figsize as needed
+        sharey=False,
+    )
+
+    # Set up the model dfs
+    model_dfs_list = [model_df_left, model_df_right]
+    obs_dfs_list = [obs_df_left, obs_df_right]
+
+    # Set up the obs val names
+    obs_val_names = [obs_val_name_left, obs_val_name_right]
+    model_val_names = [model_val_name_left, model_val_name_right]
+
+    # Set up the ylabels
+    ylabels = [ylabel_left, ylabel_right]
+
+    # Set up the titles
+    titles = [title_left, title_right]
+
+    # Set up the ylims
+    ylims_list = [ylims_left, ylims_right]
+
+    # Set up the axes
+    axs_list = [[axs[0]], [axs[1]]]
+
+    # loop over the axes
+    for i, axes in enumerate(axs_list):
+        # Extract the axes for this
+        ax_big = axes[0]
+        # ax_small = axes[1]
+        
+        # Set up the obs and model dfs
+        obs_df = obs_dfs_list[i]
+        model_df = model_dfs_list[i]
+
+        # Set up the obs and model val names
+        obs_val_name = obs_val_names[i]
+        model_val_name = model_val_names[i]
+
+        # Set up the ylabel
+        ylabel = ylabels[i]
+
+        # Set up the title
+        title = titles[i]
+
+        # Set up the ylims
+        ylims = ylims_list[i]
+
+        # add a horizontal line for the 0.8 quantile of the observations
+        ax_big.axhline(
+            np.quantile(obs_df[obs_val_name], dashed_quant),
+            color="blue",
+            linestyle="--",
+        )
+
+        # for the max value of the obs
+        ax_big.axhline(
+            solid_line(obs_df[obs_val_name]),
+            color="blue",
+            linestyle="-.",
+        )
+
+        # print the year of the worst observed value
+        print("The worst event occurs in the year:", obs_df[obs_val_name].idxmax())
+        print("The no. days for the worst event is:", solid_line(obs_df[obs_val_name]))
+
+        # plot the scatter points for the obs
+        ax_big.scatter(
+            obs_df.index,
+            obs_df[obs_val_name],
+            color="blue",
+            marker="x",
+            label=obs_label,
+            zorder=2,
+        )
+
+        # calculate the trend in the obs time series
+        obs_trend = np.polyfit(
+            obs_df.index.year,
+            obs_df[obs_val_name],
+            1,
+        )
+
+        # Plot the trend as a dashed blue line
+        # ax_big.plot(
+        #     obs_df.index,
+        #     np.polyval(obs_trend, obs_df.index.year),
+        #     color="blue",
+        #     linestyle="--",
+        #     linewidth=2,
+        #     label=f"Obs trend: {round(obs_trend[0], 3)} C/year",
+        # )
+
+        # if solid line is np.max and dahsed line is above 0.5
+        if solid_line == np.max and dashed_quant > 0.5:
+            print("Bad events have high values")
+
+            # Separate model data by threshold
+            very_bad_events = model_df[
+                model_df[model_val_name] > solid_line(obs_df[obs_val_name])
+            ]
+
+            # Model data above 80th percentile
+            bad_events = model_df[
+                (model_df[model_val_name] > np.quantile(obs_df[obs_val_name], dashed_quant))
+                & (model_df[model_val_name] < solid_line(obs_df[obs_val_name]))
+            ]
+
+            # Model data below 80th percentile
+            events = model_df[
+                model_df[model_val_name] < np.quantile(obs_df[obs_val_name], dashed_quant)
+            ]
+
+        else:
+            print("Bad events have low values")
+
+            # assert that solid_line is np.min
+            assert solid_line == np.min, "Solid line must be np.min"
+
+            # assert that dashed_quant is below 0.5
+            assert dashed_quant < 0.5, "Dashed quantile must be below 0.5"
+
+            # Separate model data by threshold
+            very_bad_events = model_df[
+                model_df[model_val_name] < solid_line(obs_df[obs_val_name])
+            ]
+
+            # Model data above 80th percentile
+            bad_events = model_df[
+                (model_df[model_val_name] < np.quantile(obs_df[obs_val_name], dashed_quant))
+                & (model_df[model_val_name] > solid_line(obs_df[obs_val_name]))
+            ]
+
+            # Model data below 80th percentile
+            events = model_df[
+                model_df[model_val_name] > np.quantile(obs_df[obs_val_name], dashed_quant)
+            ]
+
+        # print the chance of a very bad event
+        print(
+            f"The chance of a very bad event is: {len(very_bad_events) / len(model_df) * 100}%"
+        )
+
+        # if len very bad events is not zero
+        if len(very_bad_events) != 0:
+            # print the change of the event in terms of 1 in x years
+            print(
+                f"The chance of a very bad event is: 1 in {round(len(model_df) / len(very_bad_events))} years"
+            )
+
+            # Plot the points below the minimum of the obs
+            ax_big.scatter(
+                very_bad_events[model_time_name],
+                very_bad_events[model_val_name],
+                color="red",
+                alpha=0.8,
+                label=very_bad_label,
+            )
+        else:
+            print("no very bad events")
+
+        # Plot the points below the 20th percentile
+        ax_big.scatter(
+            bad_events[model_time_name],
+            bad_events[model_val_name],
+            color="orange",
+            alpha=0.8,
+            label=bad_label,
+        )
+
+        # Plot the points above the 20th percentile
+        ax_big.scatter(
+            events[model_time_name],
+            events[model_val_name],
+            color="grey",
+            alpha=0.8,
+            label=normal_label,
+        )
+
+        # calculate the trend in all of the model data
+        model_trend = np.polyfit(
+            model_df[model_time_name].dt.year,
+            model_df[model_val_name],
+            1,
+        )
+
+        # plot the model trend as a dashed red line
+        # ax_big.plot(
+        #     model_df[model_time_name],
+        #     np.polyval(model_trend, model_df[model_time_name].dt.year),
+        #     color="green",
+        #     linestyle="--",
+        #     linewidth=2,
+        #     label=f"Model trend: {round(model_trend[0], 3)} C/year",
+        # )
+
+        # calculate the model trend in the events
+        model_trend_events = np.polyfit(
+            events[model_time_name].dt.year,
+            events[model_val_name],
+            1,
+        )
+
+        # plot the model trend for events in a dashed grey line
+        # ax_big.plot(
+        #     events[model_time_name],
+        #     np.polyval(model_trend_events, events[model_time_name].dt.year),
+        #     color="grey",
+        #     linestyle="--",
+        #     linewidth=2,
+        #     label=f"Model events: {round(model_trend_events[0], 3)} C/year",
+        # )
+
+        # calculate the model trend in the bad events
+        model_trend_bad = np.polyfit(
+            bad_events[model_time_name].dt.year,
+            bad_events[model_val_name],
+            1,
+        )
+
+        # # plot the model trend for bad events in a dashed orange line
+        # ax_big.plot(
+        #     bad_events[model_time_name],
+        #     np.polyval(model_trend_bad, bad_events[model_time_name].dt.year),
+        #     color="orange",
+        #     linestyle="--",
+        #     linewidth=2,
+        #     label=f"Model bad events: {round(model_trend_bad[0], 3)} C/year",
+        # )
+
+        # calculate the model trend in the very bad events
+        model_trend_very_bad = np.polyfit(
+            very_bad_events[model_time_name].dt.year,
+            very_bad_events[model_val_name],
+            1,
+        )
+
+        # # plot the model trend for very bad events in a dashed red line
+        # ax_big.plot(
+        #     very_bad_events[model_time_name],
+        #     np.polyval(model_trend_very_bad, very_bad_events[model_time_name].dt.year),
+        #     color="red",
+        #     linestyle="--",
+        #     linewidth=2,
+        #     label=f"Model v. bad events: {round(model_trend_very_bad[0], 3)} C/year",
+        # )
+        
+        # include the legend
+        ax_big.legend(fontsize=10, ncol=3, loc="lower center")
+
+        # label the y-axis
+        ax_big.set_ylabel(ylabel, fontsize=14)
+
+        # set up the x-axis
+
+        # increase the size of the value labels
+        ax_big.tick_params(axis="x", labelsize=12)
+
+        # same for the y-axis
+        ax_big.tick_params(axis="y", labelsize=12)
+
+        # set up the ylims
+        ax_big.set_ylim(ylims)
+
+        # set the title
+        ax_big.set_title(title, fontsize=14, fontweight="bold")
+
+        # # do the events plots for the no. exceedance days on the second plot
+        # # do the events plots for the no. exceedance days on the second plot
+        # ax_small.boxplot(
+        #     obs_df[obs_val_name],
+        #     positions=[0.5],
+        #     boxprops=dict(color="blue", facecolor="white"),
+        #     whiskerprops=dict(color="blue"),
+        #     capprops=dict(color="blue"),
+        #     flierprops=dict(markerfacecolor="blue", markeredgecolor="blue"),
+        #     medianprops=dict(color="blue"),
+        #     patch_artist=True,
+        #     vert=True,
+        #     widths=0.5,
+        #     labels=[obs_label],
+        # )
+
+        # # plot the model data
+        # ax_small.boxplot(
+        #     model_df[model_val_name],
+        #     positions=[1.5],
+        #     boxprops=dict(color="red", facecolor="white"),
+        #     whiskerprops=dict(color="red"),
+        #     capprops=dict(color="red"),
+        #     flierprops=dict(markerfacecolor="red", markeredgecolor="red"),
+        #     medianprops=dict(color="red"),
+        #     patch_artist=True,
+        #     vert=True,
+        #     widths=0.5,
+        #     labels=[model_label],
+        # )
+
+        # # # set up the xlabels for the second plot
+        # # xlabels = ["Observed", "Model"]
+
+        # # # add the xlabels to the second subplot
+        # # axs[1].set_xticks(xlabels)
+
+        # # # remove the xlabel
+        # # axs[1].set_xlabel("")
+
+        # # # remove the yticks and axis lin
+        # # axs[1].set_yticks([])
+
+        # # remove the xticks from the second plot
+        # ax_small.set_xticks([])
+
+    # specify a tight layout
+    plt.tight_layout()
+
+    # # set up a fname for the plot
+    # fname = f"obs-{obs_val_name}_model-{model_val_name}_quantile-{dashed_quant}_solid-{solid_line.__name__}_{save_prefix}_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.pdf"
+
+    # # form the savepath
+    # savepath = os.path.join(save_dir, fname)
+
+    # if not os.path.exists(savepath):
+    #     print(f"Saving plot to {savepath}")
+    #     # save the plot
+    #     plt.savefig(savepath, bbox_inches="tight", dpi=800)
+
+    #     # print that we have saved the plot
+    #     print(f"Saved plot to {savepath}")
+
+    return
+
 
 if __name__ == "__main__":
     print("This script is not intended to be run directly.")
