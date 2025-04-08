@@ -4441,7 +4441,7 @@ def dot_plot_subplots(
         # )
         
         # include the legend
-        ax_big.legend(fontsize=10, ncol=3, loc="lower center")
+        ax_big.legend(fontsize=10, ncol=3, loc="upper center")
 
         # label the y-axis
         ax_big.set_ylabel(ylabel, fontsize=14)

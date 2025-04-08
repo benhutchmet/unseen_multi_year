@@ -225,7 +225,6 @@ def main():
     # if the obs array already exists, exit with an error
     if os.path.exists(obs_array_path):
         print(f"Error: {obs_array_path} already exists")
-        sys.exit()
 
     # if the model array already exists, exit with an error
     if os.path.exists(model_array_path):

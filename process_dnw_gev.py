@@ -575,13 +575,16 @@ def main():
         figsize=(15, 5),
     )
 
+    # print the head of df obs dt
+    print(df_obs_dt.head())
+
     # Now quantify the seasonal block maxima for demand net wind
     # for the observations first
     block_maxima_obs_dnw = gev_funcs.obs_block_min_max(
         df=df_obs_dt,
         time_name="effective_dec_year",
         min_max_var_name="demand_net_wind",
-        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand", "time"],
         process_min=False,
     )
 
@@ -591,7 +594,7 @@ def main():
         df=df_model_djf_bc_dt,
         time_name="init_year",
         min_max_var_name="demand_net_wind",
-        new_df_cols=["sigmoid_total_wind_gen", "UK_demand"],
+        new_df_cols=["sigmoid_total_wind_gen", "UK_demand", "lead"],
         winter_year="winter_year",
         process_min=False,
     )
@@ -652,6 +655,51 @@ def main():
 
     # Set this as the index
     block_maxima_obs_dnw.set_index("effective_dec_year", inplace=True)
+
+    # print the head of the df
+    print(block_maxima_obs_dnw.head())
+
+    # print the head of the model df
+    print(block_maxima_model_dnw.head())
+
+    # set up a fname for the obs dnw df
+    obs_dnw_fpath = os.path.join(dfs_dir, "block_maxima_obs_demand_net_wind.csv")
+    # set up a fname for the model dnw df
+    model_dnw_fpath = os.path.join(dfs_dir, "block_maxima_model_demand_net_wind.csv")
+
+    # if the fpath does not exist, svae the dtaa
+    if not os.path.exists(obs_dnw_fpath):
+        # Save the obs data
+        block_maxima_obs_dnw.to_csv(obs_dnw_fpath, index=True)
+
+    # if the fpath does not exist, svae the dtaa
+    if not os.path.exists(model_dnw_fpath):
+        # Save the model data
+        block_maxima_model_dnw.to_csv(model_dnw_fpath, index=True)
+
+    #------------------------------------------
+    # Do the new dot plot inline with the others
+    #------------------------------------------
+    gev_funcs.dot_plot_subplots(
+        obs_df_left=block_maxima_obs_dnw,
+        model_df_left=block_maxima_model_dnw,
+        obs_df_right=block_maxima_obs_dnw,
+        model_df_right=block_maxima_model_dnw,
+        obs_val_name_left="demand_net_wind_max",
+        model_val_name_left="demand_net_wind_max",
+        obs_val_name_right="demand_net_wind_max",
+        model_val_name_right="demand_net_wind_max_bc",
+        model_time_name="effective_dec_year",
+        ylabel_left="Demand Net Wind (GW)",
+        ylabel_right="Demand Net Wind (GW)",
+        title_left="Block maxima demand net wind (no BC)",
+        title_right="Block maxima demand net wind (GW)",
+        ylims_left=(30, 60),
+        ylims_right=(30, 60),
+        dashed_quant=0.80,
+        solid_line=np.max,
+        figsize=(10, 5),
+    )
 
     # Plot the dot plot the block maxima dnw extremes
     # Non bias corrected
