@@ -27,7 +27,7 @@ import cartopy.io.shapereader as shpreader
 from tqdm import tqdm
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, timedelta
-
+from scipy.stats import pearsonr
 
 # Set up a function for loading the data
 def load_obs_data(
@@ -369,17 +369,16 @@ def plot_data_postage_stamp(
         cmap = "PRGn"
         levels = np.array(
             [
-                -10,
-                -8,
-                -6,
+                -5,
                 -4,
+                -3,
                 -2,
-                0,
+                -1,
+                1,
                 2,
+                3,
                 4,
-                6,
-                8,
-                10,
+                5,
             ]
         )
     else:
@@ -483,6 +482,403 @@ def plot_data_postage_stamp(
     cbar.set_label(f"{variable} Anomalies", fontsize=12)
 
     return None
+
+# Plot the composites
+# for a subset of the df
+def plot_composites(
+    subset_df: pd.DataFrame,
+    subset_arrs: List[np.ndarray],
+    clim_arrs: List[np.ndarray],
+    dates_lists: List[List[cftime.DatetimeProlepticGregorian]],
+    variables: List[str],
+    lats_paths: List[str],
+    lons_paths: List[str],
+    figsize: Tuple[int, int] = (20, 12),
+):
+    """
+    Plots the composites for the given variables.
+
+    Args:
+    ======
+        subset_df (pd.DataFrame): The subset dataframe.
+        subset_arrs (List[np.ndarray]): The list of subset arrays.
+        clim_arrs (List[np.ndarray]): The list of climatology arrays.
+        dates_lists (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists.
+        variables (List[str]): The list of variables to plot.
+        lats_paths (List[str]): The list of latitude paths.
+        lons_paths (List[str]): The list of longitude paths.
+
+    Returns:
+    ========
+        None
+    """
+
+    # Print the len of the subset df
+    print(f"Plotting composites over: {len(subset_df)} days")
+
+    # extract the dates from the subset df
+    dates = subset_df["time"].values
+
+    # format these as datetimes
+    subset_dates = [datetime.strptime(date, "%Y-%m-%d") for date in dates]
+
+    # print the dates
+    print("Dates to composite over: ", dates)
+
+    # Set up a figure with 1 nrows and 3 ncols
+    # Set up a figure with a custom gridspec layout
+    fig = plt.figure(figsize=figsize, layout="constrained")
+
+    # set up the gridspec object
+    gs = fig.add_gridspec(3, 2, figure=fig)
+
+    ax1 = fig.add_subplot(gs[0, :], projection=ccrs.PlateCarree())
+    ax2 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())
+    ax3 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())
+    ax4 = fig.add_subplot(gs[2, 0])
+    ax5 = fig.add_subplot(gs[2, 1])
+
+    # Flatten the axes
+    axes_flat = [ax1, [ax2, ax3], [ax4, ax5]]
+
+    # Loop over the axes
+    for i, ax in enumerate(axes_flat):
+        # if i == 0
+        if i == 0:
+            ax = ax1
+            ax_scatter = None
+        elif i == 1:
+            ax = ax2
+            ax_scatter = ax4
+        elif i == 2:
+            ax = ax3
+            ax_scatter = ax5
+        
+        # Print the dates list this
+        print(f"Dates list this: {dates_lists[i]}")
+
+        # print the typeof the first dates values
+        print(f"Type of first dates value: {type(dates_lists[i][0])}")
+
+        # o the same for the dates to composite over
+        print(f"Type of first dates value: {type(dates[0])}")
+
+        # load the lats and lons
+        lats = np.load(lats_paths[i])
+        lons = np.load(lons_paths[i])
+
+        # if the variable is psl then set the cmap to bwr
+        if variables[i] == "psl":
+            subset_dates_cf = []
+            # format the subset dates to extract
+            for date in subset_dates:
+                date_this_cf = cftime.DatetimeGregorian(
+                    date.year, date.month, date.day, hour=11, calendar="gregorian"
+                )
+                subset_dates_cf.append(date_this_cf)
+            
+            cmap = "bwr"
+            levels = np.array(
+                [
+                    -20,
+                    -18,
+                    -16,
+                    -14,
+                    -12,
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    14,
+                    16,
+                    18,
+                    20,
+                ]
+            )
+        elif variables[i] == "tas":
+            # format the subset dates
+            subset_dates_cf = []
+            # format the subset dates to extract
+            for date in subset_dates:
+                date_this_cf = cftime.DatetimeProlepticGregorian(
+                    date.year, date.month, date.day, hour=0, calendar="proleptic_gregorian"
+                )
+                subset_dates_cf.append(date_this_cf)
+
+            cmap = "bwr"
+            levels = np.array(
+                [
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                ]
+            )
+
+            # Set up the x and y
+            x, y = lons, lats
+
+            # Set up the countries shapefile
+            countries_shp = shpreader.natural_earth(
+                resolution="10m",
+                category="cultural",
+                name="admin_0_countries",
+            )
+
+            # Set up the land shapereader
+            # Initialize the mask with the correct shape
+            MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
+            country_shapely = []
+            for country in shpreader.Reader(countries_shp).records():
+                country_shapely.append(country.geometry)
+
+            # Loop over the latitude and longitude points
+            for l in range(len(lats)):
+                for j in range(len(lons)):
+                    point = shapely.geometry.Point(lons[j], lats[l])
+                    for country in country_shapely:
+                        if country.contains(point):
+                            MASK_MATRIX_TMP[l, j] = 1.0
+
+            # Reshape the mask to match the shape of the data
+            MASK_MATRIX_RESHAPED = MASK_MATRIX_TMP
+
+            # print the shape of the mask
+            print(f"Shape of the mask: {MASK_MATRIX_RESHAPED.shape}")
+
+            # print teh sum of the mask
+            print(f"Sum of the mask: {np.sum(MASK_MATRIX_RESHAPED)}")
+        elif variables[i] == "sfcWind":
+            # format the subset dates
+            subset_dates_cf = []
+            # format the subset dates to extract
+            for date in subset_dates:
+                date_this_cf = cftime.DatetimeProlepticGregorian(
+                    date.year, date.month, date.day, hour=0, calendar="proleptic_gregorian"
+                )
+                subset_dates_cf.append(date_this_cf)
+
+            cmap = "PRGn"
+            levels = np.array(
+                [
+                    -5,
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ]
+            )
+        else:
+            raise ValueError(
+                f"Variable {variables[i]} not recognised. Must be psl, tas or sfcWind."
+            )
+        
+        # set up the countries list
+        countries = ["Ireland", "Germany", "France", "Netherlands", "Belgium", "Denmark"]
+
+        uk = ["United Kingdom"]
+
+        # Set up the countries shapefile
+        countries_shp = shpreader.natural_earth(
+            resolution="10m",
+            category="cultural",
+            name="admin_0_countries",
+        )
+
+        # set up a list of subset countries
+        subset_countries = []
+        for country in shpreader.Reader(countries_shp).records():
+            if country.attributes["NAME"] in countries:
+                subset_countries.append(country.geometry)
+
+        uk_country = []
+        for country in shpreader.Reader(countries_shp).records():
+            if country.attributes["NAME"] in uk:
+                uk_country.append(country.geometry)
+
+        # print the subset countries
+        print(f"Subset countries: {subset_countries}")
+
+        # print the uk country
+        print(f"UK country: {uk_country}")
+
+        # print the len of subset countries
+        print(f"Len of subset countries: {len(subset_countries)}")
+
+        # print the UK country
+        print(f"Len of UK country: {len(uk_country)}")
+
+        # set up mask matrix EU
+        MASK_MATRIX_EU = np.zeros((len(lats), len(lons)))
+        MASK_MATRIX_UK = np.zeros((len(lats), len(lons)))
+        # Loop over the latitude and longitude points
+        for l in range(len(lats)):
+            for j in range(len(lons)):
+                point = shapely.geometry.Point(lons[j], lats[l])
+                for country in subset_countries:
+                    if country.contains(point):
+                        MASK_MATRIX_EU[l, j] = 1.0
+                for country in uk_country:
+                    if country.contains(point):
+                        MASK_MATRIX_UK[l, j] = 1.0
+
+        # print the shape of the mask
+        print(f"Shape of the mask EU: {MASK_MATRIX_EU.shape}")
+        print(f"Shape of the mask UK: {MASK_MATRIX_UK.shape}")
+
+        # print the sum of the mask
+        print(f"Sum of the mask EU: {np.sum(MASK_MATRIX_EU)}")
+        print(f"Sum of the mask UK: {np.sum(MASK_MATRIX_UK)}")
+
+        # # now print the subset dates cf
+        # print(f"Subset dates cf: {subset_dates_cf}")
+
+        # # print the i
+        # print(f"iteration i: {i}")
+
+        # # and now print the dates list i
+        # print(f"Dates list i: {dates_lists[i]}")
+
+        # find the indexes of the subset dates cf in the dates list i
+        indexes = []
+
+        for date in subset_dates_cf:
+            # find the index of the date in the dates list
+            index = np.where(dates_lists[i] == date)[0][0]
+            indexes.append(index)
+
+        # # print the indexes
+        # print(f"Indexes: {indexes}")
+
+        # Apply these index to the subset data
+        subset_arr_this = subset_arrs[i][indexes, :, :]
+
+        # print the shape of subset arr this
+        print(f"Shape of subset arr this: {subset_arr_this.shape}")
+
+        # take the mean over this
+        subset_arr_this_mean = np.mean(subset_arr_this, axis=0)
+
+        # calculate the anoms
+        anoms_this = subset_arr_this_mean - clim_arrs[i]
+
+        # if the variable is tas then apply the mask
+        if variables[i] == "tas":
+            # Apply the mask to the temperature data
+            anoms_this = np.ma.masked_where(
+                MASK_MATRIX_RESHAPED == 0, anoms_this
+            )
+        elif variables[i] == "psl":
+            anoms_this = anoms_this / 100
+
+        # Plot the data
+        im = ax.contourf(
+            lons,
+            lats,
+            anoms_this,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # add coastlines
+        ax.coastlines()
+
+        # add gridlines
+        ax.gridlines()
+
+        # Set up the colorbar beneath the plot
+        cbar = fig.colorbar(
+            im,
+            ax=ax,
+            orientation="horizontal",
+            pad=0.05,
+            aspect=50,
+            shrink=0.8,
+            location="bottom",
+        )
+
+        # set the ticks for the colorbar as the levels
+        cbar.set_ticks(levels)
+
+        # if the variable is tas or sfcWind
+        if variables[i] == "tas" or variables[i] == "sfcWind":
+            anoms_scatter_this = subset_arr_this - clim_arrs[i]
+            # print the shape of anoms this scatter
+            print(f"Shape of anoms this scatter: {anoms_scatter_this.shape}")
+            
+            # Expand the mask to match the shape of anoms_scatter_this
+            MASK_MATRIX_EU_expanded = np.broadcast_to(MASK_MATRIX_EU, anoms_scatter_this.shape)
+            MASK_MATRIX_UK_expanded = np.broadcast_to(MASK_MATRIX_UK, anoms_scatter_this.shape)
+
+            # Apply the mask
+            anoms_this_eu = np.ma.masked_where(MASK_MATRIX_EU_expanded == 0, anoms_scatter_this)
+            anoms_this_uk = np.ma.masked_where(MASK_MATRIX_UK_expanded == 0, anoms_scatter_this)
+
+            # Print the shapes to verify
+            print(f"Shape of anoms_this_eu: {anoms_this_eu.shape}")
+            print(f"Shape of anoms_this_uk: {anoms_this_uk.shape}")
+
+            # take the spatial mean of the anoms for the EU and UK
+            anoms_this_eu_mean = np.mean(anoms_this_eu, axis=(1, 2))
+            anoms_this_uk_mean = np.mean(anoms_this_uk, axis=(1, 2))
+
+            # calcyulate the correlation betwen the two sets of points
+            corr, _ = pearsonr(anoms_this_eu_mean, anoms_this_uk_mean)
+
+            # plot these scatter points
+            ax_scatter.scatter(
+                anoms_this_uk_mean,
+                anoms_this_eu_mean,
+                color="blue",
+                label=f"r = {corr:.2f}",
+                s=1,
+                marker="x",
+            )
+
+            # fit a straight line to the data
+            m, b = np.polyfit(anoms_this_uk_mean, anoms_this_eu_mean, 1)
+
+            # plot the line
+            ax_scatter.plot(
+                anoms_this_uk_mean,
+                m * anoms_this_uk_mean + b,
+                color="blue",
+                linestyle="--",
+            )
+
+            # set up a title
+            ax_scatter.set_title(f"UK vs nearest EU neighbours")
+
+            # set the x and y labels
+            ax_scatter.set_xlabel("UK Anomalies")
+
+            ax_scatter.set_ylabel("EU Anomalies")
+
+            # include a legend in the top left
+            ax_scatter.legend(loc="upper left")
+
+    return None
+
 
 # Define the main function
 def main():
@@ -649,59 +1045,244 @@ def main():
         os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
     )
 
-    # plot all of the data for psl
-    plot_data_postage_stamp(
-        subset_arr=psl_subset,
-        clim_arr=obs_psl_clim,
-        dates_list=psl_dates_list,
-        variable="psl",
-        region="NA",
-        season=season,
-        lats_path=os.path.join(
-            metadata_dir,
-            "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-        ),
-        lons_path=os.path.join(
-            metadata_dir,
-            "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-        ),
-    )
+    # # plot all of the data for psl
+    # plot_data_postage_stamp(
+    #     subset_arr=psl_subset,
+    #     clim_arr=obs_psl_clim,
+    #     dates_list=psl_dates_list,
+    #     variable="psl",
+    #     region="NA",
+    #     season=season,
+    #     lats_path=os.path.join(
+    #         metadata_dir,
+    #         "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir,
+    #         "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #     ),
+    # )
 
-    # Plot the postage stamps for tas
-    plot_data_postage_stamp(
-        subset_arr=temp_subset,
-        clim_arr=obs_tas_clim,
-        dates_list=temp_dates_list,
-        variable="tas",
-        region="Europe",
-        season=season,
-        lats_path=os.path.join(
-            metadata_dir,
-            "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-        ),
-        lons_path=os.path.join(
-            metadata_dir,
-            "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-        ),
-    )
+    # # Plot the postage stamps for tas
+    # plot_data_postage_stamp(
+    #     subset_arr=temp_subset,
+    #     clim_arr=obs_tas_clim,
+    #     dates_list=temp_dates_list,
+    #     variable="tas",
+    #     region="Europe",
+    #     season=season,
+    #     lats_path=os.path.join(
+    #         metadata_dir,
+    #         "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir,
+    #         "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #     ),
+    # )
 
-    # Plot the postage stamps for wind speed
-    plot_data_postage_stamp(
-        subset_arr=wind_subset,
-        clim_arr=obs_wind_clim,
-        dates_list=wind_dates_list,
-        variable="sfcWind",
-        region="Europe",
-        season=season,
-        lats_path=os.path.join(
-            metadata_dir,
-            "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-        ),
-        lons_path=os.path.join(
-            metadata_dir,
-            "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-        ),
-    )
+    # # Plot the postage stamps for wind speed
+    # plot_data_postage_stamp(
+    #     subset_arr=wind_subset,
+    #     clim_arr=obs_wind_clim,
+    #     dates_list=wind_dates_list,
+    #     variable="sfcWind",
+    #     region="Europe",
+    #     season=season,
+    #     lats_path=os.path.join(
+    #         metadata_dir,
+    #         "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir,
+    #         "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #     ),
+    # )
+
+    # # Find the 80th percentile value of demand net wind max
+    # dnw_80th = obs_df["demand_net_wind_max"].quantile(0.8)
+
+    # # subset the obs df to where this is excedded
+    # subset_df = obs_df[obs_df["demand_net_wind_max"] >= dnw_80th]
+
+    # # plot the composites for all of the winter days
+    # plot_composites(
+    #     subset_df=obs_df,
+    #     subset_arrs=[obs_psl_arr, obs_temp_arr, obs_wind_arr],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         psl_dates_list,
+    #         temp_dates_list,
+    #         wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     figsize=(12, 6),
+    # )
+
+    # # plot the composites for this
+    # plot_composites(
+    #     subset_df=subset_df,
+    #     subset_arrs=[psl_subset, temp_subset, wind_subset],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         psl_dates_list,
+    #         temp_dates_list,
+    #         wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     figsize=(12, 6),
+    # )
+
+    # # Also do the 10th percentile for this
+    # dnw_10th = obs_df["demand_net_wind_max"].quantile(0.9)
+    # subset_df_10th = obs_df[obs_df["demand_net_wind_max"] >= dnw_10th]
+
+    # # plot this composite
+    # plot_composites(
+    #     subset_df=subset_df_10th,
+    #     subset_arrs=[psl_subset, temp_subset, wind_subset],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         psl_dates_list,
+    #         temp_dates_list,
+    #         wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     figsize=(12, 6),
+    # )
+
+
+    # # Find the max demand net wind max
+    # dnw_max = obs_df["demand_net_wind_max"].max()
+
+    # # Subset the obs df to where this is exceeded
+    # subset_df_max = obs_df[obs_df["demand_net_wind_max"] >= dnw_max]
+
+    # # plot this composite
+    # plot_composites(
+    #     subset_df=subset_df_max,
+    #     subset_arrs=[psl_subset, temp_subset, wind_subset],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         psl_dates_list,
+    #         temp_dates_list,
+    #         wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     figsize=(12, 6),
+    # )
 
     end_time = time.time()
 
