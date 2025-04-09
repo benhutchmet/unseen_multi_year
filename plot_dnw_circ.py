@@ -12,6 +12,7 @@ import os
 import sys
 import glob
 import time
+import json
 
 # Third-party imports
 import iris
@@ -28,6 +29,7 @@ from tqdm import tqdm
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, timedelta
 from scipy.stats import pearsonr
+
 
 # Set up a function for loading the data
 def load_obs_data(
@@ -251,6 +253,7 @@ def extract_obs_data(
 
     return data_arr, dates_list
 
+
 # Define a function to plot all of the data
 def plot_data_postage_stamp(
     subset_arr: np.ndarray,
@@ -264,7 +267,7 @@ def plot_data_postage_stamp(
 ):
     """
     Plots the data as a postage stamp plot.
-    
+
     Args:
     ======
 
@@ -276,12 +279,12 @@ def plot_data_postage_stamp(
         season (str): The season to plot.
         lats_path (str): The path to the latitude data.
         lons_path (str): The path to the longitude data.
-        
+
     Returns:
     =========
 
         None
-        
+
     """
 
     # Extract the lats and lons
@@ -483,6 +486,379 @@ def plot_data_postage_stamp(
 
     return None
 
+# Define a function to plot the composites for the model data
+def plot_composites_model(
+    subset_df: pd.DataFrame,
+    subset_arrs: List[np.ndarray],
+    clim_arrs: List[np.ndarray],
+    index_dicts: List[Dict[str, Any]],
+    variables: List[str],
+    lats_paths: List[str],
+    lons_paths: List[str],
+    figsize: Tuple[int, int] = (20, 12),
+):
+    """
+    Plots the composites for the model data.
+    
+    Args:
+    =====
+        subset_df (pd.DataFrame): The subset dataframe.
+        subset_arrs (List[np.ndarray]): The list of subset arrays.
+        clim_arrs (List[np.ndarray]): The list of climatology arrays.
+        index_dicts (List[Dict[str, Any]]): The list of index dictionaries.
+        variables (List[str]): The list of variables to plot.
+        lats_paths (List[str]): The list of latitude paths.
+        lons_paths (List[str]): The list of longitude paths.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+        None
+
+    """
+
+    # Print the len of the subset df
+    print(f"Plotting composites over: {len(subset_df)} days")
+
+    # Set up a figure with 1 nrows and 3 ncols
+    # Set up a figure with a custom gridspec layout
+    fig = plt.figure(figsize=figsize, layout="constrained")
+
+    # set up the gridspec object
+    gs = fig.add_gridspec(3, 2, figure=fig)
+
+    ax1 = fig.add_subplot(gs[0, :], projection=ccrs.PlateCarree())
+    ax2 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())
+    ax3 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())
+    ax4 = fig.add_subplot(gs[2, 0])
+    ax5 = fig.add_subplot(gs[2, 1])
+
+    # Flatten the axes
+    axes_flat = [ax1, [ax2, ax3], [ax4, ax5]]
+
+    # Loop over the axes
+    for i, ax in enumerate(axes_flat):
+        if i == 0:
+            ax = ax1
+            ax_scatter = None
+        elif i == 1:
+            ax = ax2
+            ax_scatter = ax4
+        elif i == 2:
+            ax = ax3
+            ax_scatter = ax5
+
+        # Set up the subset arr this
+        subset_arr_this_full = np.zeros(
+            (len(subset_df), subset_arrs[i].shape[1], subset_arrs[i].shape[2])
+        )
+
+        # extract the lons
+        lons = np.load(lons_paths[i])
+        # extract the lats
+        lats = np.load(lats_paths[i])
+
+        # Loop over the rows in the subset df
+        for j, (_, row) in tqdm(enumerate(subset_df.iterrows()), desc="Processing dataframe", total=len(subset_df)):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # # print the init_year, member and lead
+            # print(f"Init year: {init_year_df}")
+            # print(f"Member: {member_df}")
+            # print(f"Lead: {lead_df}")
+
+            # Find the index of this combination of init_year, member and lead
+            # in the index
+            index_dict_this = index_dicts[i]
+
+            # print(f"Unique init years in this index dict: {sorted(set(index_dict_this['init_year']))}")
+            # print(f"Unique members in this index dict: {sorted(set(index_dict_this['member']))}")
+            # print(f"Unique leads in this index dict: {sorted(set(index_dict_this['lead']))}")
+
+            # Convert lists to NumPy arrays for element-wise comparison
+            init_year_array = np.array(index_dict_this["init_year"])
+            member_array = np.array(index_dict_this["member"])
+            lead_array = np.array(index_dict_this["lead"])
+
+            # Construct the condition using element-wise comparison
+            condition = (
+                (init_year_array == init_year_df) &
+                (member_array == member_df) &
+                (lead_array == lead_df)
+            )
+
+            # Use np.where to find the index
+            iyear_member_lead_index = np.where(condition)[0][0]
+
+            # apply this to the subset arra this
+            subset_arr_this = subset_arrs[i][iyear_member_lead_index, :, :]
+
+            # append this to the subset arr this full
+            subset_arr_this_full[j, :, :] = subset_arr_this
+
+        # if variable is psl then set the cmap to bwr
+        if variables[i] == "psl":
+            cmap = "bwr"
+            levels = np.array(
+                [
+                    -20,
+                    -18,
+                    -16,
+                    -14,
+                    -12,
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    14,
+                    16,
+                    18,
+                    20,
+                ]
+            )
+        elif variables[i] == "tas":
+            cmap = "bwr"
+            levels = np.array(
+                [
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                ]
+            )
+
+            # Set up the x and y
+            x, y = lons, lats
+
+            # Set up the countries shapefile
+            countries_shp = shpreader.natural_earth(
+                resolution="10m",
+                category="cultural",
+                name="admin_0_countries",
+            )
+
+            # Set up the land shapereader
+            # Initialize the mask with the correct shape
+            MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
+            country_shapely = []
+            for country in shpreader.Reader(countries_shp).records():
+                country_shapely.append(country.geometry)
+
+            # Loop over the latitude and longitude points
+            for l in range(len(lats)):
+                for j in range(len(lons)):
+                    point = shapely.geometry.Point(lons[j], lats[l])
+                    for country in country_shapely:
+                        if country.contains(point):
+                            MASK_MATRIX_TMP[l, j] = 1.0
+
+            # Reshape the mask to match the shape of the data
+            MASK_MATRIX_RESHAPED = MASK_MATRIX_TMP
+
+            # print the shape of the mask
+            print(f"Shape of the mask: {MASK_MATRIX_RESHAPED.shape}")
+
+            # print teh sum of the mask
+            print(f"Sum of the mask: {np.sum(MASK_MATRIX_RESHAPED)}")
+        elif variables[i] == "sfcWind":
+            cmap = "PRGn"
+            levels = np.array(
+                [
+                    -5,
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ]
+            )
+        else:
+            raise ValueError(
+                f"Variable {variables[i]} not recognised. Must be psl, tas or sfcWind."
+            )
+
+        # set up the countries list
+        countries = [
+            "Ireland",
+            "Germany",
+            "France",
+            "Netherlands",
+            "Belgium",
+            "Denmark",
+        ]
+
+        uk = ["United Kingdom"]
+
+        # Set up the countries shapefile
+        countries_shp = shpreader.natural_earth(
+            resolution="10m",
+            category="cultural",
+            name="admin_0_countries",
+        )
+
+        # set up a list of subset countries
+        subset_countries = []
+        for country in shpreader.Reader(countries_shp).records():
+            if country.attributes["NAME"] in countries:
+                subset_countries.append(country.geometry)
+
+        uk_country = []
+        for country in shpreader.Reader(countries_shp).records():
+            if country.attributes["NAME"] in uk:
+                uk_country.append(country.geometry)
+
+        # set up mask matrix EU
+        MASK_MATRIX_EU = np.zeros((len(lats), len(lons)))
+        MASK_MATRIX_UK = np.zeros((len(lats), len(lons)))
+        # Loop over the latitude and longitude points
+        for l in range(len(lats)):
+            for j in range(len(lons)):
+                point = shapely.geometry.Point(lons[j], lats[l])
+                for country in subset_countries:
+                    if country.contains(point):
+                        MASK_MATRIX_EU[l, j] = 1.0
+                for country in uk_country:
+                    if country.contains(point):
+                        MASK_MATRIX_UK[l, j] = 1.0
+
+        # Take the mean over the first dimensions of the arr this
+        subset_arr_this_mean = np.mean(subset_arr_this_full, axis=0)
+
+        # Calculate the anoms this
+        anoms_this = subset_arr_this_mean - clim_arrs[i]
+
+        # if variable is tas then apply the mask
+        if variables[i] == "tas":
+            # Apply the mask to the temperature data
+            anoms_this = np.ma.masked_where(MASK_MATRIX_RESHAPED == 0, anoms_this)
+        elif variables[i] == "psl":
+            anoms_this = anoms_this / 100
+
+        # Plot the data
+        im = ax.contourf(
+            lons,
+            lats,
+            anoms_this,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # add the coastlines
+        ax.coastlines()
+
+        # add the gridlines
+        ax.gridlines()
+
+        # set up the colorbar beneath the plot
+        cbar = fig.colorbar(im, ax=ax, orientation="horizontal", pad=0.05, shrink=0.8,
+                            location="bottom")
+        
+        # Set the colorbar ticks
+        cbar.set_ticks(levels)
+
+        # if the variable is tas or sfcwind
+        if variables[i] == "tas" or variables[i] == "sfcWind":
+            # Set up the anoms for scatter this
+            anoms_scatter_this = subset_arr_this_full - clim_arrs[i]
+
+            # expand the mask to match the shape of the data
+            MASK_MATRIX_EU_EXP = np.broadcast_to(
+                MASK_MATRIX_EU, anoms_scatter_this.shape
+            )
+            MASK_MATRIX_UK_EXP = np.broadcast_to(
+                MASK_MATRIX_UK, anoms_scatter_this.shape
+            )
+
+            # Apply the mask
+            anoms_scatter_this_eu = np.ma.masked_where(
+                MASK_MATRIX_EU_EXP == 0, anoms_scatter_this
+            )
+            anoms_scatter_this_uk = np.ma.masked_where(
+                MASK_MATRIX_UK_EXP == 0, anoms_scatter_this
+            )
+
+            # rpint the shape of the anoms scatter this
+            print(f"Shape of the anoms scatter this: {anoms_scatter_this.shape}")
+            # print the shape of the anoms scatter this eu
+            print(f"Shape of the anoms scatter this eu: {anoms_scatter_this_eu.shape}")
+
+            # print the shape of the anoms scatter this uk
+            print(f"Shape of the anoms scatter this uk: {anoms_scatter_this_uk.shape}")
+
+            # take the spatial means of the anoms for the EU and UK
+            anoms_scatter_this_mean_eu = np.mean(
+                anoms_scatter_this_eu, axis=(1, 2)
+            )
+            anoms_scatter_this_mean_uk = np.mean(
+                anoms_scatter_this_uk, axis=(1, 2)
+            )
+
+            # calculate the pearson correlation
+            corr, _ = pearsonr(
+                anoms_scatter_this_mean_eu,
+                anoms_scatter_this_mean_uk,
+            )
+
+            # plot the scatter
+            ax_scatter.scatter(
+                anoms_scatter_this_mean_uk,
+                anoms_scatter_this_mean_eu,
+                color="red",
+                label=f"r={corr:.2f}",
+                s=1,
+                marker="o",
+            )
+
+            # Fit a straight line to the data
+            m, b = np.polyfit(
+                anoms_scatter_this_mean_uk,
+                anoms_scatter_this_mean_eu,
+                1,
+            )
+
+            # plot the line
+            ax_scatter.plot(
+                anoms_scatter_this_mean_uk,
+                m * anoms_scatter_this_mean_uk + b,
+                color="blue",
+                linestyle="--",
+            )
+
+            # set up a title
+            ax_scatter.set_title(f"UK vs nearest EU neighbours")
+
+            # set the x and y labels
+            ax_scatter.set_xlabel("UK Anomalies")
+
+            ax_scatter.set_ylabel("EU Anomalies")
+
+            # include a legend in the top left
+            ax_scatter.legend(loc="upper left")
+
+    return None
+
 # Plot the composites
 # for a subset of the df
 def plot_composites(
@@ -553,7 +929,7 @@ def plot_composites(
         elif i == 2:
             ax = ax3
             ax_scatter = ax5
-        
+
         # Print the dates list this
         print(f"Dates list this: {dates_lists[i]}")
 
@@ -576,7 +952,7 @@ def plot_composites(
                     date.year, date.month, date.day, hour=11, calendar="gregorian"
                 )
                 subset_dates_cf.append(date_this_cf)
-            
+
             cmap = "bwr"
             levels = np.array(
                 [
@@ -608,7 +984,11 @@ def plot_composites(
             # format the subset dates to extract
             for date in subset_dates:
                 date_this_cf = cftime.DatetimeProlepticGregorian(
-                    date.year, date.month, date.day, hour=0, calendar="proleptic_gregorian"
+                    date.year,
+                    date.month,
+                    date.day,
+                    hour=0,
+                    calendar="proleptic_gregorian",
                 )
                 subset_dates_cf.append(date_this_cf)
 
@@ -667,7 +1047,11 @@ def plot_composites(
             # format the subset dates to extract
             for date in subset_dates:
                 date_this_cf = cftime.DatetimeProlepticGregorian(
-                    date.year, date.month, date.day, hour=0, calendar="proleptic_gregorian"
+                    date.year,
+                    date.month,
+                    date.day,
+                    hour=0,
+                    calendar="proleptic_gregorian",
                 )
                 subset_dates_cf.append(date_this_cf)
 
@@ -690,9 +1074,16 @@ def plot_composites(
             raise ValueError(
                 f"Variable {variables[i]} not recognised. Must be psl, tas or sfcWind."
             )
-        
+
         # set up the countries list
-        countries = ["Ireland", "Germany", "France", "Netherlands", "Belgium", "Denmark"]
+        countries = [
+            "Ireland",
+            "Germany",
+            "France",
+            "Netherlands",
+            "Belgium",
+            "Denmark",
+        ]
 
         uk = ["United Kingdom"]
 
@@ -783,9 +1174,7 @@ def plot_composites(
         # if the variable is tas then apply the mask
         if variables[i] == "tas":
             # Apply the mask to the temperature data
-            anoms_this = np.ma.masked_where(
-                MASK_MATRIX_RESHAPED == 0, anoms_this
-            )
+            anoms_this = np.ma.masked_where(MASK_MATRIX_RESHAPED == 0, anoms_this)
         elif variables[i] == "psl":
             anoms_this = anoms_this / 100
 
@@ -825,14 +1214,22 @@ def plot_composites(
             anoms_scatter_this = subset_arr_this - clim_arrs[i]
             # print the shape of anoms this scatter
             print(f"Shape of anoms this scatter: {anoms_scatter_this.shape}")
-            
+
             # Expand the mask to match the shape of anoms_scatter_this
-            MASK_MATRIX_EU_expanded = np.broadcast_to(MASK_MATRIX_EU, anoms_scatter_this.shape)
-            MASK_MATRIX_UK_expanded = np.broadcast_to(MASK_MATRIX_UK, anoms_scatter_this.shape)
+            MASK_MATRIX_EU_expanded = np.broadcast_to(
+                MASK_MATRIX_EU, anoms_scatter_this.shape
+            )
+            MASK_MATRIX_UK_expanded = np.broadcast_to(
+                MASK_MATRIX_UK, anoms_scatter_this.shape
+            )
 
             # Apply the mask
-            anoms_this_eu = np.ma.masked_where(MASK_MATRIX_EU_expanded == 0, anoms_scatter_this)
-            anoms_this_uk = np.ma.masked_where(MASK_MATRIX_UK_expanded == 0, anoms_scatter_this)
+            anoms_this_eu = np.ma.masked_where(
+                MASK_MATRIX_EU_expanded == 0, anoms_scatter_this
+            )
+            anoms_this_uk = np.ma.masked_where(
+                MASK_MATRIX_UK_expanded == 0, anoms_scatter_this
+            )
 
             # Print the shapes to verify
             print(f"Shape of anoms_this_eu: {anoms_this_eu.shape}")
@@ -887,9 +1284,12 @@ def main():
     # Set up the hard coded variables
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
     obs_df_fname = "block_maxima_obs_demand_net_wind.csv"
+    model_df_fname = "block_maxima_model_demand_net_wind.csv"
     winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
     metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
     arrs_persist_dir = "/home/users/benhutch/unseen_multi_year/data"
+    subset_model_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
+    model_clim_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_clim/"
     season = "DJF"
     time_freq = "day"
     len_winter_days = 5324
@@ -899,6 +1299,12 @@ def main():
         obs_df = pd.read_csv(os.path.join(dfs_dir, obs_df_fname), index_col=0)
     else:
         raise FileNotFoundError(f"File {obs_df_fname} does not exist in {dfs_dir}")
+    
+    # If the path esists, load in the model df
+    if os.path.exists(os.path.join(dfs_dir, model_df_fname)):
+        model_df = pd.read_csv(os.path.join(dfs_dir, model_df_fname))
+    else:
+        raise FileNotFoundError(f"File {model_df_fname} does not exist in {dfs_dir}")
 
     # Load the psl data for the north atlantic region
     obs_psl_arr = load_obs_data(
@@ -1044,6 +1450,396 @@ def main():
     wind_dates_list = np.load(
         os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
     )
+
+    # load in the model subset files
+    model_psl_subset_fname = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_{season}_{time_freq}_DnW_subset.npy"
+    )
+    model_psl_subset_json_fname = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list.json"
+    )
+
+    # if the file does not exist then raise an error
+    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_psl_subset_fname)} does not exist."
+        )
+
+    # load the model psl subset
+    model_psl_subset = np.load(os.path.join(subset_model_dir, model_psl_subset_fname))
+
+    # print the shape of the model psl subset
+    print(f"Shape of model psl subset: {model_psl_subset.shape}")
+
+    # print the values of the model psl subset
+    print(f"Model psl subset: {model_psl_subset}")
+
+    # if the json
+    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_psl_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_psl_subset_json_fname), "r") as f:
+        model_psl_subset_index_list = json.load(f)
+
+    # print the length of the model psl subset index list
+    # Print the length of the model psl subset index list
+    print(
+        f"Length of model psl subset index list: {np.shape(model_psl_subset_index_list['init_year'])}"
+    )
+
+    # print the values of the model psl subset index list
+    print(f"Model psl subset index list: {model_psl_subset_index_list}")
+
+    # print the keys in the index list
+    print(f"model_psl_subset index list keys: {model_psl_subset_index_list.keys()}")
+
+    # set up the fnames for sfcWind
+    model_wind_subset_fname = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_{season}_{time_freq}_DnW_subset.npy"
+    )
+    model_wind_subset_json_fname = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list.json"
+    )
+
+    # if the file does not exist then raise an error
+    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_wind_subset_fname)} does not exist."
+        )
+
+    # load the model wind subset
+    model_wind_subset = np.load(os.path.join(subset_model_dir, model_wind_subset_fname))
+
+    # # print the shape of the model wind subset
+    # print(f"Shape of model wind subset: {model_wind_subset.shape}")
+
+    # # print the values of the model wind subset
+    # print(f"Model wind subset: {model_wind_subset}")
+
+    # if the json
+    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_wind_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_wind_subset_json_fname), "r") as f:
+        model_wind_subset_index_list = json.load(f)
+
+    # # print the length of the model wind subset index list
+    # # Print the length of the model wind subset index list
+    # print(f"Length of model wind subset index list: {np.shape(model_wind_subset_index_list['init_year'])}")
+
+    # # print the values of the model wind subset index list
+    # print(f"Model wind subset index list: {model_wind_subset_index_list}")
+
+    # # print the keys in the index list
+    # print(f"model_wind_subset index list keys: {model_wind_subset_index_list.keys()}")
+
+    # set up the fnames for tas
+    model_temp_subset_fname = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_{season}_{time_freq}_DnW_subset.npy"
+    )
+    model_temp_subset_json_fname = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list.json"
+    )
+
+    # if the file does not exist then raise an error
+    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_temp_subset_fname)} does not exist."
+        )
+
+    # load the model temperature subset
+    model_temp_subset = np.load(os.path.join(subset_model_dir, model_temp_subset_fname))
+
+    # # print the shape of the model temperature subset
+    # print(f"Shape of model temperature subset: {model_temp_subset.shape}")
+
+    # # print the values of the model temperature subset
+    # print(f"Model temperature subset: {model_temp_subset}")
+
+    # if the json
+    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_temp_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_temp_subset_json_fname), "r") as f:
+        model_temp_subset_index_list = json.load(f)
+
+    # # print the length of the model temperature subset index list
+    # # Print the length of the model temperature subset index list
+    # print(f"Length of model temperature subset index list: {np.shape(model_temp_subset_index_list['init_year'])}")
+
+    # # print the values of the model temperature subset index list
+    # print(f"Model temperature subset index list: {model_temp_subset_index_list}")
+
+    # # print the keys in the index list
+    # print(f"model_temp_subset index list keys: {model_temp_subset_index_list.keys()}")
+
+    # load in the climatology file for psl
+    psl_clim_fname = f"climatology_HadGEM3-GC31-MM_psl_DJF_NA_1960_2018_day.npy"
+    sfcWind_clim_fname = f"climatology_HadGEM3-GC31-MM_sfcWind_DJF_Europe_1960_2018_day.npy"
+    tas_clim_fname = f"climatology_HadGEM3-GC31-MM_tas_DJF_Europe_1960_2018_day.npy"
+
+    # if the file does not exist then raise an error
+    if not os.path.exists(os.path.join(model_clim_dir, psl_clim_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(model_clim_dir, psl_clim_fname)} does not exist."
+        )
+
+    if not os.path.exists(os.path.join(model_clim_dir, sfcWind_clim_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(model_clim_dir, sfcWind_clim_fname)} does not exist."
+        )
+
+    if not os.path.exists(os.path.join(model_clim_dir, tas_clim_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(model_clim_dir, tas_clim_fname)} does not exist."
+        )
+
+    # load the climatology data
+    obs_psl_clim = np.load(os.path.join(model_clim_dir, psl_clim_fname))
+    obs_wind_clim = np.load(os.path.join(model_clim_dir, sfcWind_clim_fname))
+    obs_tas_clim = np.load(os.path.join(model_clim_dir, tas_clim_fname))
+
+    # print the shape of the climatology data
+    print(f"Shape of obs psl climatology data: {obs_psl_clim.shape}")
+    print(f"Shape of obs wind climatology data: {obs_wind_clim.shape}")
+    print(f"Shape of obs tas climatology data: {obs_tas_clim.shape}")
+
+    # # print the values of the climatology data
+    # print(f"Obs psl climatology data: {obs_psl_clim}")
+    # print(f"Obs wind climatology data: {obs_wind_clim}")
+    # print(f"Obs tas climatology data: {obs_tas_clim}")
+
+    # print the head of the mdoel df
+    print("Head of the model df:")
+    print(model_df.head())
+
+    # prnt the tail of the model df
+    print("Tail of the model df:")
+    print(model_df.tail())
+
+    # Quantify the 80th percentil of demand net wind max
+    # for the observations
+    obs_dnw_80th = obs_df["demand_net_wind_max"].quantile(0.8)
+
+    # Subset the model df to where demand_net_wind_max_bc
+    # exceeds this
+    model_subset_df = model_df[
+        model_df["demand_net_wind_max_bc"] >= obs_dnw_80th
+    ]
+
+    # print the length of the model subset df
+    print(f"Length of model subset df: {len(model_subset_df)}")
+
+    # test the new function
+    plot_composites_model(
+        subset_df=model_subset_df,
+        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        index_dicts=[
+            model_psl_subset_index_list,
+            model_temp_subset_index_list,
+            model_wind_subset_index_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        figsize=(12, 6),
+    )
+
+    # quantify the 90th percentile of demand net wind max in the obs
+    obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.9)
+
+    # subset the obs df to where this is exceeded
+    model_subset_df_90 = model_df[
+        model_df["demand_net_wind_max_bc"] >= obs_dnw_90th
+    ]
+
+    # print the length of the model subset df
+    print(f"Length of model subset df 90: {len(model_subset_df_90)}")
+
+    # test the new function
+    plot_composites_model(
+        subset_df=model_subset_df_90,
+        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        index_dicts=[
+            model_psl_subset_index_list,
+            model_temp_subset_index_list,
+            model_wind_subset_index_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        figsize=(12, 6),
+    )
+
+    # same for the 95th percentile
+    obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
+
+    # subset the obs df to where this is exceeded
+    model_subset_df_95 = model_df[
+        model_df["demand_net_wind_max_bc"] >= obs_dnw_95th
+    ]
+
+    # print the length of the model subset df
+    print(f"Length of model subset df 95: {len(model_subset_df_95)}")
+    # test the new function
+    plot_composites_model(
+        subset_df=model_subset_df_95,
+        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        index_dicts=[
+            model_psl_subset_index_list,
+            model_temp_subset_index_list,
+            model_wind_subset_index_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        figsize=(12, 6),
+    )
+
+    # find the obs max
+    obs_max = obs_df["demand_net_wind_max"].max()
+
+    # subset the model df to where this is exceeded
+    model_subset_df_max = model_df[
+        model_df["demand_net_wind_max_bc"] >= obs_max
+    ]
+
+    # print the length of the model subset df
+    print(f"Length of model subset df max: {len(model_subset_df_max)}")
+
+    # test the new function
+    plot_composites_model(
+        subset_df=model_subset_df_max,
+        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        index_dicts=[
+            model_psl_subset_index_list,
+            model_temp_subset_index_list,
+            model_wind_subset_index_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        figsize=(12, 6),
+    )
+
+    sys.exit()
 
     # # plot all of the data for psl
     # plot_data_postage_stamp(
@@ -1234,7 +2030,6 @@ def main():
     #     ],
     #     figsize=(12, 6),
     # )
-
 
     # # Find the max demand net wind max
     # dnw_max = obs_df["demand_net_wind_max"].max()
