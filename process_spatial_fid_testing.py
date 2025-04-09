@@ -229,49 +229,48 @@ def main():
     # if the model array already exists, exit with an error
     if os.path.exists(model_array_path):
         print(f"Error: {model_array_path} already exists")
-        sys.exit()
 
     # # Load the obs data
     # # FIXME: Hardcoded for now
     # # obs_data = iris.load_cube(test_obs_wind_path, "si10")
     # obs_data = iris.load_cube(test_obs_tas_path, "t2m")
 
-    # if args.variable == "tas":
-    #     # Set up the obs_path
-    #     obs_path = (
-    #         "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc"
-    #     )
+    if args.variable == "tas":
+        # Set up the obs_path
+        obs_path = (
+            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_t2m_daily_1950_2020.nc"
+        )
 
-    #     # Load the obs data
-    #     obs_data = iris.load_cube(obs_path, "t2m")
-    # elif args.variable == "sfcWind":
-    #     # Set up the obs_path
-    #     obs_path = (
-    #         "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
-    #     )
+        # Load the obs data
+        obs_data = iris.load_cube(obs_path, "t2m")
+    elif args.variable == "sfcWind":
+        # Set up the obs_path
+        obs_path = (
+            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
+        )
 
-    #     # Load the obs data
-    #     obs_data = iris.load_cube(obs_path, "si10")
-    # elif args.variable == "psl":
-    #     # Set up the obs path
-    #     obs_path = (
-    #         "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_msl_daily_1960_2020_daymean.nc"
-    #     )
+        # Load the obs data
+        obs_data = iris.load_cube(obs_path, "si10")
+    elif args.variable == "psl":
+        # Set up the obs path
+        obs_path = (
+            "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_msl_daily_1960_2020_daymean.nc"
+        )
 
-    #     # Load the data
-    #     obs_data = iris.load_cube(obs_path, "msl")
-    # else:
-    #     raise ValueError("Variable not recognised")
+        # Load the data
+        obs_data = iris.load_cube(obs_path, "msl")
+    else:
+        raise ValueError("Variable not recognised")
 
     # Loop over the members list
     # Set up an empty list to store the data
     model_ds_list = []
 
     # loop over the members
-    # print("=================================")
-    # print("Looping over the members")
-    # print("TESTING: Using only one member")
-    # print("=================================")
+    print("=================================")
+    print("Looping over the members")
+    print("TESTING: Using only one member")
+    print("=================================")
     for m, member_this in tqdm(enumerate(members_list)):
 
         # print member this
@@ -308,40 +307,40 @@ def main():
     print(model_cube)
 
     # # print the obs data
-    # print(obs_data)
+    print(obs_data)
 
-    # # Constrain the obs to the winter
-    # # FIXME: hardcoded as DJF for now
-    # obs_data = obs_data.extract(
-    #     iris.Constraint(
-    #         time=lambda cell: datetime(int(args.init_year), 12, 1)
-    #         <= cell.point
-    #         < datetime(int(args.init_year) + 1, 3, 1)
-    #     )
-    # )
+    # Constrain the obs to the winter
+    # FIXME: hardcoded as DJF for now
+    obs_data = obs_data.extract(
+        iris.Constraint(
+            time=lambda cell: datetime(int(args.init_year), 12, 1)
+            <= cell.point
+            < datetime(int(args.init_year) + 1, 3, 1)
+        )
+    )
 
-    # # print the obs data
-    # print(obs_data)
+    # print the obs data
+    print(obs_data)
 
     # Set up the leads to extract from the model data
-    # leads_djf_model = np.arange(
-    #     31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
-    # )
+    leads_djf_model = np.arange(
+        31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
+    )
 
-    # # print the min lead we are extracting
-    # print("=================================")
-    # print(f"Min lead: {leads_djf_model[0]}")
-    # print(f"Max lead: {leads_djf_model[-1]}")
-    # print("=================================")
+    # print the min lead we are extracting
+    print("=================================")
+    print(f"Min lead: {leads_djf_model[0]}")
+    print(f"Max lead: {leads_djf_model[-1]}")
+    print("=================================")
 
     # # Extract the relevant leads
-    # model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
+    model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
 
-    # # Extract the data for the gridbox
-    # obs_data_box = obs_data.intersection(
-    #     longitude=(gridbox["lon1"], gridbox["lon2"]),
-    #     latitude=(gridbox["lat1"], gridbox["lat2"]),
-    # )
+    # Extract the data for the gridbox
+    obs_data_box = obs_data.intersection(
+        longitude=(gridbox["lon1"], gridbox["lon2"]),
+        latitude=(gridbox["lat1"], gridbox["lat2"]),
+    )
 
     if args.region == "global":
         model_cube_box = model_cube
@@ -352,14 +351,14 @@ def main():
             latitude=(gridbox["lat1"], gridbox["lat2"]),
         )
 
-    # # Regrid the obs data to the model data
-    # obs_data_box_regrid = obs_data_box.regrid(model_cube_box, iris.analysis.Linear())
+    # Regrid the obs data to the model data
+    obs_data_box_regrid = obs_data_box.regrid(model_cube_box, iris.analysis.Linear())
 
     # Set up the name for the lats array
     lats_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lats.npy"
     lons_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lons.npy"
     members = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_members.npy"
-    # obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_times.npy"
+    obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_times.npy"
 
     # Set up the paths for the lats and lons
     lats_array_path = os.path.join(meta_dir, lats_array_fname)
@@ -369,43 +368,43 @@ def main():
     members_path = os.path.join(meta_dir, members)
 
     # # Set up the path for the obs times
-    # obs_times_path = os.path.join(meta_dir, obs_times)
+    obs_times_path = os.path.join(meta_dir, obs_times)
 
-    # if the lats array already exists, exit with an error
-    if os.path.exists(lats_array_path):
-        print(f"{lats_array_path} already exists")
-    else:
-        # save the lats array
-        np.save(lats_array_path, model_cube_box.coord("latitude").points)
+    # # if the lats array already exists, exit with an error
+    # if os.path.exists(lats_array_path):
+    #     print(f"{lats_array_path} already exists")
+    # else:
+    #     # save the lats array
+    #     np.save(lats_array_path, model_cube_box.coord("latitude").points)
 
-    # if the lons array already exists, exit with an error
-    if os.path.exists(lons_array_path):
-        print(f"{lons_array_path} already exists")
-    else:
-        # save the lons array
-        np.save(lons_array_path, model_cube_box.coord("longitude").points)
+    # # if the lons array already exists, exit with an error
+    # if os.path.exists(lons_array_path):
+    #     print(f"{lons_array_path} already exists")
+    # else:
+    #     # save the lons array
+    #     np.save(lons_array_path, model_cube_box.coord("longitude").points)
 
-    # if the members array already exists, exit with an error
-    if os.path.exists(members_path):
-        print(f"{members_path} already exists")
-    else:
-        # save the members array
-        np.save(members_path, members_list)
+    # # if the members array already exists, exit with an error
+    # if os.path.exists(members_path):
+    #     print(f"{members_path} already exists")
+    # else:
+    #     # save the members array
+    #     np.save(members_path, members_list)
 
     # # if the obs times array already exists, exit with an error
-    # if os.path.exists(obs_times_path):
-    #     print(f"{obs_times_path} already exists")
-    # else:
-    #     # save the obs times array
-    #     np.save(obs_times_path, obs_data_box_regrid.coord("time").points)
+    if os.path.exists(obs_times_path):
+        print(f"{obs_times_path} already exists")
+    else:
+        # save the obs times array
+        np.save(obs_times_path, obs_data_box_regrid.coord("time").points)
 
     # # Set up the obs data array
-    # obs_data_array = obs_data_box_regrid.data
-    # obs_data_array = obs_data_array.filled(np.nan)
+    obs_data_array = obs_data_box_regrid.data
+    obs_data_array = obs_data_array.filled(np.nan)
 
     # Set up the model data array
-    model_data_array = model_cube_box.data
-    model_data_array = model_data_array.filled(np.nan)
+    # model_data_array = model_cube_box.data
+    # model_data_array = model_data_array.filled(np.nan)
 
     # # print the shape of the data
     # print("=================================")
@@ -421,10 +420,10 @@ def main():
     # print("=================================")
 
     # # Save the obs data array
-    # np.save(obs_array_path, obs_data_array)
+    np.save(obs_array_path, obs_data_array)
 
     # Save the model data array
-    np.save(model_array_path, model_data_array)
+    # np.save(model_array_path, model_data_array)
 
     # Set up the end time
     end_time = time.time()
