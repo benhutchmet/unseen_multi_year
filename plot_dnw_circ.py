@@ -28,7 +28,7 @@ import cartopy.io.shapereader as shpreader
 from tqdm import tqdm
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, timedelta
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, linregress
 
 
 # Set up a function for loading the data
@@ -495,6 +495,7 @@ def plot_composites_model(
     variables: List[str],
     lats_paths: List[str],
     lons_paths: List[str],
+    suptitle: str = None,
     figsize: Tuple[int, int] = (20, 12),
 ):
     """
@@ -509,6 +510,7 @@ def plot_composites_model(
         variables (List[str]): The list of variables to plot.
         lats_paths (List[str]): The list of latitude paths.
         lons_paths (List[str]): The list of longitude paths.
+        suptitle (str): The suptitle for the plot.
         figsize (Tuple[int, int]): The figure size.
 
     Returns:
@@ -821,21 +823,21 @@ def plot_composites_model(
                 anoms_scatter_this_mean_uk,
             )
 
-            # plot the scatter
-            ax_scatter.scatter(
-                anoms_scatter_this_mean_uk,
-                anoms_scatter_this_mean_eu,
-                color="red",
-                label=f"r={corr:.2f}",
-                s=1,
-                marker="o",
-            )
-
             # Fit a straight line to the data
             m, b = np.polyfit(
                 anoms_scatter_this_mean_uk,
                 anoms_scatter_this_mean_eu,
                 1,
+            )
+
+            # plot the scatter
+            ax_scatter.scatter(
+                anoms_scatter_this_mean_uk,
+                anoms_scatter_this_mean_eu,
+                color="red",
+                label=f"r={corr:.2f}\n slope={m:.2f}",
+                s=1,
+                marker="o",
             )
 
             # plot the line
@@ -857,6 +859,10 @@ def plot_composites_model(
             # include a legend in the top left
             ax_scatter.legend(loc="upper left")
 
+    # set up the suptitle
+    if suptitle is not None:
+        fig.suptitle(suptitle, fontsize=16)
+
     return None
 
 # Plot the composites
@@ -869,6 +875,8 @@ def plot_composites(
     variables: List[str],
     lats_paths: List[str],
     lons_paths: List[str],
+    winter_years: np.ndarray = np.arange(1960, 2018 + 1, 1),
+    suptitle: str = None,
     figsize: Tuple[int, int] = (20, 12),
 ):
     """
@@ -883,6 +891,9 @@ def plot_composites(
         variables (List[str]): The list of variables to plot.
         lats_paths (List[str]): The list of latitude paths.
         lons_paths (List[str]): The list of longitude paths.
+        winter_years (np.ndarray): The years to load.
+        suptitle (str): The suptitle for the plot.
+        figsize (Tuple[int, int]): The figure size.
 
     Returns:
     ========
@@ -1165,6 +1176,29 @@ def plot_composites(
         # print the shape of subset arr this
         print(f"Shape of subset arr this: {subset_arr_this.shape}")
 
+        # if the variable is tas then apply some detrending
+        if variables[i] == "tas":
+            print("-----------------------------------------------")
+            print("Applying a detrend to the temperature data")
+            print("-----------------------------------------------")
+            # Loop over the lats and lons
+            for l in range(len(lats)):
+                for j in range(len(lons)):
+                    # detrend the data
+                    slope_T, intercept_T, _, _, _ = linregress(
+                        winter_years,
+                        subset_arr_this[:, l, j],
+                    )
+
+                    # calculate the trend line this
+                    trend_line_this = slope_T * winter_years + intercept_T
+
+                    # Find the final point on the trend line
+                    final_point_this = trend_line_this[-1]
+
+                    # Subtract the trend line from the data
+                    subset_arr_this[:, l, j] = final_point_this - trend_line_this + subset_arr_this[:, l, j]
+
         # take the mean over this
         subset_arr_this_mean = np.mean(subset_arr_this, axis=0)
 
@@ -1242,18 +1276,18 @@ def plot_composites(
             # calcyulate the correlation betwen the two sets of points
             corr, _ = pearsonr(anoms_this_eu_mean, anoms_this_uk_mean)
 
+            # fit a straight line to the data
+            m, b = np.polyfit(anoms_this_uk_mean, anoms_this_eu_mean, 1)
+
             # plot these scatter points
             ax_scatter.scatter(
                 anoms_this_uk_mean,
                 anoms_this_eu_mean,
                 color="blue",
-                label=f"r = {corr:.2f}",
+                label=f"r = {corr:.2f}\n slope = {m:.2f}",
                 s=1,
                 marker="x",
             )
-
-            # fit a straight line to the data
-            m, b = np.polyfit(anoms_this_uk_mean, anoms_this_eu_mean, 1)
 
             # plot the line
             ax_scatter.plot(
@@ -1273,6 +1307,10 @@ def plot_composites(
 
             # include a legend in the top left
             ax_scatter.legend(loc="upper left")
+
+    # include the sup title for the plot
+    if suptitle is not None:
+        fig.suptitle(suptitle, fontsize=14)
 
     return None
 
@@ -1626,6 +1664,49 @@ def main():
     print("Tail of the model df:")
     print(model_df.tail())
 
+    # Plot the composites for all the data
+    plot_composites_model(
+        subset_df=model_df,
+        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        index_dicts=[
+            model_psl_subset_index_list,
+            model_temp_subset_index_list,
+            model_wind_subset_index_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        suptitle="All model DnW max",
+        figsize=(12, 6),
+    )
+
     # Quantify the 80th percentil of demand net wind max
     # for the observations
     obs_dnw_80th = obs_df["demand_net_wind_max"].quantile(0.8)
@@ -1678,6 +1759,7 @@ def main():
                 "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
             ),
         ],
+        suptitle="Model DnW max > 80th percentile obs DnW max",
         figsize=(12, 6),
     )
 
@@ -1731,6 +1813,7 @@ def main():
                 "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
             ),
         ],
+        suptitle="Model DnW max > 90th percentile obs DnW max",
         figsize=(12, 6),
     )
 
@@ -1783,6 +1866,7 @@ def main():
                 "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
             ),
         ],
+        suptitle="Model DnW max > 95th percentile obs DnW max",
         figsize=(12, 6),
     )
 
@@ -1836,6 +1920,7 @@ def main():
                 "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
             ),
         ],
+        suptitle="Model DnW max > max obs DnW max",
         figsize=(12, 6),
     )
 
