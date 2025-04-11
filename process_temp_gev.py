@@ -56,6 +56,7 @@ def model_drift_corr_plot(
     obs_df: pd.DataFrame,
     obs_var_name: str,
     lead_name: str,
+    xlabel: str = "Temperature (C)",
     init_years_name: str = "init_year",
     eff_dec_years_name: str = "effective_dec_year",
     figsize: tuple = (10, 5),
@@ -128,10 +129,10 @@ def model_drift_corr_plot(
         # Get the mean of the obs data
         obs_mean_lead_this = obs_df_lead_this[obs_var_name].mean()
 
-        # limit to the effective dec years in the year 1 to year 2 period
-        model_df_lead_this = model_df_lead_this[
-            model_df_lead_this[eff_dec_years_name].isin(effective_dec_years_constant)
-        ]
+        # # limit to the effective dec years in the year 1 to year 2 period
+        # model_df_lead_this = model_df_lead_this[
+        #     model_df_lead_this[eff_dec_years_name].isin(effective_dec_years_constant)
+        # ]
 
         # Extract the unique init years in this case
         unique_init_years = model_df_lead_this[init_years_name].unique()
@@ -171,68 +172,69 @@ def model_drift_corr_plot(
         # Calculate the mean of the ensemble means - forecast climatology
         forecast_clim_lead_this = np.mean(ensemble_means_this)
 
-        forecast_clim_bonus_inits = 0
+        # forecast_clim_bonus_inits = 0
 
-        # if the unique init years full is not the same array as uinique init years
-        if not np.array_equal(
-            unique_init_years_full, unique_init_years
-        ):
-            print(f"For lead {lead}, unique init years full: {unique_init_years_full[0]} to {unique_init_years_full[-1]} is not the same as unique init years: {unique_init_years[0]} to {unique_init_years[-1]}")
+        # # if the unique init years full is not the same array as uinique init years
+        # if not np.array_equal(
+        #     unique_init_years_full, unique_init_years
+        # ):
+        #     print(f"For lead {lead}, unique init years full: {unique_init_years_full[0]} to {unique_init_years_full[-1]} is not the same as unique init years: {unique_init_years[0]} to {unique_init_years[-1]}")
 
-            # Extract the init years unique to unique init years full
-            init_years_unique = np.setdiff1d(
-                unique_init_years_full, unique_init_years
-            )
+        #     # Extract the init years unique to unique init years full
+        #     init_years_unique = np.setdiff1d(
+        #         unique_init_years_full, unique_init_years
+        #     )
 
-            # print the first and last init years unique
-            print(f"Init years unique: {init_years_unique[0]} to {init_years_unique[-1]}")
+        #     # print the first and last init years unique
+        #     print(f"Init years unique: {init_years_unique[0]} to {init_years_unique[-1]}")
 
-            # Set up an array to append the ensemble means to
-            ensemble_means_this = np.zeros([len(init_years_unique)])
+        #     # Set up an array to append the ensemble means to
+        #     ensemble_means_this = np.zeros([len(init_years_unique)])
 
-            # loop over the init years unique
-            for j, init_year in enumerate(init_years_unique):
-                # prit the init year
-                # print(f"Init year: {init_year}")
-                # # print the type of thef init year
-                # print(f"Type of init year: {type(init_year)}")
+        #     # loop over the init years unique
+        #     for j, init_year in enumerate(init_years_unique):
+        #         # prit the init year
+        #         # print(f"Init year: {init_year}")
+        #         # # print the type of thef init year
+        #         # print(f"Type of init year: {type(init_year)}")
 
-                # print(f"Lead time: {lead}")
-                # # print the unique init years full in model df copy
-                # print(
-                #     model_df_copy[init_years_name].unique()
-                # )
+        #         # print(f"Lead time: {lead}")
+        #         # # print the unique init years full in model df copy
+        #         # print(
+        #         #     model_df_copy[init_years_name].unique()
+        #         # )
 
-                # # print the type of the the first init year in the model df copy
-                # print(f"Type of first init year: {type(model_df_copy[init_years_name].unique()[0])}")
+        #         # # print the type of the the first init year in the model df copy
+        #         # print(f"Type of first init year: {type(model_df_copy[init_years_name].unique()[0])}")
                 
-                model_df_lead_this_init = model_df_copy[
-                    (model_df_copy[init_years_name] == init_year) & (model_df_copy[lead_name] == lead)
-                ]
+        #         model_df_lead_this_init = model_df_copy[
+        #             (model_df_copy[init_years_name] == init_year) & (model_df_copy[lead_name] == lead)
+        #         ]
 
-                # Assert that the length of the model_df_lead_this_init is 10
-                if len(model_df_lead_this_init) != 10:
-                    raise ValueError(
-                        f"Model df lead this init is not length 10: {model_df_lead_this_init}"
-                    )
+        #         # Assert that the length of the model_df_lead_this_init is 10
+        #         if len(model_df_lead_this_init) != 10:
+        #             raise ValueError(
+        #                 f"Model df lead this init is not length 10: {model_df_lead_this_init}"
+        #             )
 
-                # Calculate the ensemble mean this
-                ensemble_mean_val_this = model_df_lead_this_init[model_var_name].mean()
+        #         # Calculate the ensemble mean this
+        #         ensemble_mean_val_this = model_df_lead_this_init[model_var_name].mean()
 
-                # Append the ensemble mean to the array
-                ensemble_means_this[j] = ensemble_mean_val_this
+        #         # Append the ensemble mean to the array
+        #         ensemble_means_this[j] = ensemble_mean_val_this
 
-            # Calculate the mean of the ensemble means - forecast climatology
-            forecast_clim_bonus_inits = np.mean(ensemble_means_this)
+        #     # Calculate the mean of the ensemble means - forecast climatology
+        #     forecast_clim_bonus_inits = np.mean(ensemble_means_this)
 
-            # Print the difference between the two values
-            print(
-                f"Forecast climatology bonus inits: {forecast_clim_bonus_inits} - forecast climatology lead this: {forecast_clim_lead_this}"
-            )
-            diff = forecast_clim_bonus_inits - forecast_clim_lead_this
-            print(f"Difference: {diff}")
-            # # Add the difference to the forecast climatology lead this
-            # forecast_clim_lead_this += diff
+        #     # Print the difference between the two values
+        #     print(
+        #         f"Forecast climatology bonus inits: {forecast_clim_bonus_inits} - forecast climatology lead this: {forecast_clim_lead_this}"
+        #     )
+        #     diff = forecast_clim_bonus_inits - forecast_clim_lead_this
+        #     print(f"Difference: {diff}")
+        #     # # Add the difference to the forecast climatology lead this
+        #     # forecast_clim_lead_this += diff
+
 
         # Loop over the unique init years again
         for j, init_year in enumerate(unique_init_years_full):
@@ -256,11 +258,11 @@ def model_drift_corr_plot(
                     model_var_name
                 ].values[0]
 
-                if init_year in init_years_unique and lead != 11:
-                    anomaly_this = ensemble_mean_val_this_member - forecast_clim_bonus_inits
-                else:
-                    # Calculate the anomaly
-                    anomaly_this = ensemble_mean_val_this_member - forecast_clim_lead_this
+                # if init_year in init_years_unique and lead != 11:
+                #     anomaly_this = ensemble_mean_val_this_member - forecast_clim_bonus_inits
+                # else:
+                #     # Calculate the anomaly
+                anomaly_this = ensemble_mean_val_this_member - forecast_clim_lead_this
 
                 # Set up a new column in the df for the anomalies
                 model_df_copy.loc[
@@ -356,8 +358,8 @@ def model_drift_corr_plot(
     ax2.set_ylabel("")
 
     # Set the x axis label
-    ax1.set_xlabel(f"Temperature (C)")
-    ax2.set_xlabel(f"Temperature (C)")
+    ax1.set_xlabel(xlabel)
+    ax2.set_xlabel(xlabel)
 
     # Set up the legend in the top right of the right pot
     ax2.legend(
@@ -795,6 +797,18 @@ def main():
         figsize=(10, 5),
     )
 
+    # Plot the lead pdfs for wind speed pre drift/bc
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_wind,
+        obs_df=block_minima_obs_wind,
+        model_var_name="data_min",
+        obs_var_name="data_min",
+        lead_name="winter_year",
+        xlabel="Wind speed (m/s)",
+        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+        figsize=(10, 5),
+    )
+
     # Plot the lead time depedent drift for the model and the corrected model
     block_minima_model_tas_drift_corr = model_drift_corr_plot(
         model_df=block_minima_model_tas,
@@ -802,6 +816,17 @@ def main():
         obs_df=block_minima_obs_tas,
         obs_var_name="data_c_min",
         lead_name="winter_year",
+        xlabel="Temperature (C)",
+    )
+
+    # Apply the same drift correction to the wind data
+    block_minima_model_wind_drift_corr = model_drift_corr_plot(
+        model_df=block_minima_model_wind,
+        model_var_name="data_min",
+        obs_df=block_minima_obs_wind,
+        obs_var_name="data_min",
+        lead_name="winter_year",
+        xlabel="Wind speed (m/s)",
     )
 
     # PLOT THE LEAD pdfs post this
@@ -816,66 +841,86 @@ def main():
         figsize=(10, 5),
     )
 
-    # Loop over the unique lead times in block minima model tas drift corr
-    for lead in block_minima_model_tas_drift_corr["winter_year"].unique():
-        # Print the lead time
-        print(f"Lead time: {lead}")
+    # Plot the lead pdfs for wind speed post drift/bc
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_wind_drift_corr,
+        obs_df=block_minima_obs_wind,
+        model_var_name="data_min_drift_bc",
+        obs_var_name="data_min",
+        lead_name="winter_year",
+        xlabel="Wind speed (m/s)",
+        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
+        figsize=(10, 5),
+    )
 
-        # Extract the data for this lead time, excluding NaN values
-        data_this = block_minima_model_tas_drift_corr[
-            (block_minima_model_tas_drift_corr["winter_year"] == lead)
-            & (block_minima_model_tas_drift_corr["data_tas_c_min_drift_bc"].notna())
-        ]
+    # sys.exit()
 
-        # Check if there is any data left after filtering
-        if not data_this.empty:
-            # Print the unique init years
-            print(f"First init year drift corr: {data_this['init_year'].unique()[0]}")
-            print(f"Last init year drift corr: {data_this['init_year'].unique()[-1]}")
-            print(f"second last init year drift corr: {data_this['init_year'].unique()[-2]}")
-        else:
-            print("No valid data for this lead time.")
+    # # Loop over the unique lead times in block minima model tas drift corr
+    # for lead in block_minima_model_tas_drift_corr["winter_year"].unique():
+    #     # Print the lead time
+    #     print(f"Lead time: {lead}")
 
-    # print the unique init years in block minima model tas
-    for lead in block_minima_model_tas["winter_year"].unique():
-        # print the lead time
-        print(f"Lead time: {lead}")
+    #     # Extract the data for this lead time, excluding NaN values
+    #     data_this = block_minima_model_tas_drift_corr[
+    #         (block_minima_model_tas_drift_corr["winter_year"] == lead)
+    #         & (block_minima_model_tas_drift_corr["data_tas_c_min_drift_bc"].notna())
+    #     ]
 
-        data_this = block_minima_model_tas[
-            (block_minima_model_tas["winter_year"] == lead)
-            & (block_minima_model_tas["data_tas_c_min"].notna())
-        ]
-        # Check if there is any data left after filtering
-        if not data_this.empty:
-            # Print the unique init years
-            print(f"First init year original: {data_this['init_year'].unique()[0]}")
-            print(f"Last init year original: {data_this['init_year'].unique()[-1]}")
-            print(f"second last init year original: {data_this['init_year'].unique()[-2]}")
-        else:
-            print("No valid data for this lead time.")
+    #     # Check if there is any data left after filtering
+    #     if not data_this.empty:
+    #         # Print the unique init years
+    #         print(f"First init year drift corr: {data_this['init_year'].unique()[0]}")
+    #         print(f"Last init year drift corr: {data_this['init_year'].unique()[-1]}")
+    #         print(f"second last init year drift corr: {data_this['init_year'].unique()[-2]}")
+    #     else:
+    #         print("No valid data for this lead time.")
 
-    sys.exit()
+    # # print the unique init years in block minima model tas
+    # for lead in block_minima_model_tas["winter_year"].unique():
+    #     # print the lead time
+    #     print(f"Lead time: {lead}")
+
+    #     data_this = block_minima_model_tas[
+    #         (block_minima_model_tas["winter_year"] == lead)
+    #         & (block_minima_model_tas["data_tas_c_min"].notna())
+    #     ]
+    #     # Check if there is any data left after filtering
+    #     if not data_this.empty:
+    #         # Print the unique init years
+    #         print(f"First init year original: {data_this['init_year'].unique()[0]}")
+    #         print(f"Last init year original: {data_this['init_year'].unique()[-1]}")
+    #         print(f"second last init year original: {data_this['init_year'].unique()[-2]}")
+    #     else:
+    #         print("No valid data for this lead time.")
 
     # Use a function to correct the overall rolling mean trends
-    block_minima_model_tas_lead_dt = gev_funcs.pivot_detrend_model(
-        df=block_minima_model_tas,
+    block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
+        df=block_minima_model_tas_drift_corr,
         x_axis_name="effective_dec_year",
-        y_axis_name="data_tas_c_min",
+        y_axis_name="data_tas_c_min_drift_bc",
+        suffix="_dt",
+    )
+
+    # apply a detrend to the wind data
+    block_minima_model_wind_drift_corr_dt = gev_funcs.pivot_detrend_model(
+        df=block_minima_model_wind_drift_corr,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_min_drift_bc",
         suffix="_dt",
     )
 
     # print the head of the dataframe
-    print(block_minima_model_tas_lead_dt.head())
+    print(block_minima_model_tas_drift_corr_dt.head())
 
     # print the tail of the dataframe
-    print(block_minima_model_tas_lead_dt.tail())
+    print(block_minima_model_tas_drift_corr_dt.tail())
 
     # print the unique effective dec year in block minima model tas lead dt
-    print(block_minima_model_tas_lead_dt["effective_dec_year"].unique())
+    print(block_minima_model_tas_drift_corr_dt["effective_dec_year"].unique())
 
     # print the number of Nans in the model data
     # for the data tas c min dt column
-    print(block_minima_model_tas_lead_dt["data_tas_c_min_dt"].isnull().sum())
+    print(block_minima_model_tas_drift_corr_dt["data_tas_c_min_drift_bc_dt"].isna().sum())
 
     # pviot detrend the obs data
     block_minima_obs_tas_dt = gev_funcs.pivot_detrend_obs(
@@ -884,11 +929,18 @@ def main():
         y_axis_name="data_c_min",
     )
 
+    # pivot detrend the obs data for wind speed
+    block_minima_obs_wind_dt = gev_funcs.pivot_detrend_obs(
+        df=block_minima_obs_wind,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_min",
+    )
+
     # Compare the lead time corrected trends
     gev_funcs.lead_time_trends(
-        model_df=block_minima_model_tas_lead_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
         obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min_dt",
+        model_var_name="data_tas_c_min_drift_bc_dt",
         obs_var_name="data_c_min_dt",
         lead_name="winter_year",
         ylabel="Temperature (C)",
@@ -900,12 +952,12 @@ def main():
     gev_funcs.compare_trends(
         model_df_full_field=df_model_tas_djf,
         obs_df_full_field=df_obs_tas,
-        model_df_block=block_minima_model_tas_lead_dt,
+        model_df_block=block_minima_model_tas_drift_corr_dt,
         obs_df_block=block_minima_obs_tas_dt,
         model_var_name_full_field="data_tas_c",
         obs_var_name_full_field="data_c",
-        model_var_name_block="data_tas_c_min_dt",
-        obs_var_name_block="data_c_min_dt",
+        model_var_name_block="data_tas_c_min_drift_bc",
+        obs_var_name_block="data_c_min",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
         ylabel="Temperature (C)",
@@ -916,64 +968,94 @@ def main():
         min_periods=1,
     )
 
-    # perform the lead time depdent bias correction
-    # for the block minima
-    block_minima_model_tas_lead_dt_bc = gev_funcs.lead_time_mean_bias_correct(
-        model_df=block_minima_model_tas_lead_dt,
+    # sys.exit()
+
+    # Now plot the lead time dependent biases for the trend corrected data
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_tas_drift_corr_dt,
         obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min_dt",
+        model_var_name="data_tas_c_min_drift_bc_dt",
         obs_var_name="data_c_min_dt",
         lead_name="winter_year",
+        xlabel="Temperature (C)",
+        suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift + trend corrected)",
+        figsize=(10, 5),
     )
 
-    # bias correct the block minima obs tas
-    block_minima_model_tas_lead_dt_bc = gev_funcs.lead_time_mean_bias_correct(
-        model_df=block_minima_model_tas_lead_dt_bc,
-        obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min",
-        obs_var_name="data_c_min",
+    # Plot the lead pdfs for wind speed post drift/bc
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_df=block_minima_obs_wind_dt,
+        model_var_name="data_min_drift_bc_dt",
+        obs_var_name="data_min_dt",
         lead_name="winter_year",
+        xlabel="Wind speed (m/s)",
+        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift + trend corrected)",
+        figsize=(10, 5),
     )
 
-    # perform the lead time dependent bias correction
-    # for the wind speed data
-    block_minima_model_wind_bc = gev_funcs.lead_time_mean_bias_correct(
-        model_df=block_minima_model_wind,
-        obs_df=block_minima_obs_wind,
-        model_var_name="data_min",
-        obs_var_name="data_min",
-        lead_name="winter_year",
-    )
+    sys.exit()
 
-    # print the head of the block minima model tas lead dt bc
-    print(block_minima_model_tas_lead_dt_bc.head())
+    # perform the lead time depdent bias correction
+    # for the block minima
+    # block_minima_model_tas_lead_dt_bc = gev_funcs.lead_time_mean_bias_correct(
+    #     model_df=block_minima_model_tas_lead_dt,
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_var_name="data_tas_c_min_dt",
+    #     obs_var_name="data_c_min_dt",
+    #     lead_name="winter_year",
+    # )
 
-    # print the head of the block minima model wind bc
-    print(block_minima_model_wind_bc.head())
+    # # bias correct the block minima obs tas
+    # block_minima_model_tas_lead_dt_bc = gev_funcs.lead_time_mean_bias_correct(
+    #     model_df=block_minima_model_tas_lead_dt_bc,
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_var_name="data_tas_c_min",
+    #     obs_var_name="data_c_min",
+    #     lead_name="winter_year",
+    # )
+
+    # # perform the lead time dependent bias correction
+    # # for the wind speed data
+    # block_minima_model_wind_bc = gev_funcs.lead_time_mean_bias_correct(
+    #     model_df=block_minima_model_wind,
+    #     obs_df=block_minima_obs_wind,
+    #     model_var_name="data_min",
+    #     obs_var_name="data_min",
+    #     lead_name="winter_year",
+    # )
+
+    # # print the head of the block minima model tas lead dt bc
+    # print(block_minima_model_tas_lead_dt_bc.head())
+
+    # # print the head of the block minima model wind bc
+    # print(block_minima_model_wind_bc.head())
 
     # rename data_tas_c_min_dt_bc
     # to data_tas_c_min_bc_dt
-    block_minima_model_tas_lead_dt_bc.rename(
-        columns={"data_tas_c_min_dt_bc": "data_tas_c_min_bc_dt"}, inplace=True
-    )
+    # block_minima_model_tas_lead_dt_bc.rename(
+    #     columns={"data_tas_c_min_dt_bc": "data_tas_c_min_bc_dt"}, inplace=True
+    # )
 
     # plot the plots
     gev_funcs.plot_detrend_ts_subplots(
         obs_df_left=block_minima_obs_tas_dt,
-        model_df_left=block_minima_model_tas_lead_dt_bc,
-        obs_df_right=block_minima_obs_wind,
-        model_df_right=block_minima_model_wind_bc,
+        model_df_left=block_minima_model_tas_drift_corr_dt,
+        obs_df_right=block_minima_obs_wind_dt,
+        model_df_right=block_minima_model_wind_drift_corr_dt,
         obs_var_name_left="data_c_min",
-        model_var_name_left="data_tas_c_min_bc",
+        model_var_name_left="data_tas_c_min_drift_bc",
         obs_var_name_right="data_min",
-        model_var_name_right="data_min_bc",
+        model_var_name_right="data_min_drift_bc",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel_left="Temperature (C)",
         ylabel_right="Wind speed (m/s)",
         detrend_suffix_left="_dt",
-        detrend_suffix_right=None,
+        detrend_suffix_right="_dt",
     )
+
+    sys.exit()
 
     # Make sure effective dec year is a datetime in the model tas data
     block_minima_model_tas_lead_dt_bc["effective_dec_year"] = pd.to_datetime(
@@ -981,8 +1063,8 @@ def main():
     )
 
     # Make sure effective dec year is a datetime in the model wind data
-    block_minima_model_wind_bc["effective_dec_year"] = pd.to_datetime(
-        block_minima_model_wind_bc["effective_dec_year"], format="%Y"
+    block_minima_model_wind["effective_dec_year"] = pd.to_datetime(
+        block_minima_model_wind["effective_dec_year"], format="%Y"
     )
 
     # Make sure effective dec year is a datetime in the obs tas data
@@ -1006,7 +1088,7 @@ def main():
         obs_df_left=block_minima_obs_tas_dt,
         model_df_left=block_minima_model_tas_lead_dt_bc,
         obs_df_right=block_minima_obs_wind,
-        model_df_right=block_minima_model_wind_bc,
+        model_df_right=block_minima_model_wind,
         obs_val_name_left="data_c_min_dt",
         model_val_name_left="data_tas_c_min_bc_dt",
         obs_val_name_right="data_min",

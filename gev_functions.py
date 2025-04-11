@@ -123,9 +123,12 @@ def pivot_detrend_obs(
 
 
 def pivot_detrend_model(
-    df: pd.DataFrame,
-    x_axis_name: str,
-    y_axis_name: str,
+    model_df: pd.DataFrame,
+    obs_df: pd.DataFrame,
+    model_x_axis_name: str,
+    model_y_axis_name: str,
+    obs_x_axis_name: str,
+    obs_y_axis_name: str,
     suffix: str = "_dt",
     member_name: str = "member",
 ) -> pd.DataFrame:
@@ -134,12 +137,18 @@ def pivot_detrend_model(
 
     Parameters
     ----------
-    df : pd.DataFrame
+    model_df : pd.DataFrame
         DataFrame to detrend.
-    x_axis_name : str
+    obs_df : pd.DataFrame
+        DataFrame to use as the reference.
+    model_x_axis_name : str
         Name of the column to use as the x-axis.
-    y_axis_name : str
+    model_y_axis_name : str
         Name of the column to use as the y-axis.
+    obs_x_axis_name : str
+        Name of the column to use as the x-axis for the reference.
+    obs_y_axis_name : str
+        Name of the column to use as the y-axis for the reference.
     suffix : str, optional
         Suffix to append to the detrended column, by default "_dt".
     member_name : str, optional
@@ -158,36 +167,76 @@ def pivot_detrend_model(
     members = df_copy[member_name].unique()
     n_members = len(members)
 
-    # Set up the slopes
-    slopes = np.zeros(n_members)
-    intercepts = np.zeros(n_members)
+    # extract the unique x-axis name vals
+    x_axis_vals = df_copy[x_axis_name].unique()
 
-    # Loop over the members
-    for i, member in enumerate(members):
-        # Get the data for this member
-        data = df_copy[df_copy[member_name] == member]
+    # Set up the y-axis vals, by taking grouping by the x-axis vals
+    y_axis_vals = df_copy.groupby(x_axis_name)[y_axis_name].mean()
 
-        # Define the function to fit
-        slope, intercept, r_value, p_value, std_err = linregress(
-            data[x_axis_name], data[y_axis_name]
-        )
+    # Calculate the trend
+    slope, intercept, r_value, p_value, std_err = linregress(
+        x_axis_vals, y_axis_vals
+    )
 
-        # Store the slope and intercept
-        slopes[i] = slope
-        intercepts[i] = intercept
+    # # Set up the slopes
+    # slopes = np.zeros(n_members)
+    # intercepts = np.zeros(n_members)
+
+    # # Loop over the members
+    # for i, member in enumerate(members):
+    #     # Get the data for this member
+    #     data = df_copy[df_copy[member_name] == member]
+
+    #     # Define the function to fit
+    #     slope, intercept, r_value, p_value, std_err = linregress(
+    #         data[x_axis_name], data[y_axis_name]
+    #     )
+
+    #     # Store the slope and intercept
+    #     slopes[i] = slope
+    #     intercepts[i] = intercept
+
+    # # Calculate the trend line
+    # slopes_mean = np.mean(slopes)
+    # intercepts_mean = np.mean(intercepts)
 
     # Calculate the trend line
-    slopes_mean = np.mean(slopes)
-    intercepts_mean = np.mean(intercepts)
-
-    # Calculate the trend line
-    trend = intercepts_mean + slopes_mean * df_copy[x_axis_name]
+    trend = intercept + slope * x_axis_vals
 
     # Determine the final point on the trend line
-    final_point = trend.iloc[-1]
+    final_point = trend[-1]
 
-    # Create a new column with the detrended values
-    df_copy[y_axis_name + suffix] = final_point - trend + df_copy[y_axis_name]
+    # print the shape of final point
+    print(f"Final point shape: {final_point.shape}")
+
+    # print the shape of trend
+    print(f"Trend shape: {trend.shape}")
+
+    # print the len of df_copy
+    print(f"df_copy shape: {df_copy.shape}")
+
+    # Ensure the effective_dec_year column exists in df_copy
+    # (This column should map rows to indices of the trend array)
+    if 'effective_dec_year' not in df_copy.columns:
+        raise ValueError("df_copy must have an 'effective_dec_year' column to map the trend.")
+
+    # Normalize the effective_dec_year values to start from 0
+    min_year = df_copy['effective_dec_year'].min()
+    df_copy['normalized_dec_year'] = df_copy['effective_dec_year'] - min_year
+
+    # Check that the effective_dec_year values are within the range of the trend array
+    if df_copy['normalized_dec_year'].max() >= len(trend):
+        raise ValueError("Values in 'normalized_dec_year' exceed the length of the trend array.")
+
+    # Map the trend values to the corresponding rows in df_copy
+    df_copy['trend_value'] = df_copy['normalized_dec_year'].map(
+        lambda x: trend[x] if x < len(trend) else np.nan
+    )
+
+    # Apply the trend correction
+    df_copy[y_axis_name + suffix] = (
+        final_point - df_copy['trend_value'] + df_copy[y_axis_name]
+    )
 
     return df_copy
 
