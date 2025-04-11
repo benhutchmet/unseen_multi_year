@@ -108,6 +108,8 @@ def extract_obs_data(
     lon_shape: int,
     arrs_dir: str,
     metadata_dir: str,
+    lats_path: str,
+    lons_path: str,
 ) -> np.ndarray:
     """
     Extracts the obs data for specific times and appends to an array.
@@ -123,6 +125,8 @@ def extract_obs_data(
         lon_shape (int): The shape of the longitude dimension.
         arrs_dir (str): The directory to load the data from.
         metadata_dir (str): The directory to load the metadata from.
+        lats_path (str): The path to the latitude data.
+        lons_path (str): The path to the longitude data.
 
     Returns:
     ========
@@ -172,8 +176,43 @@ def extract_obs_data(
     # Format these using cftime
     dates = [cftime.datetime(date.year, date.month, date.day) for date in dates]
 
+    # extract the unique years in the dates list
+    unique_dec_years = np.arange(1960, 2018 + 1, 1)
+
     # print the dates
     print("Dates: ", dates)
+
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # If the variable is temperature, then apply a detrend to the field
+    if variable == "tas":
+        # Set up an array to append the data
+        data_arr_detrended = np.zeros((len(unique_dec_years), lat_shape, lon_shape))
+        
+        # loop over the unique dec years
+        for i, unique_dec_year in enumerate(unique_dec_years):
+            # Set up the fname this
+            fname_this = f"ERA5_{variable}_{region}_{unique_dec_year}_{season}_{time_freq}.npy"
+
+            # if the file does not exist, then raise an error
+            if not os.path.exists(os.path.join(arrs_dir, fname_this)):
+                raise FileNotFoundError(f"File {fname_this} does not exist.")
+
+            # load the data
+            data_this = np.load(os.path.join(arrs_dir, fname_this))
+
+            # Take the mean over the first dimension and append to the data arr
+            data_arr_detrended[i, :, :] = np.mean(data_this, axis=0)
+    else:
+        data_arr_detrended = None
+
+    # Print the shape of data arr detredned
+    print("--------------------------------")
+    print(f"Shape of data arr detrended: {data_arr_detrended.shape}")
+    print("--------------------------------")
+
 
     # Set up an empty dates list
     dates_list = []
@@ -229,6 +268,68 @@ def extract_obs_data(
         # load the data for this
         data_this = np.load(os.path.join(arrs_dir, fname_this))
 
+        # if the variable is tas
+        if variable == "tas":
+            print("--------------------------------")
+            print(f"Data shape: {data_this.shape}")
+            print("Detrending the data this")
+            print("--------------------------------")
+
+            # Set up a new array for detrending the data
+            data_arr_detrended_full = np.zeros(
+                (data_this.shape[0], data_this.shape[1], data_this.shape[2])
+            )
+
+            # Loop over the lats and lons
+            for j in range(len(lats)):
+                for k in range(len(lons)):
+                    # Calculate the slope and intersect
+                    slope_T_this, intercept_T_this, _, _, _ = linregress(
+                        unique_dec_years,
+                        data_arr_detrended[:, j, k],
+                    )
+
+                    # Calculate the trend line this
+                    trend_line_this = (
+                        slope_T_this * unique_dec_years + intercept_T_this
+                    )
+
+                    # Find the final point on the trend line
+                    final_point_this = trend_line_this[-1]
+
+                    # # print the unique dec years
+                    # print(f"Unique dec years: {unique_dec_years}")
+
+                    # # print the year to extract this
+                    # print(f"Year to extract this: {year_to_extract_this}")
+
+                    # # print trhe type of the first unique dec year
+                    # print(f"Type of first unique dec year: {type(unique_dec_years[0])}")
+
+                    # # print the type of the year to extract this
+                    # print(f"Type of year to extract this: {type(year_to_extract_this)}")
+
+                    # find the index of year to extract this in unique_dec_years
+                    y_index = np.where(
+                        unique_dec_years == year_to_extract_this
+                    )[0][0]
+
+
+                    # Remove the trend for the current year
+                    # from the data subset
+                    # Loop over the first dimension to do this
+                    for l in range(data_this.shape[0]):
+                        # Detrend the data
+                        # data_this[l, j, k] = (
+                        #     final_point_this - trend_line_this[y_index] + data_this[l, j, k]
+                        # )
+                        data_arr_detrended_full[l, j, k] = (
+                            final_point_this - trend_line_this[y_index] + data_this[l, j, k]
+                        )
+        else:
+            # print the shape of the data this
+            print(f"Data shape: {data_this.shape}")
+
         # load the times for this
         times_this = np.load(os.path.join(metadata_dir, times_fname))
 
@@ -241,6 +342,10 @@ def extract_obs_data(
 
         # find the index of this time in the tyimes_this_cf
         time_index = np.where(times_this_cf == time_to_extract_this)[0][0]
+
+        # if the variable is tas then set the data this to the detrended data
+        if variable == "tas":
+            data_this = data_arr_detrended_full
 
         # extract the data for this time
         data_this_time = data_this[time_index, :, :]
@@ -591,7 +696,7 @@ def plot_composites_model(
         
                 # # Extract the subset arr this for this index
                 subset_arr_this_detrended[j, :, :] = np.mean(
-                    subset_arr_this[i][index_this, :, :], axis=0
+                    subset_arr_this[index_this, :, :], axis=0
                 )
 
             # loop over the lats and lons
@@ -1234,35 +1339,36 @@ def plot_composites(
 
         # # print the indexes
         # print(f"Indexes: {indexes}")
+        subset_arr_this_i = subset_arrs[i]
+
+        # # print the shape of subset arr this
+        # print(f"Shape of subset arr this: {subset_arr_this.shape}")
+
+        # # if the variable is tas then apply some detrending
+        # if variables[i] == "tas":
+        #     print("-----------------------------------------------")
+        #     print("Applying a detrend to the temperature data")
+        #     print("-----------------------------------------------")
+        #     # Loop over the lats and lons
+        #     for l in range(len(lats)):
+        #         for j in range(len(lons)):
+        #             # detrend the data
+        #             slope_T, intercept_T, _, _, _ = linregress(
+        #                 winter_years,
+        #                 subset_arr_this_i[:, l, j],
+        #             )
+
+        #             # calculate the trend line this
+        #             trend_line_this = slope_T * winter_years + intercept_T
+
+        #             # Find the final point on the trend line
+        #             final_point_this = trend_line_this[-1]
+
+        #             # Subtract the trend line from the data
+        #             subset_arr_this_i[:, l, j] = final_point_this - trend_line_this + subset_arr_this_i[:, l, j]
 
         # Apply these index to the subset data
-        subset_arr_this = subset_arrs[i][indexes, :, :]
-
-        # print the shape of subset arr this
-        print(f"Shape of subset arr this: {subset_arr_this.shape}")
-
-        # if the variable is tas then apply some detrending
-        if variables[i] == "tas":
-            print("-----------------------------------------------")
-            print("Applying a detrend to the temperature data")
-            print("-----------------------------------------------")
-            # Loop over the lats and lons
-            for l in range(len(lats)):
-                for j in range(len(lons)):
-                    # detrend the data
-                    slope_T, intercept_T, _, _, _ = linregress(
-                        winter_years,
-                        subset_arr_this[:, l, j],
-                    )
-
-                    # calculate the trend line this
-                    trend_line_this = slope_T * winter_years + intercept_T
-
-                    # Find the final point on the trend line
-                    final_point_this = trend_line_this[-1]
-
-                    # Subtract the trend line from the data
-                    subset_arr_this[:, l, j] = final_point_this - trend_line_this + subset_arr_this[:, l, j]
+        subset_arr_this = subset_arr_this_i[indexes, :, :]
 
         # take the mean over this
         subset_arr_this_mean = np.mean(subset_arr_this, axis=0)
@@ -1466,8 +1572,8 @@ def main():
     psl_times_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times.npy"
 
     # set up fnames for the temperature data
-    temp_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}.npy"
-    temp_times_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times.npy"
+    temp_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr.npy"
+    temp_times_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr.npy"
 
     # set up fnames for the wind data
     wind_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}.npy"
@@ -1488,6 +1594,12 @@ def main():
             lon_shape=96,
             arrs_dir=winter_arrs_dir,
             metadata_dir=metadata_dir,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
         )
 
         # Save the data to the arrs_persist_dir
@@ -1509,6 +1621,12 @@ def main():
             lon_shape=49,
             arrs_dir=winter_arrs_dir,
             metadata_dir=metadata_dir,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
         )
 
         # Save the data to the arrs_persist_dir
@@ -1530,6 +1648,12 @@ def main():
             lon_shape=49,
             arrs_dir=winter_arrs_dir,
             metadata_dir=metadata_dir,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
         )
 
         # Save the data to the arrs_persist_dir
@@ -1707,14 +1831,14 @@ def main():
         )
 
     # load the climatology data
-    obs_psl_clim = np.load(os.path.join(model_clim_dir, psl_clim_fname))
-    obs_wind_clim = np.load(os.path.join(model_clim_dir, sfcWind_clim_fname))
-    obs_tas_clim = np.load(os.path.join(model_clim_dir, tas_clim_fname))
+    model_psl_clim = np.load(os.path.join(model_clim_dir, psl_clim_fname))
+    model_wind_clim = np.load(os.path.join(model_clim_dir, sfcWind_clim_fname))
+    model_tas_clim = np.load(os.path.join(model_clim_dir, tas_clim_fname))
 
     # print the shape of the climatology data
-    print(f"Shape of obs psl climatology data: {obs_psl_clim.shape}")
-    print(f"Shape of obs wind climatology data: {obs_wind_clim.shape}")
-    print(f"Shape of obs tas climatology data: {obs_tas_clim.shape}")
+    print(f"Shape of obs psl climatology data: {model_psl_clim.shape}")
+    print(f"Shape of obs wind climatology data: {model_wind_clim.shape}")
+    print(f"Shape of obs tas climatology data: {model_tas_clim.shape}")
 
     # # print the values of the climatology data
     # print(f"Obs psl climatology data: {obs_psl_clim}")
@@ -1729,265 +1853,265 @@ def main():
     print("Tail of the model df:")
     print(model_df.tail())
 
-    # Plot the composites for all the data
-    plot_composites_model(
-        subset_df=model_df,
-        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        index_dicts=[
-            model_psl_subset_index_list,
-            model_temp_subset_index_list,
-            model_wind_subset_index_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="All model DnW max",
-        figsize=(12, 6),
-    )
+    # # Plot the composites for all the data
+    # plot_composites_model(
+    #     subset_df=model_df,
+    #     subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+    #     clim_arrs=[model_psl_clim, model_tas_clim, model_wind_clim],
+    #     index_dicts=[
+    #         model_psl_subset_index_list,
+    #         model_temp_subset_index_list,
+    #         model_wind_subset_index_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="All model DnW max",
+    #     figsize=(12, 6),
+    # )
 
-    # Quantify the 80th percentil of demand net wind max
-    # for the observations
-    obs_dnw_80th = obs_df["demand_net_wind_max"].quantile(0.8)
+    # # Quantify the 80th percentil of demand net wind max
+    # # for the observations
+    # obs_dnw_80th = obs_df["demand_net_wind_max"].quantile(0.8)
 
-    # Subset the model df to where demand_net_wind_max_bc
-    # exceeds this
-    model_subset_df = model_df[
-        model_df["demand_net_wind_max_bc"] >= obs_dnw_80th
-    ]
+    # # Subset the model df to where demand_net_wind_max_bc
+    # # exceeds this
+    # model_subset_df = model_df[
+    #     model_df["demand_net_wind_max_bc"] >= obs_dnw_80th
+    # ]
 
-    # print the length of the model subset df
-    print(f"Length of model subset df: {len(model_subset_df)}")
+    # # print the length of the model subset df
+    # print(f"Length of model subset df: {len(model_subset_df)}")
 
-    # test the new function
-    plot_composites_model(
-        subset_df=model_subset_df,
-        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        index_dicts=[
-            model_psl_subset_index_list,
-            model_temp_subset_index_list,
-            model_wind_subset_index_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="Model DnW max > 80th percentile obs DnW max",
-        figsize=(12, 6),
-    )
+    # # test the new function
+    # plot_composites_model(
+    #     subset_df=model_subset_df,
+    #     subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+    #     clim_arrs=[model_psl_clim, model_tas_clim, model_wind_clim],
+    #     index_dicts=[
+    #         model_psl_subset_index_list,
+    #         model_temp_subset_index_list,
+    #         model_wind_subset_index_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="Model DnW max > 80th percentile obs DnW max",
+    #     figsize=(12, 6),
+    # )
 
-    # quantify the 90th percentile of demand net wind max in the obs
-    obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.9)
+    # # quantify the 90th percentile of demand net wind max in the obs
+    # obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.9)
 
-    # subset the obs df to where this is exceeded
-    model_subset_df_90 = model_df[
-        model_df["demand_net_wind_max_bc"] >= obs_dnw_90th
-    ]
+    # # subset the obs df to where this is exceeded
+    # model_subset_df_90 = model_df[
+    #     model_df["demand_net_wind_max_bc"] >= obs_dnw_90th
+    # ]
 
-    # print the length of the model subset df
-    print(f"Length of model subset df 90: {len(model_subset_df_90)}")
+    # # print the length of the model subset df
+    # print(f"Length of model subset df 90: {len(model_subset_df_90)}")
 
-    # test the new function
-    plot_composites_model(
-        subset_df=model_subset_df_90,
-        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        index_dicts=[
-            model_psl_subset_index_list,
-            model_temp_subset_index_list,
-            model_wind_subset_index_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="Model DnW max > 90th percentile obs DnW max",
-        figsize=(12, 6),
-    )
+    # # test the new function
+    # plot_composites_model(
+    #     subset_df=model_subset_df_90,
+    #     subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+    #     clim_arrs=[model_psl_clim, model_tas_clim, model_wind_clim],
+    #     index_dicts=[
+    #         model_psl_subset_index_list,
+    #         model_temp_subset_index_list,
+    #         model_wind_subset_index_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="Model DnW max > 90th percentile obs DnW max",
+    #     figsize=(12, 6),
+    # )
 
-    # same for the 95th percentile
-    obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
+    # # same for the 95th percentile
+    # obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
 
-    # subset the obs df to where this is exceeded
-    model_subset_df_95 = model_df[
-        model_df["demand_net_wind_max_bc"] >= obs_dnw_95th
-    ]
+    # # subset the obs df to where this is exceeded
+    # model_subset_df_95 = model_df[
+    #     model_df["demand_net_wind_max_bc"] >= obs_dnw_95th
+    # ]
 
-    # print the length of the model subset df
-    print(f"Length of model subset df 95: {len(model_subset_df_95)}")
-    # test the new function
-    plot_composites_model(
-        subset_df=model_subset_df_95,
-        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        index_dicts=[
-            model_psl_subset_index_list,
-            model_temp_subset_index_list,
-            model_wind_subset_index_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="Model DnW max > 95th percentile obs DnW max",
-        figsize=(12, 6),
-    )
+    # # print the length of the model subset df
+    # print(f"Length of model subset df 95: {len(model_subset_df_95)}")
+    # # test the new function
+    # plot_composites_model(
+    #     subset_df=model_subset_df_95,
+    #     subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+    #     clim_arrs=[model_psl_clim, model_tas_clim, model_wind_clim],
+    #     index_dicts=[
+    #         model_psl_subset_index_list,
+    #         model_temp_subset_index_list,
+    #         model_wind_subset_index_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="Model DnW max > 95th percentile obs DnW max",
+    #     figsize=(12, 6),
+    # )
 
-    # find the obs max
-    obs_max = obs_df["demand_net_wind_max"].max()
+    # # find the obs max
+    # obs_max = obs_df["demand_net_wind_max"].max()
 
-    # subset the model df to where this is exceeded
-    model_subset_df_max = model_df[
-        model_df["demand_net_wind_max_bc"] >= obs_max
-    ]
+    # # subset the model df to where this is exceeded
+    # model_subset_df_max = model_df[
+    #     model_df["demand_net_wind_max_bc"] >= obs_max
+    # ]
 
-    # print the length of the model subset df
-    print(f"Length of model subset df max: {len(model_subset_df_max)}")
+    # # print the length of the model subset df
+    # print(f"Length of model subset df max: {len(model_subset_df_max)}")
 
-    # test the new function
-    plot_composites_model(
-        subset_df=model_subset_df_max,
-        subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        index_dicts=[
-            model_psl_subset_index_list,
-            model_temp_subset_index_list,
-            model_wind_subset_index_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="Model DnW max > max obs DnW max",
-        figsize=(12, 6),
-    )
+    # # test the new function
+    # plot_composites_model(
+    #     subset_df=model_subset_df_max,
+    #     subset_arrs=[model_psl_subset, model_temp_subset, model_wind_subset],
+    #     clim_arrs=[model_psl_clim, model_tas_clim, model_wind_clim],
+    #     index_dicts=[
+    #         model_psl_subset_index_list,
+    #         model_temp_subset_index_list,
+    #         model_wind_subset_index_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="Model DnW max > max obs DnW max",
+    #     figsize=(12, 6),
+    # )
 
     # # plot all of the data for psl
     # plot_data_postage_stamp(
@@ -2049,10 +2173,24 @@ def main():
     # subset the obs df to where this is excedded
     subset_df = obs_df[obs_df["demand_net_wind_max"] >= dnw_80th]
 
+    # print the shape of obs psl arr
+    print(f"Shape of obs psl arr: {obs_psl_arr.shape}")
+    # print the shape of obs temp arr
+    print(f"Shape of obs temp arr: {obs_temp_arr.shape}")
+    # print the shape of obs wind arr
+    print(f"Shape of obs wind arr: {obs_wind_arr.shape}")
+
+    # print the shape of obs psl clim
+    print(f"Shape of obs psl clim: {obs_psl_clim.shape}")
+    # print the shape of obs temp clim
+    print(f"Shape of obs temp clim: {obs_tas_clim.shape}")
+    # print the shape of obs wind clim
+    print(f"Shape of obs wind clim: {obs_wind_clim.shape}")
+
     # plot the composites for all of the winter days
     plot_composites(
         subset_df=obs_df,
-        subset_arrs=[obs_psl_arr, obs_temp_arr, obs_wind_arr],
+        subset_arrs=[psl_subset, temp_subset, wind_subset],
         clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
         dates_lists=[
             psl_dates_list,
