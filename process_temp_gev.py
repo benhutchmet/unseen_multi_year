@@ -895,17 +895,23 @@ def main():
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
-        df=block_minima_model_tas_drift_corr,
-        x_axis_name="effective_dec_year",
-        y_axis_name="data_tas_c_min_drift_bc",
+        model_df=block_minima_model_tas_drift_corr,
+        obs_df=block_minima_obs_tas,
+        model_x_axis_name="effective_dec_year",
+        model_y_axis_name="data_tas_c_min_drift_bc",
+        obs_x_axis_name="effective_dec_year",
+        obs_y_axis_name="data_c_min",
         suffix="_dt",
     )
 
     # apply a detrend to the wind data
     block_minima_model_wind_drift_corr_dt = gev_funcs.pivot_detrend_model(
-        df=block_minima_model_wind_drift_corr,
-        x_axis_name="effective_dec_year",
-        y_axis_name="data_min_drift_bc",
+        model_df=block_minima_model_wind_drift_corr,
+        obs_df=block_minima_obs_wind,
+        model_x_axis_name="effective_dec_year",
+        model_y_axis_name="data_min_drift_bc",
+        obs_x_axis_name="effective_dec_year",
+        obs_y_axis_name="data_min",
         suffix="_dt",
     )
 
@@ -994,7 +1000,7 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # perform the lead time depdent bias correction
     # for the block minima

@@ -161,21 +161,27 @@ def pivot_detrend_model(
     """
 
     # Make a copy of the DataFrame
-    df_copy = df.copy()
+    df_copy = model_df.copy()
+    obs_df_copy = obs_df.copy()
 
     # Set up the n members
     members = df_copy[member_name].unique()
     n_members = len(members)
 
     # extract the unique x-axis name vals
-    x_axis_vals = df_copy[x_axis_name].unique()
+    x_axis_vals = df_copy[model_x_axis_name].unique()
 
     # Set up the y-axis vals, by taking grouping by the x-axis vals
-    y_axis_vals = df_copy.groupby(x_axis_name)[y_axis_name].mean()
+    y_axis_vals = df_copy.groupby(model_x_axis_name)[model_y_axis_name].mean()
 
     # Calculate the trend
     slope, intercept, r_value, p_value, std_err = linregress(
         x_axis_vals, y_axis_vals
+    )
+
+    # calculate the slope and intercept for the obs
+    slope_obs, intercept_obs, r_value_obs, p_value_obs, std_err_obs = linregress(
+        obs_df_copy[obs_x_axis_name], obs_df_copy[obs_y_axis_name]
     )
 
     # # Set up the slopes
@@ -203,8 +209,23 @@ def pivot_detrend_model(
     # Calculate the trend line
     trend = intercept + slope * x_axis_vals
 
+    # calculate the obs trend
+    trend_obs = slope_obs * obs_df_copy[obs_x_axis_name] + intercept_obs
+
+    # find the final point on the trend line for the obs
+    final_point_obs = trend_obs.iloc[-1]
+
     # Determine the final point on the trend line
     final_point = trend[-1]
+
+    # calculate the final point bias
+    final_point_bias = final_point - final_point_obs
+
+    # print the final point bias
+    print(f"Final point bias: {final_point_bias}")
+
+    # correct the trend for the obs
+    final_point_model = final_point - final_point_bias
 
     # print the shape of final point
     print(f"Final point shape: {final_point.shape}")
@@ -234,8 +255,8 @@ def pivot_detrend_model(
     )
 
     # Apply the trend correction
-    df_copy[y_axis_name + suffix] = (
-        final_point - df_copy['trend_value'] + df_copy[y_axis_name]
+    df_copy[model_y_axis_name + suffix] = (
+        final_point_model - df_copy['trend_value'] + df_copy[model_y_axis_name]
     )
 
     return df_copy
