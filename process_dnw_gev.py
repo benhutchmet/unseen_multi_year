@@ -41,6 +41,9 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
+from process_temp_gev import (
+    model_drift_corr_plot
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -372,7 +375,7 @@ def main():
     )
 
     # Limit the obs data to the same years as the model data
-    common_wyears = np.arange(1960, 2017 + 1)
+    common_wyears = np.arange(1961, 2017 + 1)
 
     # Subset the obs data to the common_wyears
     df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
@@ -382,6 +385,43 @@ def main():
 
     # Create a new column for data_tas_c in df_model_full_djf
     df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
+
+    # Plot the lead pdfs to visualise the biases/drifts
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_tas_c",
+        obs_var_name="data_c",
+        lead_name="winter_year",
+        xlabel="Temperature (°C)",
+        suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
+        figsize=(10, 5),
+    )
+
+    # Plot the lead pdfs to visualise the biases/drifts
+    # but for wind speed
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_sfcWind",
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+        xlabel="10m Wind Speed (m/s)",
+        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
+        figsize=(10, 5),
+    )
+
+    # Apply the dirft correction to the model data
+    df_model_djf = model_drift_corr_plot(
+        model_df=df_model_djf,
+        model_var_name="data_tas_c",
+        obs_df=df_obs,
+        obs_var_name="data_c",
+        lead_name="winter_year",
+        xlabel="Temperature (°C)",
+    )
+
+    sys.exit()
 
     # Apply the lead time dependent mean bias correction
     # For temperature
