@@ -1154,7 +1154,8 @@ def plot_multi_var_dist(
         axs[r, 0].set_yticks([])
 
         # Set the row title to the left, rotated 90 degrees and larger font size
-        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=14)
+        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=14, fontweight="bold",
+                              labelpad=20)
 
         # # Set up the subplot title
         # axs[r, 0].set_title(subplot_titles[r][0])
@@ -1203,11 +1204,13 @@ def plot_multi_var_dist(
         # if r is 0
         if r == 0:
             # Set the title
-            axs[r, 0].set_title("raw")
-            axs[r, 1].set_title("bias corrected")
+            axs[r, 0].set_title("raw", fontweight="bold", fontsize=14)
+            axs[r, 1].set_title("bias corrected", fontweight="bold", fontsize=14)
 
             # include a legend
             axs[r, 1].legend(loc="upper right")
+
+        axs[r, 1].set_yticks([])
 
         # calculate the bias for the raw data
         bias_raw = model_df[model_var_names[r]].mean() - obs_df[obs_var_names[r]].mean()
