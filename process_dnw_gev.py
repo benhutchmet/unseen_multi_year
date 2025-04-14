@@ -419,6 +419,43 @@ def main():
         obs_var_name="data_c",
         lead_name="winter_year",
         xlabel="Temperature (°C)",
+        lead_day_name="lead",
+    )
+
+    # do the same for tjhe wind speed data
+    df_model_djf = model_drift_corr_plot(
+        model_df=df_model_djf,
+        model_var_name="data_sfcWind",
+        obs_df=df_obs,
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+        xlabel="10m Wind Speed (m/s)",
+        lead_day_name="lead",
+    )
+
+    # plot the lead pdfs to visualise the biases/drifts
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_tas_c_drift_bc",
+        obs_var_name="data_c",
+        lead_name="winter_year",
+        xlabel="Temperature (°C)",
+        suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+        figsize=(10, 5),
+    )
+
+    # Plot the lead pdfs to visualise the biases/drifts
+    # but for wind speed
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_sfcWind_drift_bc",
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+        xlabel="10m Wind Speed (m/s)",
+        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+        figsize=(10, 5),
     )
 
     sys.exit()

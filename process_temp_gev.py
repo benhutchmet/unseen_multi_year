@@ -241,44 +241,66 @@ def model_drift_corr_plot(
         if lead_day_name is not None:
             print("Calculating anoms for days within a winter year")
 
-            # extract the unique winter days
-            unique_winter_days = model_df_copy[lead_day_name].unique()
+            # remove the forecast clim lead this from the data for this lead
+            model_df_copy[f"{model_var_name}_anomaly"] = model_df_copy.loc[
+                model_df_copy[lead_name] == lead, model_var_name
+            ] - forecast_clim_lead_this
 
-            # Loop over the unique init years again
-            for j, init_year in enumerate(unique_init_years_full):
-                for m, member in enumerate(unique_members):
-                    for d, day in enumerate(unique_winter_days):
-                        # Subset the model data to the init year this
-                        model_df_lead_this_init_member = model_df_copy[
-                            (model_df_copy[init_years_name] == init_year)
-                            & (model_df_copy["member"] == member)
-                            & (model_df_copy[lead_name] == lead)
-                            & (model_df_copy[lead_day_name] == day)
-                        ]
+            # # print the columns in the df
+            # print(f"Columns in the df: {model_df_copy.columns}")
 
-                        # if the model_df_lead_this_init_member is not length 1
-                        # then raise an error
-                        if len(model_df_lead_this_init_member) != 1:
-                            raise ValueError(
-                                f"Model df lead this init member is not length 1: {model_df_lead_this_init_member}"
-                            )
+            # # Loop over the unique init years again
+            # for j, init_year in enumerate(unique_init_years_full):
+            #     for m, member in enumerate(unique_members):
+            #         # extract the unique winter days this
+            #         unique_winter_days_this = model_df_copy[
+            #             (model_df_copy[init_years_name] == init_year)
+            #             & (model_df_copy["member"] == member)
+            #             & (model_df_copy[lead_name] == lead)
+            #         ][lead_day_name].unique()
+            #         for d, day in enumerate(unique_winter_days_this):
+            #             # Subset the model data to the init year this
+            #             model_df_lead_this_init_member = model_df_copy[
+            #                 (model_df_copy[init_years_name] == init_year)
+            #                 & (model_df_copy["member"] == member)
+            #                 & (model_df_copy[lead_name] == lead)
+            #                 & (model_df_copy[lead_day_name] == day)
+            #             ]
 
-                        # extrcat the value this
-                        ensemble_mean_val_this_member = model_df_lead_this_init_member[
-                            model_var_name
-                        ].values[0]
 
-                        # Calculate the anomaly
-                        anomaly_this = ensemble_mean_val_this_member - forecast_clim_lead_this
+            #             #  # print the init year
+            #             # print(f"Init year: {init_year}")
+            #             # # print the member
+            #             # print(f"Member: {member}")
+            #             # # print the lead
+            #             # print(f"Lead: {lead}")
+            #             # # print the day
+            #             # # print the model df lead this init member
+            #             # print(f"day this: {day}")
 
-                        # Set up a new column in the df for the anomalies
-                        model_df_copy.loc[
-                            (model_df_copy[init_years_name] == init_year)
-                            & (model_df_copy["member"] == member)
-                            & (model_df_copy[lead_name] == lead)
-                            & (model_df_copy[lead_day_name] == day),
-                            f"{model_var_name}_anomaly",
-                        ] = anomaly_this
+            #             # if the model_df_lead_this_init_member is not length 1
+            #             # then raise an error
+            #             if len(model_df_lead_this_init_member) != 1:
+            #                 raise ValueError(
+            #                     f"Model df lead this init member is not length 1: {model_df_lead_this_init_member}"
+            #                 )
+
+            #             # extrcat the value this
+            #             ensemble_mean_val_this_member = model_df_lead_this_init_member[
+            #                 model_var_name
+            #             ].values[0]
+
+            #             # Calculate the anomaly
+            #             anomaly_this = ensemble_mean_val_this_member - forecast_clim_lead_this
+
+            #             # Set up a new column in the df for the anomalies
+            #             model_df_copy.loc[
+            #                 (model_df_copy[init_years_name] == init_year)
+            #                 & (model_df_copy["member"] == member)
+            #                 & (model_df_copy[lead_name] == lead)
+            #                 & (model_df_copy[lead_day_name] == day),
+            #                 f"{model_var_name}_anomaly",
+            #             ] = anomaly_this
         else:
             # Loop over the unique init years again
             for j, init_year in enumerate(unique_init_years_full):
