@@ -126,15 +126,15 @@ def model_drift_corr_plot(
         # Set up the unique init years full
         unique_init_years_full = model_df_lead_this[init_years_name].unique()
 
-        obs_effective_dec_years_this = model_df_lead_this[eff_dec_years_name].unique()
+        # obs_effective_dec_years_this = model_df_lead_this[eff_dec_years_name].unique()
 
-        # Subset the obs to this period
-        obs_df_lead_this = obs_df_copy[
-            obs_df_copy[eff_dec_years_name].isin(obs_effective_dec_years_this)
-        ]
+        # # Subset the obs to this period
+        # obs_df_lead_this = obs_df_copy[
+        #     obs_df_copy[eff_dec_years_name].isin(obs_effective_dec_years_this)
+        # ]
 
-        # Get the mean of the obs data
-        obs_mean_lead_this = obs_df_lead_this[obs_var_name].mean()
+        # # Get the mean of the obs data
+        # obs_mean_lead_this = obs_df_lead_this[obs_var_name].mean()
 
         # # limit to the effective dec years in the year 1 to year 2 period
         # model_df_lead_this = model_df_lead_this[
@@ -151,47 +151,12 @@ def model_drift_corr_plot(
                 f"Unique members does not have length 10: {unique_members}"
             )
 
-        # # Print the lead time
-        # print(f"Lead time: {lead}")
-
-        # # Print the unique init years
-        # print(f"Unique init years: {unique_init_years}")
-
-        # # print the len of the unique init years
-        # print(f"Length of unique init years: {len(unique_init_years)}")
+        if constant_period:
+            # Set up the unique init years to be the effective dec years
+            unique_init_years = effective_dec_years_constant
 
         # Set up an array to append the ensemble means to
         ensemble_means_this = np.zeros([len(unique_init_years)])
-
-        # # print the type of unique init years
-        # print(f"type of unique init years: {type(unique_init_years)}")
-        # # print the type of the first unique init year
-        # print(f"Type of first unique init year: {type(unique_init_years[0])}")
-
-        if constant_period:
-            unique_init_years = effective_dec_years_constant
-            # print the unique init years
-        #     print(f"Unique init years: {unique_init_years}")
-        #     # print the type of the first unique init year
-        #     print(f"Type of first unique init year: {type(unique_init_years[0])}")
-
-        # # print the lead
-        # print(f"Lead time: {lead}")
-
-        # # print the model df lead this
-        # print(f"Model df lead this: {model_df_lead_this.head()}")
-
-        # # print the tail of the model df lead this
-        # print(f"Model df lead this: {model_df_lead_this.tail()}")
-
-        # # print the unique effective dec years in the model df lead this
-        # print(f"Unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()}")
-
-        # # print the type of effective dec years in this
-        # print(f"Type of effective dec years: {type(model_df_lead_this[eff_dec_years_name].unique()[0])}")
-
-        # # reset the index of the model df lead this
-        # model_df_lead_this.reset_index(inplace=True, drop=True)
 
         # Loop over the unique effective dec years
         for j, eff_dec_year in enumerate(unique_init_years):
@@ -221,6 +186,24 @@ def model_drift_corr_plot(
 
             # Append the ensemble mean to the array
             ensemble_means_this[j] = ensemble_mean_val_this
+
+        # if the ensemble means this does not have the same length
+        # as effective dec years constant
+        # then raise an error
+        if len(ensemble_means_this) != len(unique_init_years):
+            print(f"lead: {lead}")
+            print(f"ensemble means this: {ensemble_means_this}")
+            print(f"effective dec years constant: {effective_dec_years_constant}")
+
+            # print the shape of the ensemble means this
+            print(f"Shape of ensemble means this: {ensemble_means_this.shape}")
+
+            # print the shape of the effective dec years constant
+            print(f"Shape of effective dec years constant: {effective_dec_years_constant.shape}")
+
+            raise ValueError(
+                f"Ensemble means this does not have the same length as effective dec years constant"
+            )
 
         # Calculate the mean of the ensemble means - forecast climatology
         forecast_clim_lead_this = np.mean(ensemble_means_this)
@@ -257,10 +240,131 @@ def model_drift_corr_plot(
             )
 
     # Subset the model df copy to the effective dec years in the obs data
-    model_df_copy = model_df_copy[
+    model_df_copy_constant = model_df_copy[
         model_df_copy[eff_dec_years_name].isin(effective_dec_years_constant)
     ]
 
+    # Set up the axes
+    # Set up the figure size
+    fig, axes = plt.subplots(
+        nrows=3,
+        ncols=4,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+        layout="compressed",
+    )
+
+    # Loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data to the lead this
+        model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
+
+        # # print the lead
+        # print(f"Lead time: {lead}")
+
+        # # print the first and last unique effective dec years in this df
+        # print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+        # print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+
+        # # print the len of the unique effective dec years in this df
+        # print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+
+        # calculate the mean
+        model_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+
+        # if the omodel mean is nan
+        if np.isnan(model_mean_this):
+            print(model_df_lead_this)
+
+        # include the mean in the title
+        title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
+
+        # Plot the data
+        ax = axes.flatten()[i]
+
+        # Plot the histograms using matplotlib
+        ax.hist(
+            model_df_lead_this[f"{model_var_name}"], 
+            bins=30, 
+            color="red", 
+            edgecolor="black"
+        )
+
+        # include the title
+        ax.set_title(title)
+
+    # Add a suptitle including the min and max unique effective dec years
+    min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
+    max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
+    plt.suptitle(
+        f"Model raw block minima - {min_eff_dec_year} to {max_eff_dec_year}",
+        fontsize=14,
+        fontweight="bold",
+        y=1.08,
+    )
+
+    # Set up the axes
+    fig, axes = plt.subplots(
+        nrows=3,
+        ncols=4,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+        layout="compressed",
+    )
+
+    # loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data to the lead this
+        model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
+
+        # print the lead
+        print(f"Lead time: {lead}")
+
+        # print the first and last unique effective dec years in this df
+        print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+        print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+
+        # print the len of the unique effective dec years in this df
+        print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+
+        # calculate the mean
+        model_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+
+        # if the omodel mean is nan
+        if np.isnan(model_mean_this):
+            print(model_df_lead_this)
+
+        # include the mean in the title
+        title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
+
+        # Plot the data
+        ax = axes.flatten()[i]
+
+        # Plot the histograms using matplotlib
+        ax.hist(
+            model_df_lead_this[f"{model_var_name}_anomaly"], 
+            bins=30, 
+            color="red", 
+            edgecolor="black"
+        )
+
+        # include the title
+        ax.set_title(title)
+
+    # Add a suptitle including the min and max unique effective dec years
+    min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
+    max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
+
+    plt.suptitle(
+        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+        fontsize=14,
+        fontweight="bold",
+        y=1.08,
+    )
+
+    # do the same but not for a constant period
     # Set up the axes
     fig, axes = plt.subplots(
         nrows=3,
@@ -276,6 +380,16 @@ def model_drift_corr_plot(
         # Subset the model data to the lead this
         model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
 
+        # print the lead
+        # print(f"Lead time: {lead}")
+
+        # # print the first and last unique effective dec years in this df
+        # print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+        # print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+
+        # print the len of the unique effective dec years in this df
+        print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+
         # calculate the mean
         model_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
 
@@ -289,125 +403,315 @@ def model_drift_corr_plot(
         # Plot the data
         ax = axes.flatten()[i]
 
-        # Plot the histograms
-        sns.histplot(
-            model_df_lead_this[f"{model_var_name}_anomaly"],
-            ax=ax,
-            bins=30,
-            color="red",
+        # Plot the histograms using matplotlib
+        ax.hist(
+            model_df_lead_this[f"{model_var_name}_anomaly"], 
+            bins=30, 
+            color="red", 
+            edgecolor="black"
         )
 
         # include the title
         ax.set_title(title)
 
+    # Add a suptitle including the min and max unique effective dec years
+    min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
+    max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
+    plt.suptitle(
+        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+        fontsize=14,
+        fontweight="bold",
+        y=1.08,
+    )
+
+    # Set up another figure
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+        layout="compressed",
+    )
+
+    ax1 = axes[0]
+    ax2 = axes[1]
+
+    # Get the cmap
+    cmap = cm.get_cmap("Blues", len(unique_leads))
+
+    # Set up an array for means
+    raw_means = np.zeros([len(unique_leads)])
+    drift_bc_means = np.zeros([len(unique_leads)])
+
+    # Loop over the leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data to the lead this
+        model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
+
+        # Plot the density distribution with kde
+        sns.kdeplot(
+            model_df_lead_this[f"{model_var_name}"],
+            ax=ax1,
+            color=cmap(i),
+        )
+
+        # Calculate the mean
+        raw_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+
+        # Append the mean to the array
+        raw_means[i] = raw_mean_this
+
+        # Plot the density distribution with kde
+        sns.kdeplot(
+            model_df_lead_this[f"{model_var_name}_anomaly"],
+            ax=ax2,
+            label=f"Lead {lead}",
+            color=cmap(i),
+        )
+
+        # Calculate the mean
+        drift_bc_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+
+        # Append the mean to the array
+        drift_bc_means[i] = drift_bc_mean_this
+
+    # Calculate pairwise mean differences for raw means
+    raw_mean_differences = [
+        abs(raw_means[i] - raw_means[j])
+        for i in range(len(raw_means))
+        for j in range(i + 1, len(raw_means))
+    ]
+    raw_mean_difference_avg = np.mean(raw_mean_differences)
+
+    # Calculate pairwise mean differences for drift corrected means
+    drift_bc_mean_differences = [
+        abs(drift_bc_means[i] - drift_bc_means[j])
+        for i in range(len(drift_bc_means))
+        for j in range(i + 1, len(drift_bc_means))
+    ]
+    drift_bc_mean_difference_avg = np.mean(drift_bc_mean_differences)
+
+    # Set the titles
+    ax1.set_title(f"Raw model data (mean diff = {raw_mean_difference_avg:.2f})")
+    ax2.set_title(f"Drift corrected anomalies (mean diff = {drift_bc_mean_difference_avg:.2f})")
+
+    # Include a legend in the top right of the right plot
+    ax2.legend(
+        loc="upper right",
+        fontsize=8,
+    )
+
+    # include a sup title
+    min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
+    max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
+    plt.suptitle(
+        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+        fontsize=14,
+        fontweight="bold",
+        y=1.08,
+    )
+
+    # # Set up the axes
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+        layout="compressed",
+    )
+
+    ax1 = axes[0]
+    ax2 = axes[1]
+
+    # Get the cmap
+    cmap = cm.get_cmap("Blues", len(unique_leads))
+
+    # Set up an array for means
+    raw_means = np.zeros([len(unique_leads)])
+    drift_bc_means = np.zeros([len(unique_leads)])
+
+    # loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data to the lead this
+        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+
+        # Plot the density distribution with kde
+        sns.kdeplot(
+            model_df_lead_this[f"{model_var_name}"],
+            ax=ax1,
+            color=cmap(i),
+        )
+
+        # Calculate the mean
+        raw_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+
+        # Append the mean to the array
+        raw_means[i] = raw_mean_this
+
+        # Plot the density distribution with kde
+        sns.kdeplot(
+            model_df_lead_this[f"{model_var_name}_anomaly"],
+            ax=ax2,
+            label=f"Lead {lead}",
+            color=cmap(i),
+        )
+
+        # Calculate the mean
+        drift_bc_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+
+        # Append the mean to the array
+        drift_bc_means[i] = drift_bc_mean_this
+
+    # Calculate pairwise mean differences for raw means
+    raw_mean_differences = [
+        abs(raw_means[i] - raw_means[j])
+        for i in range(len(raw_means))
+        for j in range(i + 1, len(raw_means))
+    ]
+    raw_mean_difference_avg = np.mean(raw_mean_differences)
+
+    # Calculate pairwise mean differences for drift corrected means
+    drift_bc_mean_differences = [
+        abs(drift_bc_means[i] - drift_bc_means[j])
+        for i in range(len(drift_bc_means))
+        for j in range(i + 1, len(drift_bc_means))
+    ]
+    drift_bc_mean_difference_avg = np.mean(drift_bc_mean_differences)
+
+    # Set the titles
+    ax1.set_title(f"Raw model data (mean diff = {raw_mean_difference_avg:.2f})")
+    ax2.set_title(f"Drift corrected anomalies (mean diff = {drift_bc_mean_difference_avg:.2f})")
+
+    # Add a suptitle including the min and max unique effective dec years
+    min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
+    max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
+    plt.suptitle(
+        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+        fontsize=14,
+        fontweight="bold",
+        y=1.08,
+    )
+
+    # loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Extract the unique effective dec years in this case
+        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+
+        # Extract the unique effective dec years
+        unique_eff_dec_years_this = model_df_lead_this[eff_dec_years_name].unique()
+
+        # print the first and last unique effective dec years in this df
+        print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+        print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+
+        # print the len of the unique effective dec years in this df
+        print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+
+        # Subset the obs df to the same period
+        obs_df_lead_this = obs_df_copy[
+            obs_df_copy[eff_dec_years_name].isin(unique_eff_dec_years_this)
+        ]
+
+        # Get the mean of the obs data
+        obs_mean_lead_this = obs_df_lead_this[obs_var_name].mean()
+
+        # if the obs mean is nan
+        if np.isnan(obs_mean_lead_this):
+            print(f"Obs mean is nan for lead {lead}")
+            print(f"Obs df lead this: {obs_df_lead_this}")
+            raise ValueError(
+                f"Obs mean is nan for lead {lead}: {obs_mean_lead_this}"
+            )
+        
+        # print the obs mean
+        print(f"Obs mean lead this: {obs_mean_lead_this}")
+
+        # Add this back into the model df anoms for mean correction
+        model_df_copy.loc[
+            model_df_copy[lead_name] == lead, f"{model_var_name}_drift_bc"
+        ] = (
+            model_df_copy.loc[model_df_copy[lead_name] == lead, f"{model_var_name}_anomaly"]
+            + obs_mean_lead_this
+        )
+
+    # Set up the axes
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=figsize,
+        sharex=True,
+        sharey=True,
+        layout="compressed",
+    )
+
+    ax1 = axes[0]
+    ax2 = axes[1]
+
+    # Get the cmap
+    cmap = cm.get_cmap("Blues", len(unique_leads))
+
+    # loop over the unique leads
+    for i, lead in enumerate(unique_leads):
+        # Subset the model data to the lead this
+        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+
+        # Plot the density distribution with kde
+        sns.kdeplot(
+            model_df_lead_this[f"{model_var_name}"],
+            ax=ax1,
+            color=cmap(i),
+        )
+
+        # Plot the density distribution with kde
+        sns.kdeplot(
+            model_df_lead_this[f"{model_var_name}_drift_bc"],
+            ax=ax2,
+            label=f"Lead {lead}",
+            color=cmap(i),
+        )
+
+    # plot the observed disttibution
+    sns.kdeplot(
+        obs_df_copy[obs_var_name],
+        ax=ax1,
+        label="Observed",
+        color="black",
+        linestyle="--",
+    )
+
+    # plot the observed disttibution
+    sns.kdeplot(
+        obs_df_copy[obs_var_name],
+        ax=ax2,
+        label="Observed",
+        color="black",
+        linestyle="--",
+    )
+
+    # set up the titles
+    ax1.set_title(f"No drift or bias corr. (no detrend)")
+    ax2.set_title(f"Drift + bias corr. (no detrend)")
+
+    # Include the legend in the top right of the right plot
+    ax2.legend(
+        loc="upper right",
+        fontsize=8,
+    )
+
+    # Add a suptitle including the min and max unique effective dec years
+    min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
+    max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
+
+    plt.suptitle(
+        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+        fontsize=14,
+        fontweight="bold",
+        y=1.08,
+    )
+
     return model_df_copy
-
-
-
-    #     # # add the obs mean back to the model df
-    #     # model_df_copy.loc[
-    #     #     model_df_copy[lead_name] == lead, f"{model_var_name}_drift_bc"
-    #     # ] = (
-    #     #     model_df_copy.loc[
-    #     #         model_df_copy[lead_name] == lead, f"{model_var_name}_anomaly"
-    #     #     ]
-    #     #     + obs_mean_lead_this
-    #     # )
-
-    # # Set up a figure with nrows = 1 and ncols = 2
-    # fig, axes = plt.subplots(
-    #     nrows=1,
-    #     ncols=2,
-    #     figsize=figsize,
-    #     sharex=True,
-    #     sharey=True,
-    #     layout="compressed",
-    # )
-
-    # ax1 = axes[0]
-    # ax2 = axes[1]
-
-    # # Create the colormap
-    # cmap = cm.get_cmap("Blues", len(unique_leads))
-
-    # # Loop over the leads
-    # for i, lead in enumerate(unique_leads):
-    #     data_this = model_df_copy[model_df_copy[lead_name] == lead][model_var_name]
-
-    #     # extract the data this drift corrected
-    #     data_this_drift_bc = model_df_copy[model_df_copy[lead_name] == lead][
-    #         f"{model_var_name}_drift_bc"
-    #     ]
-
-    #     # Plot the density distribution with kde
-    #     sns.kdeplot(
-    #         data_this,
-    #         ax=ax1,
-    #         label=f"Lead {lead}",
-    #         color=cmap(i),
-    #     )
-
-    #     # Plot the density distribution with kde
-    #     sns.kdeplot(
-    #         data_this_drift_bc,
-    #         ax=ax2,
-    #         label=f"Lead {lead}",
-    #         color=cmap(i),
-    #     )
-
-    # # plot the observed data as a black dashed line
-    # # between 1961 and 2018
-    # obs_data_this = obs_df_copy[
-    #     obs_df_copy[eff_dec_years_name].isin(np.arange(1961, 2018 + 1, 1))
-    # ][obs_var_name]
-
-    # # Plot the observed distribution with kde
-    # sns.kdeplot(
-    #     obs_data_this,
-    #     ax=ax1,
-    #     label="Observed",
-    #     color="black",
-    #     linestyle="--",
-    #     linewidth=2,
-    # )
-
-    # # Plot the observed distribution with kde
-    # sns.kdeplot(
-    #     obs_data_this,
-    #     ax=ax2,
-    #     label="Observed",
-    #     color="black",
-    #     linestyle="--",
-    #     linewidth=2,
-    # )
-
-    # # remove the yticks from both
-    # ax1.set_yticks([])
-    # ax2.set_yticks([])
-
-    # # remove the y axis label
-    # ax1.set_ylabel("")
-    # ax2.set_ylabel("")
-
-    # # Set the x axis label
-    # ax1.set_xlabel(xlabel)
-    # ax2.set_xlabel(xlabel)
-
-    # # Set up the legend in the top right of the right pot
-    # ax2.legend(
-    #     loc="upper right",
-    #     fontsize=8,
-    # )
-
-    # # Set the title
-    # ax1.set_title(f"No drift or bias correction (no detrend)")
-    # ax2.set_title(f"Drift corrected and bias corrected (no detrend)")
-
-    # # Show the plot
-    # plt.tight_layout()
-
-    # return model_df_copy
-
 
 # Define the main function
 def main():
@@ -849,7 +1153,7 @@ def main():
         obs_var_name="data_c_min",
         lead_name="winter_year",
         xlabel="Temperature (C)",
-        year1_year2_tuple=(1971, 2017),
+        year1_year2_tuple=(1970, 2017),
         constant_period=True,
     )
 
@@ -861,7 +1165,7 @@ def main():
         obs_var_name="data_min",
         lead_name="winter_year",
         xlabel="Wind speed (m/s)",
-        year1_year2_tuple=(1971, 2017),
+        year1_year2_tuple=(1970, 2017),
         constant_period=True,
     )
 
@@ -978,17 +1282,17 @@ def main():
         y_axis_name="data_min",
     )
 
-    # Compare the lead time corrected trends
-    gev_funcs.lead_time_trends(
-        model_df=block_minima_model_tas_drift_corr_dt,
-        obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min_drift_bc_dt",
-        obs_var_name="data_c_min_dt",
-        lead_name="winter_year",
-        ylabel="Temperature (C)",
-        suptitle="Temperature trends, 1961-2017, DJF block min T",
-        figsize=(15, 5),
-    )
+    # # Compare the lead time corrected trends
+    # gev_funcs.lead_time_trends(
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_var_name="data_tas_c_min_drift_bc_dt",
+    #     obs_var_name="data_c_min_dt",
+    #     lead_name="winter_year",
+    #     ylabel="Temperature (C)",
+    #     suptitle="Temperature trends, 1961-2017, DJF block min T",
+    #     figsize=(15, 5),
+    # )
 
     # Compare the trends with the full field data
     gev_funcs.compare_trends(
@@ -1030,7 +1334,7 @@ def main():
         min_periods=1,
     )
 
-    sys.exit()
+    # sys.exit()
 
     # Now plot the lead time dependent biases for the trend corrected data
     gev_funcs.plot_lead_pdfs(
