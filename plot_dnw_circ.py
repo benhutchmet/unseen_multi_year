@@ -1847,6 +1847,140 @@ def plot_mslp_composites(
 
     return None
 
+# Define a functoin to plot the tas wind composites
+def plot_tas_wind_composites(
+    subset_dfs_obs: List[pd.DataFrame],
+    subset_dfs_model: List[pd.DataFrame],
+    subset_arrs_obs_tas: List[np.ndarray],
+    subset_arrs_model_tas: List[np.ndarray],
+    subset_arrs_obs_wind: List[np.ndarray],
+    subset_arrs_model_wind: List[np.ndarray],
+    clim_arrs_obs_tas: List[np.ndarray],
+    clim_arrs_model_tas: List[np.ndarray],
+    clim_arrs_obs_wind: List[np.ndarray],
+    dates_lists_obs: List[List[cftime.DatetimeProlepticGregorian]],
+    model_index_dicts: List[Dict[str, np.ndarray]],
+    lats_path: str,
+    lons_path: str,
+    suptitle: str = None,
+    figsize: Tuple[int, int] = (8, 9),
+):
+    """
+    Plots the tas and wind composites for the given variables.
+    
+    Args:
+    =====
+
+        subset_dfs_obs (List[pd.DataFrame]): The list of subset dataframes for observations.
+        subset_dfs_model (List[pd.DataFrame]): The list of subset dataframes for the model.
+        subset_arrs_obs_tas (List[np.ndarray]): The list of tas subset arrays for observations.
+        subset_arrs_model_tas (List[np.ndarray]): The list of tas subset arrays for the model.
+        subset_arrs_obs_wind (List[np.ndarray]): The list of wind subset arrays for observations.
+        subset_arrs_model_wind (List[np.ndarray]): The list of wind subset arrays for the model.
+        clim_arrs_obs_tas (List[np.ndarray]): The list of climatology arrays for observations.
+        clim_arrs_model_tas (List[np.ndarray]): The list of climatology arrays for the model.
+        clim_arrs_obs_wind (List[np.ndarray]): The list of climatology arrays for observations.
+        dates_lists_obs (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists for observations.
+        model_index_dicts (List[Dict[str, np.ndarray]]): The list of model index dictionaries.
+        lats_path (str): The path to the latitude file.
+        lons_path (str): The path to the longitude file.
+        suptitle (str): The suptitle for the plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+    
+    """
+
+    # Hardcoe the cmap and levels for tas
+    cmap_tas = "bwr"
+    levels_tas = np.array(
+                [
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                ]
+            )
+    
+    # Hardcode the cmap and levels for wind
+    cmap_wind = "PRGn"
+    levels_wind = np.array(
+                [
+                    -5,
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ]
+            )
+    
+    # hard code the nearest neighbour countries
+    nearest_neighbour_countries = [
+        "Ireland",
+        "Germany",
+        "France",
+        "Netherlands",
+        "Belgium",
+        "Denmark",
+    ]
+    uk_names = ["United Kingdom"]
+
+    # Set up the countries shapefile
+    countries_shp = shpreader.natural_earth(
+            resolution="10m",
+            category="cultural",
+            name="admin_0_countries",
+        )
+
+    # Set up the figure
+    fig = plt.figure(figsize=figsize, layout="constrained")
+    gs = fig.add_gridspec(6, 3, figure=fig, width_ratios=[1, 1, 0.05])
+
+    # Set up the axes
+
+    # Grey dots subplots
+    ax0 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())  # Row 0, Col 0
+    ax1 = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())  # Row 0, Col 1
+    ax2 = fig.add_subplot(gs[0, 2])  # Row 0, Col 2
+    ax3 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())  # Row 1, Col 0
+    ax4 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 1, Col 1
+    ax5 = fig.add_subplot(gs[1, 2])  # Row 1, Col 2
+
+
+    # Yellow dots sublots
+    ax6 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
+    ax7 = fig.add_subplot(gs[2, 1], projection=ccrs.PlateCarree())  # Row 2, Col 1
+    ax8 = fig.add_subplot(gs[2, 2])  # Row 2, Col 2
+    ax9 = fig.add_subplot(gs[3, 0], projection=ccrs.PlateCarree())  # Row 3, Col 0
+    ax10 = fig.add_subplot(gs[3, 1], projection=ccrs.PlateCarree())  # Row 3, Col 1
+    ax11 = fig.add_subplot(gs[3, 2])  # Row 3, Col 2
+
+    # Red dots subplots
+    ax12 = fig.add_subplot(gs[4, 0], projection=ccrs.PlateCarree())  # Row 4, Col 0
+    ax13 = fig.add_subplot(gs[4, 1], projection=ccrs.PlateCarree())  # Row 4, Col 1
+    ax14 = fig.add_subplot(gs[4, 2])  # Row 4, Col 2
+    ax15 = fig.add_subplot(gs[5, 0], projection=ccrs.PlateCarree())  # Row 5, Col 0
+    ax16 = fig.add_subplot(gs[5, 1], projection=ccrs.PlateCarree())  # Row 5, Col 1
+
+    # TODO: COMPLETE THIS FUNCTION
+
+
+    return None
+
 # Define the main function
 def main():
     start_time = time.time()
