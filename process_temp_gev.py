@@ -39,7 +39,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-from process_dnw_gev import select_leads_wyears_DJF
+# from process_dnw_gev import select_leads_wyears_DJF
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")

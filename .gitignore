@@ -10,6 +10,7 @@ __pycache__/
 data/*.csv
 data/*.nc
 data/*.dat
+data/*.npy
 
 # all of the logs files
 logs/*.out

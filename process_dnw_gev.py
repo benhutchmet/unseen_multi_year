@@ -41,7 +41,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot
+from process_temp_gev import model_drift_corr_plot
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -444,9 +444,9 @@ def main():
         obs_var_name="data_c",
         lead_name="winter_year",
         xlabel="Temperature (°C)",
-        year1_year2_tuple=(1971, 2017),
+        year1_year2_tuple=(1970, 2017),
         lead_day_name="lead",
-        constant_period=False,
+        constant_period=True,
     )
 
     # do the same for tjhe wind speed data
@@ -457,9 +457,9 @@ def main():
         obs_var_name="data_sfcWind",
         lead_name="winter_year",
         xlabel="10m Wind Speed (m/s)",
-        year1_year2_tuple=(1971, 2017),
+        year1_year2_tuple=(1970, 2017),
         lead_day_name="lead",
-        constant_period=False,
+        constant_period=True,
     )
 
     # plot the lead pdfs to visualise the biases/drifts
