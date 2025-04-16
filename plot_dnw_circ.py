@@ -1497,7 +1497,6 @@ def plot_mslp_composites(
     model_index_dicts: List[Dict[str, np.ndarray]],
     lats_paths: List[str],
     lons_paths: List[str],
-    winter_years: np.ndarray = np.arange(1960, 2018 + 1, 1),
     suptitle: str = None,
     figsize: Tuple[int, int] = (20, 12),
 ):
@@ -1525,7 +1524,6 @@ def plot_mslp_composites(
         dates_lists_model (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists for the model.
         lats_paths (List[str]): The list of latitude paths.
         lons_paths (List[str]): The list of longitude paths.
-        winter_years (np.ndarray): The years to load.
         suptitle (str): The suptitle for the plot.
         figsize (Tuple[int, int]): The figure size.
 
@@ -1537,13 +1535,9 @@ def plot_mslp_composites(
     """
 
     # hardcode the cmap and levels for psl
-    cmap = "bwr"
+    cmap = "coolwarm"
     levels = np.array(
                 [
-                    -20,
-                    -18,
-                    -16,
-                    -14,
                     -12,
                     -10,
                     -8,
@@ -1556,12 +1550,9 @@ def plot_mslp_composites(
                     8,
                     10,
                     12,
-                    14,
-                    16,
-                    18,
-                    20,
                 ]
             )
+    ticks = levels
 
     # Load the lats and lons
     lats = np.load(lats_paths[0])
@@ -1578,6 +1569,8 @@ def plot_mslp_composites(
     ax4 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 1, Col 1
     ax5 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
     ax6 = fig.add_subplot(gs[2, 1], projection=ccrs.PlateCarree())  # Row 2, Col 1
+
+    full_axes = [ax1, ax2, ax3, ax4, ax5, ax6]
 
     # Set up the pairs
     axes_pairs = [
@@ -1627,6 +1620,9 @@ def plot_mslp_composites(
         # Apply these indices to the subset data
         subset_arr_this_obs = subset_arr_this_obs[indices_dates_obs_this, :, :]
 
+        # get the N for obs this
+        N_obs_this = np.shape(subset_arr_this_obs)[0]
+
         # Take the mean over this
         subset_arr_this_obs_mean = np.mean(subset_arr_this_obs, axis=0)
 
@@ -1641,6 +1637,9 @@ def plot_mslp_composites(
             (len(subset_dfs_model[i]), len(lats), len(lons))
         )
 
+        # Set up the N for model this
+        N_model_this = np.shape(subset_arr_this_model_full)[0]
+
         # Extract the index dict for the model this
         model_index_dict_this = model_index_dicts[i]
 
@@ -1654,6 +1653,9 @@ def plot_mslp_composites(
         lead_array_this = np.array(
             model_index_dict_this["lead"]
         )
+
+        # zero the missing daya here
+        missing_days = 0
 
         # Loop over the rows in this subset df for the model
         for j, (_, row) in tqdm(enumerate(subset_dfs_model[i].iterrows())):
@@ -1674,12 +1676,18 @@ def plot_mslp_composites(
                 index_this = np.where(condition)[0][0]
             except IndexError:
                 print(f"init year {init_year_df}, member {member_df}, lead {lead_df} not found")
+                missing_days += 1
 
             # Extract the corresponding value from the subset_arr_this_model
             subset_arr_this_model_index_this = subset_arr_this_model[index_this, :, :]
 
             # Store the value in the subset_arr_this_model_full
             subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
+
+        # print the number of missing days
+        print(f"row index: {i}")
+        print(f"Number of missing days: {missing_days}")
+        print(f"Model overall N: {N_model_this}")
 
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
@@ -1709,33 +1717,133 @@ def plot_mslp_composites(
             extend="both",
         )
 
+        # Inlcude a textbox in the top right for the N
+        ax_obs.text(
+            0.95,
+            0.95,
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor='white', alpha=0.5)
+        )
+        ax_model.text(
+            0.95,
+            0.95,
+            f"N = {N_model_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor='white', alpha=0.5)
+        )
+
         # add coastlines
         ax_obs.coastlines()
         ax_model.coastlines()
 
-        # add gridlines
-        ax_obs.gridlines()
-        ax_model.gridlines()
+        # # add gridlines
+        # ax_obs.gridlines()
+        # ax_model.gridlines()
 
         # if i ==2
         if i == 2:
             # Set up the a shared cbar
             cbar = fig.colorbar(
                 im_obs,
-                ax=(ax_obs, ax_model),
+                ax=full_axes,
                 orientation="horizontal",
-                pad=0.05,
-                aspect=50,
+                pad=0.01,
                 shrink=0.8,
-                location="bottom",
             )
 
             # set the ticks as levels
-            cbar.set_ticks(levels)
+            cbar.set_ticks(ticks)
+
+    # set the title for ax1 and ax2 in bold
+    ax1.set_title("Obs (ERA5)", fontsize=12, fontweight="bold")
+
+    # set the title for ax2
+    ax2.set_title("Model (DePreSys)", fontsize=12, fontweight="bold")
+
+    # include ylabels for ax1 and ax3 and ax5
+    ax1.set_ylabel("< obs 80th percentile", fontsize=12, fontweight="bold")
+    ax3.set_ylabel(">= obs 80th percentile", fontsize=12, fontweight="bold")
+    ax5.set_ylabel(">= obs max", fontsize=12, fontweight="bold")
+
+    # do these with textboxes instead
+    ax1.text(
+        0.95,
+        0.05,
+        "Block max days",
+        ha="right",
+        va="bottom",
+        transform=ax1.transAxes,
+        fontsize=12,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
+    ax2.text(
+        0.95,
+        0.05,
+        "Block max days",
+        ha="right",
+        va="bottom",
+        transform=ax2.transAxes,
+        fontsize=12,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
+
+    # set the text for ax3 and ax4
+    ax3.text(
+        0.95,
+        0.05,
+        "Extreme days",
+        ha="right",
+        va="bottom",
+        transform=ax3.transAxes,
+        fontsize=12,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
+    ax4.text(
+        0.95,
+        0.05,
+        "Extreme days",
+        ha="right",
+        va="bottom",
+        transform=ax4.transAxes,
+        fontsize=12,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
+
+    # set the text for ax5 and ax6
+    ax5.text(
+        0.95,
+        0.05,
+        "21-12-2010",
+        ha="right",
+        va="bottom",
+        transform=ax5.transAxes,
+        fontsize=12,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
+    ax6.text(
+        0.95,
+        0.05,
+        "Unseen days",
+        ha="right",
+        va="bottom",
+        transform=ax6.transAxes,
+        fontsize=12,
+        bbox=dict(facecolor='white', alpha=0.5)
+    )
 
     # If the suptitle is not none then set it
     if suptitle is not None:
-        fig.suptitle(suptitle, fontsize=16, fontweight="bold")
+        fig.suptitle(suptitle, fontsize=12, fontweight="bold")
+
+    # adjust the whitespace
+    plt.subplots_adjust(wspace=0.05, hspace=0.05)
 
     return None
 
@@ -1922,31 +2030,31 @@ def main():
         np.save(os.path.join(arrs_persist_dir, wind_times_fname), wind_dates_list)
 
     # load the psl data
-    psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
-    psl_dates_list = np.load(
+    obs_psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
+    obs_psl_dates_list = np.load(
         os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
     )
 
     # print the shape of psl sset
-    print(f"Shape of psl subset: {psl_subset.shape}")
+    print(f"Shape of psl subset: {obs_psl_subset.shape}")
 
     # print the shape of psl dates list
-    print(f"Shape of psl dates list: {psl_dates_list.shape}")
+    print(f"Shape of psl dates list: {obs_psl_dates_list.shape}")
 
     # print the values of psl dates list
-    print(f"PSL dates list: {psl_dates_list}")
+    print(f"PSL dates list: {obs_psl_dates_list}")
 
     # sys.exit()
 
     # load the temperature data
-    temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
-    temp_dates_list = np.load(
+    obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
+    obs_temp_dates_list = np.load(
         os.path.join(arrs_persist_dir, temp_times_fname), allow_pickle=True
     )
 
     # load the wind data
-    wind_subset = np.load(os.path.join(arrs_persist_dir, wind_fname))
-    wind_dates_list = np.load(
+    obs_wind_subset = np.load(os.path.join(arrs_persist_dir, wind_fname))
+    obs_wind_dates_list = np.load(
         os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
     )
 
@@ -2164,6 +2272,105 @@ def main():
         obs_df["demand_net_wind_max"] >= obs_dnw_max
     ]
 
+    # print the shape of moel df subset red
+    print(f"Shape of model df subset red: {model_df_subset_red.shape}")
+
+    # print the shape of obs df subset red
+    print(f"Shape of obs df subset red: {obs_df_subset_red.shape}")
+
+    # print the values of obs df subset red
+    print(f"Obs df subset red: {obs_df_subset_red}")
+
+    # plot the composites
+    # plot the composites f`or all of the winter days
+    plot_composites(
+        subset_df=obs_df_subset_yellow,
+        subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        dates_lists=[
+            obs_psl_dates_list,
+            obs_temp_dates_list,
+            obs_wind_dates_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        suptitle="All obs DnW max",
+        figsize=(12, 6),
+    )
+
+    # # plot the composite
+    # # plot the composites for all of the winter days
+    # plot_composites(
+    #     subset_df=obs_df_subset_red,
+    #     subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         obs_psl_dates_list,
+    #         obs_temp_dates_list,
+    #         obs_wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="All obs DnW max",
+    #     figsize=(12, 6),
+    # )
+
+    # sys.exit()
+
     # Set up the subset dfs obs
     subset_dfs_obs = [
         obs_df_subset_grey,
@@ -2180,9 +2387,9 @@ def main():
 
     # Set up the subset arrs obs
     subset_arrs_obs = [
-        obs_psl_arr,
-        obs_psl_arr,
-        obs_psl_arr,
+        obs_psl_subset,
+        obs_psl_subset,
+        obs_psl_subset,
     ]
 
     # Set up the subset arrs model
@@ -2208,9 +2415,9 @@ def main():
 
     # Set up the dates lists obs
     dates_lists_obs = [
-        psl_dates_list,
-        psl_dates_list,
-        psl_dates_list,
+        obs_psl_dates_list,
+        obs_psl_dates_list,
+        obs_psl_dates_list,
     ]
 
     # Set up the model index dicts
@@ -2265,6 +2472,7 @@ def main():
         lats_paths=lats_paths,
         lons_paths=lons_paths,
         suptitle=suptitle,
+        figsize=(8, 9),
     )
 
     sys.exit()
