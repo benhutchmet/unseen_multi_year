@@ -206,7 +206,7 @@ def extract_obs_data(
             # Take the mean over the first dimension and append to the data arr
             data_arr_detrended[i, :, :] = np.mean(data_this, axis=0)
     else:
-        data_arr_detrended = None
+        data_arr_detrended = np.zeros_like(data_arr)
 
     # Print the shape of data arr detredned
     print("--------------------------------")
@@ -1485,6 +1485,259 @@ def plot_composites(
 
     return None
 
+# Define a function to plot MSLP composites
+def plot_mslp_composites(
+    subset_dfs_obs: List[pd.DataFrame],
+    subset_dfs_model: List[pd.DataFrame],
+    subset_arrs_obs: List[np.ndarray],
+    subset_arrs_model: List[np.ndarray],
+    clim_arrs_obs: List[np.ndarray],
+    clim_arrs_model: List[np.ndarray],
+    dates_lists_obs: List[List[cftime.DatetimeProlepticGregorian]],
+    model_index_dicts: List[Dict[str, np.ndarray]],
+    lats_paths: List[str],
+    lons_paths: List[str],
+    winter_years: np.ndarray = np.arange(1960, 2018 + 1, 1),
+    suptitle: str = None,
+    figsize: Tuple[int, int] = (20, 12),
+):
+    """
+    Plots composites of MSLP for different thresholds.
+
+    E.g.,
+
+        First row -> grey points (<80th percentile of obs)
+
+        Second row -> yellow points (>=80th percentile of obs, <obs max)
+
+        Third row -> red points (>=obs max)
+
+    Args:
+    =====
+
+        subset_df_obs (pd.DataFrame): The subset dataframe for observations.
+        subset_df_model (pd.DataFrame): The subset dataframe for the model.
+        subset_arrs_obs (List[np.ndarray]): The list of subset arrays for observations.
+        subset_arrs_model (List[np.ndarray]): The list of subset arrays for the model.
+        clim_arrs_obs (List[np.ndarray]): The list of climatology arrays for observations.
+        clim_arrs_model (List[np.ndarray]): The list of climatology arrays for the model.
+        dates_lists_obs (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists for observations.
+        dates_lists_model (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists for the model.
+        lats_paths (List[str]): The list of latitude paths.
+        lons_paths (List[str]): The list of longitude paths.
+        winter_years (np.ndarray): The years to load.
+        suptitle (str): The suptitle for the plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+    
+    """
+
+    # hardcode the cmap and levels for psl
+    cmap = "bwr"
+    levels = np.array(
+                [
+                    -20,
+                    -18,
+                    -16,
+                    -14,
+                    -12,
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    14,
+                    16,
+                    18,
+                    20,
+                ]
+            )
+
+    # Load the lats and lons
+    lats = np.load(lats_paths[0])
+    lons = np.load(lons_paths[0])
+
+    # Set up the figure
+    fig = plt.figure(figsize=figsize, layout="constrained")
+
+    # Set up the gridspec
+    gs = fig.add_gridspec(3, 2, figure=fig)
+    ax1 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())  # Row 0, Col 0
+    ax2 = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())  # Row 0, Col 1
+    ax3 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())  # Row 1, Col 0
+    ax4 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 1, Col 1
+    ax5 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
+    ax6 = fig.add_subplot(gs[2, 1], projection=ccrs.PlateCarree())  # Row 2, Col 1
+
+    # Set up the pairs
+    axes_pairs = [
+        (ax1, ax2),
+        (ax3, ax4),
+        (ax5, ax6),
+    ]
+
+    # Loop over the axes pairs
+    for i, (ax_obs, ax_model) in enumerate(axes_pairs):
+        # Set up the subset dates to select the obs for
+        subset_dates_obs_cf = []
+
+        # Loop over the subset dates
+        dates_obs_this = subset_dfs_obs[i]["time"].values
+
+        # Format these ad datetimes
+        subset_dates_obs_dt = [
+            datetime.strptime(date, "%Y-%m-%d") for date in dates_obs_this
+        ]
+
+        # Format the subset dates to extract
+        for date in subset_dates_obs_dt:
+            date_this_cf = cftime.DatetimeGregorian(
+                date.year, date.month, date.day, hour=11, calendar="gregorian"
+            )
+            subset_dates_obs_cf.append(date_this_cf)
+
+        # Set up an empty list for the indices this
+        indices_dates_obs_this = []
+
+        # Print dates list obs i
+        print(f"Dates list obs i: {dates_lists_obs[i]}")
+
+        # Looop over the subset dates obs cf
+        for date in subset_dates_obs_cf:
+            print(f"Date: {date}")
+
+            index_this = np.where(
+                dates_lists_obs[i] == date
+            )[0][0]
+            indices_dates_obs_this.append(index_this)
+
+        # Set up the subset arr this for the obs
+        subset_arr_this_obs = subset_arrs_obs[i]
+
+        # Apply these indices to the subset data
+        subset_arr_this_obs = subset_arr_this_obs[indices_dates_obs_this, :, :]
+
+        # Take the mean over this
+        subset_arr_this_obs_mean = np.mean(subset_arr_this_obs, axis=0)
+
+        # Calculate the obs anoms
+        anoms_this_obs = subset_arr_this_obs_mean - clim_arrs_obs[i]
+
+        # Set up the subset array this for the obs
+        subset_arr_this_model = subset_arrs_model[i]
+
+        # Set up the subset arr this model full
+        subset_arr_this_model_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+
+        # Extract the index dict for the model this
+        model_index_dict_this = model_index_dicts[i]
+
+        # Extract the init years as arrays
+        init_year_array_this = np.array(
+            model_index_dict_this["init_year"]
+        )
+        member_array_this = np.array(
+            model_index_dict_this["member"]
+        )
+        lead_array_this = np.array(
+            model_index_dict_this["lead"]
+        )
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_dfs_model[i].iterrows())):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition = (
+                (init_year_array_this == init_year_df)
+                & (member_array_this == member_df)
+                & (lead_array_this == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this = np.where(condition)[0][0]
+            except IndexError:
+                print(f"init year {init_year_df}, member {member_df}, lead {lead_df} not found")
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_index_this = subset_arr_this_model[index_this, :, :]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
+
+        # Take the mean over this
+        subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+
+        # Calculate the model anoms
+        anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
+
+        # plot the obs data on the left
+        im_obs = ax_obs.contourf(
+            lons,
+            lats,
+            anoms_this_obs / 100,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # plot the model data on the right
+        im_model = ax_model.contourf(
+            lons,
+            lats,
+            anoms_this_model / 100,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # add coastlines
+        ax_obs.coastlines()
+        ax_model.coastlines()
+
+        # add gridlines
+        ax_obs.gridlines()
+        ax_model.gridlines()
+
+        # if i ==2
+        if i == 2:
+            # Set up the a shared cbar
+            cbar = fig.colorbar(
+                im_obs,
+                ax=(ax_obs, ax_model),
+                orientation="horizontal",
+                pad=0.05,
+                aspect=50,
+                shrink=0.8,
+                location="bottom",
+            )
+
+            # set the ticks as levels
+            cbar.set_ticks(levels)
+
+    # If the suptitle is not none then set it
+    if suptitle is not None:
+        fig.suptitle(suptitle, fontsize=16, fontweight="bold")
+
+    return None
 
 # Define the main function
 def main():
@@ -1514,6 +1767,14 @@ def main():
         model_df = pd.read_csv(os.path.join(dfs_dir, model_df_fname))
     else:
         raise FileNotFoundError(f"File {model_df_fname} does not exist in {dfs_dir}")
+
+    # print the columns in obs df
+    print(f"Columns in obs df: {obs_df.columns}")
+
+    # print the columns in model df
+    print(f"Columns in model df: {model_df.columns}")
+
+    # sys.exit()
 
     # Load the psl data for the north atlantic region
     obs_psl_arr = load_obs_data(
@@ -1665,6 +1926,17 @@ def main():
     psl_dates_list = np.load(
         os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
     )
+
+    # print the shape of psl sset
+    print(f"Shape of psl subset: {psl_subset.shape}")
+
+    # print the shape of psl dates list
+    print(f"Shape of psl dates list: {psl_dates_list.shape}")
+
+    # print the values of psl dates list
+    print(f"PSL dates list: {psl_dates_list}")
+
+    # sys.exit()
 
     # load the temperature data
     temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
@@ -1852,6 +2124,150 @@ def main():
     # prnt the tail of the model df
     print("Tail of the model df:")
     print(model_df.tail())
+
+    # find the 80th percentile of the demand net wind max
+    # for the obs
+    obs_dnw_80th = obs_df["demand_net_wind_max"].quantile(0.80)
+
+    # Find the maximum of the demand net wind max for the obs
+    obs_dnw_max = obs_df["demand_net_wind_max"].max()
+
+    # subset the model df to grey points
+    model_df_subset_grey = model_df[
+        model_df["demand_net_wind_bc_max_bc"] < obs_dnw_80th
+    ]
+
+    # do the same for the obs
+    obs_df_subset_grey = obs_df[
+        obs_df["demand_net_wind_max"] < obs_dnw_80th
+    ]
+
+    # subset the model df to yellow points
+    model_df_subset_yellow = model_df[
+        (model_df["demand_net_wind_bc_max_bc"] >= obs_dnw_80th)
+        & (model_df["demand_net_wind_bc_max_bc"] < obs_dnw_max)
+    ]
+
+    # do the same for the obs
+    obs_df_subset_yellow = obs_df[
+        (obs_df["demand_net_wind_max"] >= obs_dnw_80th)
+        & (obs_df["demand_net_wind_max"] < obs_dnw_max)
+    ]
+
+    # subset the model df to red points
+    model_df_subset_red = model_df[
+        model_df["demand_net_wind_bc_max_bc"] >= obs_dnw_max
+    ]
+
+    # do the same for the obs
+    obs_df_subset_red = obs_df[
+        obs_df["demand_net_wind_max"] >= obs_dnw_max
+    ]
+
+    # Set up the subset dfs obs
+    subset_dfs_obs = [
+        obs_df_subset_grey,
+        obs_df_subset_yellow,
+        obs_df_subset_red,
+    ]
+
+    # Set up the subset dfs model
+    subset_dfs_model = [
+        model_df_subset_grey,
+        model_df_subset_yellow,
+        model_df_subset_red,
+    ]
+
+    # Set up the subset arrs obs
+    subset_arrs_obs = [
+        obs_psl_arr,
+        obs_psl_arr,
+        obs_psl_arr,
+    ]
+
+    # Set up the subset arrs model
+    subset_arrs_model = [
+        model_psl_subset,
+        model_psl_subset,
+        model_psl_subset,
+    ]
+
+    # Set up the clim arrs obs
+    clim_arrs_obs = [
+        obs_psl_clim,
+        obs_psl_clim,
+        obs_psl_clim,
+    ]
+
+    # Set up the clim arrs model
+    clim_arrs_model = [
+        model_psl_clim,
+        model_psl_clim,
+        model_psl_clim,
+    ]
+
+    # Set up the dates lists obs
+    dates_lists_obs = [
+        psl_dates_list,
+        psl_dates_list,
+        psl_dates_list,
+    ]
+
+    # Set up the model index dicts
+    model_index_dicts = [
+        model_psl_subset_index_list,
+        model_psl_subset_index_list,
+        model_psl_subset_index_list,
+    ]
+
+    # Set up the lats path
+    lats_paths = [
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+        ),
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+        ),
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+        ),
+    ]
+
+    # Set up the lons path
+    lons_paths = [
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+        ),
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+        ),
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+        ),
+    ]
+
+    # Set up the suptitle
+    suptitle = "ERA5 and HadGEM3-GC31-MM DnW max MSLP anoms, relative to 1960-2018 climatology"
+
+    # Set up the figure size
+    figsize = (12, 6)
+
+    # Now test the new function
+    plot_mslp_composites(
+        subset_dfs_obs=subset_dfs_obs,
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_obs=subset_arrs_obs,
+        subset_arrs_model=subset_arrs_model,
+        clim_arrs_obs=clim_arrs_obs,
+        clim_arrs_model=clim_arrs_model,
+        dates_lists_obs=dates_lists_obs,
+        model_index_dicts=model_index_dicts,
+        lats_paths=lats_paths,
+        lons_paths=lons_paths,
+        suptitle=suptitle,
+    )
+
+    sys.exit()
 
     # # Plot the composites for all the data
     # plot_composites_model(

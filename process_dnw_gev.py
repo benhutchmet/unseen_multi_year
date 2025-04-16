@@ -806,7 +806,11 @@ def main():
         df=df_obs,
         time_name="effective_dec_year",
         min_max_var_name="demand_net_wind",
-        new_df_cols=["data_sfcWind_dt_sigmoid_total_wind_gen", "data_c_dt_UK_demand", "time"],
+        new_df_cols=[
+            "data_sfcWind_dt_sigmoid_total_wind_gen",
+            "data_c_dt_UK_demand",
+            "time",
+        ],
         process_min=False,
     )
 
@@ -843,9 +847,10 @@ def main():
     )
 
     # apply a uniform bias correction to the block maxima from the model
-    bias = block_max_model_dnw["demand_net_wind_bc_max"].mean() - block_max_obs_dnw[
-        "demand_net_wind_max"
-    ].mean()
+    bias = (
+        block_max_model_dnw["demand_net_wind_bc_max"].mean()
+        - block_max_obs_dnw["demand_net_wind_max"].mean()
+    )
 
     # print the bias
     print(f"Bias: {bias}")
@@ -918,6 +923,21 @@ def main():
         solid_line=np.max,
         figsize=(10, 5),
     )
+
+    # set up a fname for the obs dnw df
+    obs_dnw_fpath = os.path.join(dfs_dir, "block_maxima_obs_demand_net_wind.csv")
+    # set up a fname for the model dnw df
+    model_dnw_fpath = os.path.join(dfs_dir, "block_maxima_model_demand_net_wind.csv")
+
+    # if the fpath does not exist, svae the dtaa
+    if not os.path.exists(obs_dnw_fpath):
+        # Save the obs data
+        block_max_obs_dnw.to_csv(obs_dnw_fpath, index=True)
+
+    # if the fpath does not exist, svae the dtaa
+    if not os.path.exists(model_dnw_fpath):
+        # Save the model data
+        block_max_model_dnw.to_csv(model_dnw_fpath, index=True)
 
     sys.exit()
 

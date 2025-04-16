@@ -93,15 +93,18 @@ def main():
     print("Region: ", args.region)
     print("--------------------")
 
+    # Set up the current date
+    current_date = datetime.now()
+
     # Set up the output file path
     output_file_path = os.path.join(
         subset_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_{current_date.strftime('%Y-%m-%d')}.npy",
     )
 
     # set up the output file name
     # for the index list
-    output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_index_list.json"
+    output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_index_list_{current_date.strftime('%Y-%m-%d')}.json"
     output_file_path_index_list = os.path.join(
         subset_dir,
         output_file_name_index_list,
