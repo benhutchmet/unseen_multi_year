@@ -2062,7 +2062,6 @@ def plot_tas_wind_composites(
         ax_this.set_yticklabels([])
         ax_this.set_aspect("equal")
 
-
     # Set up the cmap_axes
     # cmap_axes = [
     #     ax0,
@@ -2878,14 +2877,12 @@ def plot_tas_composites(
                 if country.contains(point):
                     MASK_MATRIX_UK[l, j] = 1.0
 
-    plt.rcParams['figure.constrained_layout.use'] = False
+    # plt.rcParams['figure.constrained_layout.use'] = False
     # Set up the figure
     fig = plt.figure(figsize=figsize, layout="constrained")
-    gs = fig.add_gridspec(3, 3, figure=fig)
-    # Set up the gridspec
-    gs.update(wspace=0.001, hspace=0.001)
-
-    # Set up the axes
+    gs = fig.add_gridspec(3, 3, figure=fig, width_ratios=[1, 1, 1], height_ratios=[1, 1, 1])
+    # # Set up the gridspec
+    # gs.update(wspace=0.001, hspace=0.001)
 
     # Grey dots subplots
     ax0 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())  # Row 0, Col 0
@@ -2895,34 +2892,37 @@ def plot_tas_composites(
     # Yellow dots sublots
     ax6 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
     ax7 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 2, Col 1
-    ax8 = fig.add_subplot(gs[1, 2])  # Row 2, Col 2
+    ax8 = fig.add_subplot(gs[1, 2], sharex=ax2)  # Row 2, Col 2
 
     # Red dots subplots
     ax12 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 4, Col 0
     ax13 = fig.add_subplot(gs[2, 1], projection=ccrs.PlateCarree())  # Row 4, Col 1
-    ax14 = fig.add_subplot(gs[2, 2])  # Row 4, Col 2
+    ax14 = fig.add_subplot(gs[2, 2], sharex=ax2)  # Row 4, Col 2
 
-    # # Set aspect ratio to square for all scatter plot axes
-    scatter_axes = [ax2, ax8, ax14]  # Replace with the axes where scatter plots are drawn
-    for ax in scatter_axes:
-        ax.set_aspect('equal', adjustable='box')
+    # # # Set aspect ratio to square for all scatter plot axes
+    # scatter_axes = [ax2, ax8, ax14]  # Replace with the axes where scatter plots are drawn
+    # for ax in scatter_axes:
+    #     ax.set_aspect('equal')
 
     all_axes = [
         ax0,
         ax1,
+        ax2,
         ax6,
         ax7,
+        ax8,
         ax12,
         ax13,
+        ax14,
     ]
 
     for i in range(len(all_axes)):
         ax_this = all_axes[i]
         plt.axis("on")
-        ax_this.set_xticklabels([])
-        ax_this.set_yticklabels([])
-        ax_this.set_aspect("equal")
-
+        if i not in [2, 5, 8]:
+            ax_this.set_xticks([])
+            ax_this.set_yticks([])
+        ax_this.set_aspect("equal", adjustable="box")
 
     # Set up the cmap_axes
     # cmap_axes = [
@@ -2945,6 +2945,10 @@ def plot_tas_composites(
         ("Extreme days", "Extreme days"),
         ("21-12-2010", "Unseen days"),
     ]
+
+    # set the aspect ratio for the scatter plots
+    for ax in [ax2, ax8, ax14]:
+        ax.set_aspect("equal", adjustable="box")
 
     for i, (axes_group) in enumerate(axes_groups):
         # Set the axes up for this
@@ -3144,6 +3148,9 @@ def plot_tas_composites(
         subset_arr_this_model_wind_mean = np.mean(
             subset_arr_this_model_wind_full, axis=0
         )
+
+        # Calculate the model anoms
+        anoms_this_model_tas = subset_arr_this_model_tas_mean - clim_arrs_model_tas[i]
 
         # Apply the europe land mask to the temperature data
         anoms_this_obs_tas = np.ma.masked_where(
@@ -3355,12 +3362,15 @@ def plot_tas_composites(
         ax_temp_scatter.set_xlim(xlims_temp)
         ax_temp_scatter.set_ylim(ylims_temp)
 
-        # Set the x and y labels for the scatter plots
-        ax_temp_scatter.set_xlabel("NN temperature anomaly (°C)", fontsize=12)
+        if i == 2:
+            # Set the x and y labels for the scatter plots
+            ax_temp_scatter.set_xlabel("NN temperature anomaly (°C)", fontsize=12)
+
         ax_temp_scatter.set_ylabel("UK temperature anomaly (°C)", fontsize=12)
 
-        # Set up titles for the scatter plots
-        ax_temp_scatter.set_title("UK vs. NN.", fontsize=12)
+        if i == 0:
+            # Set up titles for the scatter plots
+            ax_temp_scatter.set_title("UK vs. NN.", fontsize=12)
 
         # include a legend in the top left
         ax_temp_scatter.legend(
@@ -3370,14 +3380,586 @@ def plot_tas_composites(
             frameon=False,
         )
 
-    # minimise the vertical spacing between subplots
-    fig.subplots_adjust(hspace=0.001)
+    # fix the aspect ratio for all of the plots
+    for ax in all_axes:
+        ax.set_aspect("equal", adjustable="box")
+
+    # # remove the xtick lables from specific axes
+    # for ax in [ax0, ax6, ax12]:
+    #     ax.set_xticklabels([])
+
+    # ax2.set_xticklabels([])
+    # ax8.set_xticklabels([])
+
+    # # minimise the vertical spacing between subplots
+    # fig.subplots_adjust(hspace=0.001)
 
     # # make sure the aspect ratios are all equal
     # for ax in all_axes:
     #     ax.set_aspect("equal", adjustable="box")
 
     return None
+
+# Define a functoin to plot the tas wind composites
+def plot_wind_composites(
+    subset_dfs_obs: List[pd.DataFrame],
+    subset_dfs_model: List[pd.DataFrame],
+    subset_arrs_obs_wind: List[np.ndarray],
+    subset_arrs_model_wind: List[np.ndarray],
+    clim_arrs_obs_wind: List[np.ndarray],
+    clim_arrs_model_wind: List[np.ndarray],
+    dates_lists_obs_wind: List[List[cftime.DatetimeProlepticGregorian]],
+    model_index_dicts_wind: List[Dict[str, np.ndarray]],
+    lats_path: str,
+    lons_path: str,
+    suptitle: str = None,
+    figsize: Tuple[int, int] = (8, 9),
+):
+    """
+    Plots the tas and wind composites for the given variables.
+
+    Args:
+    =====
+
+        subset_dfs_obs (List[pd.DataFrame]): The list of subset dataframes for observations.
+        subset_dfs_model (List[pd.DataFrame]): The list of subset dataframes for the model.
+        subset_arrs_obs_tas (List[np.ndarray]): The list of tas subset arrays for observations.
+        subset_arrs_model_tas (List[np.ndarray]): The list of tas subset arrays for the model.
+        subset_arrs_obs_wind (List[np.ndarray]): The list of wind subset arrays for observations.
+        subset_arrs_model_wind (List[np.ndarray]): The list of wind subset arrays for the model.
+        clim_arrs_obs_tas (List[np.ndarray]): The list of climatology arrays for observations.
+        clim_arrs_model_tas (List[np.ndarray]): The list of climatology arrays for the model.
+        clim_arrs_obs_wind (List[np.ndarray]): The list of climatology arrays for observations.
+        dates_lists_obs (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists for observations.
+        model_index_dicts (List[Dict[str, np.ndarray]]): The list of model index dictionaries.
+        lats_path (str): The path to the latitude file.
+        lons_path (str): The path to the longitude file.
+        suptitle (str): The suptitle for the plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+
+    """
+
+    # Hardcoe the cmap and levels for tas
+    cmap_tas = "bwr"
+    levels_tas = np.array(
+        [
+            -10,
+            -8,
+            -6,
+            -4,
+            -2,
+            2,
+            4,
+            6,
+            8,
+            10,
+        ]
+    )
+
+    # Hardcode the cmap and levels for wind
+    cmap_wind = "PRGn"
+    levels_wind = np.array(
+        [
+            -5,
+            -4,
+            -3,
+            -2,
+            -1,
+            1,
+            2,
+            3,
+            4,
+            5,
+        ]
+    )
+
+    # hard code the nearest neighbour countries
+    nearest_neighbour_countries = [
+        "Ireland",
+        "Germany",
+        "France",
+        "Netherlands",
+        "Belgium",
+        "Denmark",
+    ]
+    uk_names = ["United Kingdom"]
+
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # Set up the countries shapefile
+    countries_shp = shpreader.natural_earth(
+        resolution="10m",
+        category="cultural",
+        name="admin_0_countries",
+    )
+
+    # Set up the x and y
+    x, y = lons, lats
+
+    # Set up a mask for the countries
+    nn_countries_geom = []
+    for country in shpreader.Reader(countries_shp).records():
+        if country.attributes["NAME"] in nearest_neighbour_countries:
+            nn_countries_geom.append(country.geometry)
+
+    # Set up a mask for the UK
+    uk_country_geom = []
+    for country in shpreader.Reader(countries_shp).records():
+        if country.attributes["NAME"] in uk_names:
+            uk_country_geom.append(country.geometry)
+
+    # Set up the mask matrix for the nearest neighbour countries
+    MASK_MATRIX_NN = np.zeros((len(lats), len(lons)))
+    MASK_MATRIX_UK = np.zeros((len(lats), len(lons)))
+
+    # Loop over the latitude and longitude points
+    for l in range(len(lats)):
+        for j in range(len(lons)):
+            point = shapely.geometry.Point(lons[j], lats[l])
+            for country in nn_countries_geom:
+                if country.contains(point):
+                    MASK_MATRIX_NN[l, j] = 1.0
+            for country in uk_country_geom:
+                if country.contains(point):
+                    MASK_MATRIX_UK[l, j] = 1.0
+
+    # plt.rcParams['figure.constrained_layout.use'] = False
+    # Set up the figure
+    fig = plt.figure(figsize=figsize, layout="constrained")
+    gs = fig.add_gridspec(3, 3, figure=fig, width_ratios=[1, 1, 1], height_ratios=[1, 1, 1])
+    # # Set up the gridspec
+    # gs.update(wspace=0.001, hspace=0.001)
+
+    # Grey dots subplots
+    ax0 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())  # Row 0, Col 0
+    ax1 = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())  # Row 0, Col 1
+    ax2 = fig.add_subplot(gs[0, 2])  # Row 0, Col 2
+
+    # Yellow dots sublots
+    ax6 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
+    ax7 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 2, Col 1
+    ax8 = fig.add_subplot(gs[1, 2], sharex=ax2)  # Row 2, Col 2
+
+    # Red dots subplots
+    ax12 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 4, Col 0
+    ax13 = fig.add_subplot(gs[2, 1], projection=ccrs.PlateCarree())  # Row 4, Col 1
+    ax14 = fig.add_subplot(gs[2, 2], sharex=ax2)  # Row 4, Col 2
+
+    # # # Set aspect ratio to square for all scatter plot axes
+    # scatter_axes = [ax2, ax8, ax14]  # Replace with the axes where scatter plots are drawn
+    # for ax in scatter_axes:
+    #     ax.set_aspect('equal')
+
+    all_axes = [
+        ax0,
+        ax1,
+        ax2,
+        ax6,
+        ax7,
+        ax8,
+        ax12,
+        ax13,
+        ax14,
+    ]
+
+    for i in range(len(all_axes)):
+        ax_this = all_axes[i]
+        plt.axis("on")
+        if i not in [2, 5, 8]:
+            ax_this.set_xticks([])
+            ax_this.set_yticks([])
+        ax_this.set_aspect("equal", adjustable="box")
+
+    # Set up the cmap_axes
+    # cmap_axes = [
+    #     ax0,
+    #     ax1,
+
+    # # set a tight layout for the gridspec
+    # fig.tight_layout()
+
+    # Set up the axes groups
+    axes_groups = [
+        (ax0, ax1, ax2),
+        (ax6, ax7, ax8),
+        (ax12, ax13, ax14),
+    ]
+
+    # Set up the names
+    names_list = [
+        ("Block max days", "Block max days"),
+        ("Extreme days", "Extreme days"),
+        ("21-12-2010", "Unseen days"),
+    ]
+
+    # set the aspect ratio for the scatter plots
+    for ax in [ax2, ax8, ax14]:
+        ax.set_aspect("equal", adjustable="box")
+
+    for i, (axes_group) in enumerate(axes_groups):
+        # Set the axes up for this
+        ax_wind_obs = axes_group[0]
+        ax_wind_model = axes_group[1]
+        ax_wind_scatter = axes_group[2]
+
+        # Set up the subset dates to select the obs for
+        subset_dates_obs_cf_this = []
+
+        # Extract the subset dates this
+        subset_dates_obs_this = subset_dfs_obs[i]["time"].values
+
+        # Format these as datetimes
+        subset_dates_obs_dt_this = [
+            datetime.strptime(date, "%Y-%m-%d") for date in subset_dates_obs_this
+        ]
+
+        # Format the subset dates to extract
+        for date in subset_dates_obs_dt_this:
+            date_this_cf = cftime.DatetimeProlepticGregorian(
+                date.year,
+                date.month,
+                date.day,
+                hour=0,
+                calendar="proleptic_gregorian",
+            )
+
+            subset_dates_obs_cf_this.append(date_this_cf)
+
+        # Set up an empty list for the indices dates obs this
+        indices_dates_obs_this_wind = []
+
+        # Loop over the dates in subset dtes obs cf
+        for date in subset_dates_obs_cf_this:
+
+            # Find the index of the date in the dates list
+            index_this_wind = np.where(dates_lists_obs_wind[i] == date)[0][0]
+            indices_dates_obs_this_wind.append(index_this_wind)
+
+        # Set up the subset arr this for the obs
+        subset_arr_this_obs_wind = subset_arrs_obs_wind[i]
+
+        # Apply these indices to the subset data
+        subset_arr_this_obs_wind = subset_arr_this_obs_wind[
+            indices_dates_obs_this_wind, :, :
+        ]
+
+        # Get the N for the obs this
+        N_obs_this = np.shape(subset_arr_this_obs_wind)[0]
+
+        # Take the mean over this
+        subset_arr_this_obs_wind_mean = np.mean(subset_arr_this_obs_wind, axis=0)
+
+        # Calculate the obs anoms
+        anoms_this_obs_wind = subset_arr_this_obs_wind_mean - clim_arrs_obs_wind[i]
+
+        # Set up the subset arr this for the model
+        subset_arr_this_model_wind = subset_arrs_model_wind[i]
+
+        # Set up the subset arr this model full
+        subset_arr_this_model_wind_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+
+        # Set up the N for model this
+        N_model_this = np.shape(subset_arr_this_model_wind_full)[0]
+
+        # Extract the index dict for the model this
+        model_index_dict_wind_this = model_index_dicts_wind[i]
+
+        # do the same for wind speed
+        init_year_array_wind_this = np.array(model_index_dict_wind_this["init_year"])
+        member_array_wind_this = np.array(model_index_dict_wind_this["member"])
+        lead_array_wind_this = np.array(model_index_dict_wind_this["lead"])
+
+        # Zero the missing days her
+        missing_days_wind = 0
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_dfs_model[i].iterrows())):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition_wind = (
+                (init_year_array_wind_this == init_year_df)
+                & (member_array_wind_this == member_df)
+                & (lead_array_wind_this == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this_wind = np.where(condition_wind)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found for wind"
+                )
+                missing_days_wind += 1
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_wind_index_this = subset_arr_this_model_wind[
+                index_this_wind, :, :
+            ]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_wind_full[j, :, :] = (
+                subset_arr_this_model_wind_index_this
+            )
+
+        # Print the row index
+        print(f"Row index: {i}")
+        print(f"Number of missing days for wind: {missing_days_wind}")
+        print(f"Model overall N: {N_model_this}")
+
+        # Take the mean over this
+        subset_arr_this_model_wind_mean = np.mean(
+            subset_arr_this_model_wind_full, axis=0
+        )
+
+        # Calculate the model anoms
+        anoms_this_model_wind = (
+            subset_arr_this_model_wind_mean - clim_arrs_model_wind[i]
+        )
+
+        # Plot the obs data on the left
+        im_obs_wind = ax_wind_obs.contourf(
+            lons,
+            lats,
+            anoms_this_obs_wind,
+            cmap=cmap_wind,
+            transform=ccrs.PlateCarree(),
+            levels=levels_wind,
+            extend="both",
+        )
+
+        # Plot the model data on the right
+        im_model_wind = ax_wind_model.contourf(
+            lons,
+            lats,
+            anoms_this_model_wind,
+            cmap=cmap_wind,
+            transform=ccrs.PlateCarree(),
+            levels=levels_wind,
+            extend="both",
+        )
+
+        # add coastlines to all of these
+        ax_wind_obs.coastlines()
+        ax_wind_model.coastlines()
+
+        # Set up the min and max lats
+        min_lat = np.min(lats)
+        max_lat = np.max(lats)
+        min_lon = np.min(lons)
+        max_lon = np.max(lons)
+
+        # restrict the domain of the plots
+        ax_wind_obs.set_extent([min_lon, max_lon, min_lat, max_lat])
+        ax_wind_model.set_extent([min_lon, max_lon, min_lat, max_lat])
+
+        # Include a textbox in the rop right for N
+        ax_wind_obs.text(
+            0.95,
+            0.95,
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_wind_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_wind_model.text(
+            0.95,
+            0.95,
+            f"N = {N_model_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_wind_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # if i is 2
+        if i == 2:
+            # add the colorbar for wind
+            cbar_wind = fig.colorbar(
+                im_obs_wind,
+                ax=(ax_wind_obs, ax_wind_model),
+                orientation="horizontal",
+                pad=0.0,
+                shrink=0.8,
+            )
+            cbar_wind.set_ticks(levels_wind)
+
+        # if i is 0
+        if i == 0:
+            # Set the title for ax0 and ax1 in bold
+            ax_wind_obs.set_title("Obs (ERA5)", fontsize=12, fontweight="bold")
+            ax_wind_model.set_title("Model (DePreSys)", fontsize=12, fontweight="bold")
+
+        # Set up a textbox in the bottom right
+        ax_wind_obs.text(
+            0.95,
+            0.05,
+            names_list[i][0],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_wind_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_wind_model.text(
+            0.95,
+            0.05,
+            names_list[i][1],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_wind_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Now process the data for the scatter functions
+        anoms_scatter_wind_model_this = (
+            subset_arr_this_model_wind_full - clim_arrs_model_wind[i]
+        )
+        anoms_scatter_wind_obs_this = subset_arr_this_obs_wind - clim_arrs_obs_wind[i]
+
+        # assert that the shape of the anoms scatter is the same as the shape of the mask
+        # Expand the mask to match the shape of the anoms scatter this
+        MASK_MATRIX_NN_RESHAPED_model = np.broadcast_to(
+            MASK_MATRIX_NN, anoms_scatter_wind_model_this.shape
+        )
+        MASK_MATRIX_UK_RESHAPED_model = np.broadcast_to(
+            MASK_MATRIX_UK, anoms_scatter_wind_model_this.shape
+        )
+        MASK_MATRIX_NN_RESHAPED_obs = np.broadcast_to(
+            MASK_MATRIX_NN, anoms_scatter_wind_obs_this.shape
+        )
+        MASK_MATRIX_UK_RESHAPED_obs = np.broadcast_to(
+            MASK_MATRIX_UK, anoms_scatter_wind_obs_this.shape
+        )
+
+        # Apply the mask to the anoms scatter this
+        anoms_scatter_wind_model_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_model == 0, anoms_scatter_wind_model_this
+        )
+        anoms_scatter_wind_model_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_model == 0, anoms_scatter_wind_model_this
+        )
+
+        # do the same for the obs
+        anoms_scatter_wind_obs_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_obs == 0, anoms_scatter_wind_obs_this
+        )
+        anoms_scatter_wind_obs_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_obs == 0, anoms_scatter_wind_obs_this
+        )
+
+        # Set up a list of all of these
+        list_anoms_scatter = [
+            anoms_scatter_wind_model_this_NN,
+            anoms_scatter_wind_model_this_UK,
+            anoms_scatter_wind_obs_this_NN,
+            anoms_scatter_wind_obs_this_UK,
+        ]
+
+        # loop over and assert that each of them have three dimensions
+        for arr in list_anoms_scatter:
+            assert (
+                len(np.shape(arr)) == 3
+            ), "Anoms scatter tas and wind do not match in shape"
+
+        # take the spatial mean of these
+        anoms_this_model_nn_wind_mean = np.mean(
+            anoms_scatter_wind_model_this_NN, axis=(1, 2)
+        )
+        anoms_this_model_uk_wind_mean = np.mean(
+            anoms_scatter_wind_model_this_UK, axis=(1, 2)
+        )
+        anoms_this_obs_nn_wind_mean = np.mean(
+            anoms_scatter_wind_obs_this_NN, axis=(1, 2)
+        )
+        anoms_this_obs_uk_wind_mean = np.mean(
+            anoms_scatter_wind_obs_this_UK, axis=(1, 2)
+        )
+
+        corr_wind_model, _ = pearsonr(
+            anoms_this_model_nn_wind_mean, anoms_this_model_uk_wind_mean
+        )
+        if i == 2:
+            corr_wind_obs = 0.0
+        else:
+            corr_wind_obs, _ = pearsonr(
+                anoms_this_obs_nn_wind_mean, anoms_this_obs_uk_wind_mean
+            )
+
+        # Plot the scatter plot for wind model as grey circles
+        ax_wind_scatter.scatter(
+            anoms_this_model_nn_wind_mean,
+            anoms_this_model_uk_wind_mean,
+            color="grey",
+            s=10,
+            alpha=0.5,
+            label=f"Model (r={corr_wind_model:.2f})",
+        )
+
+        # Plot the scatter plot for wind obs as black crosses
+        ax_wind_scatter.scatter(
+            anoms_this_obs_nn_wind_mean,
+            anoms_this_obs_uk_wind_mean,
+            color="black",
+            s=10,
+            marker="x",
+            label=f"Obs (r={corr_wind_obs:.2f})",
+        )
+
+        # set the x and y limits for the scatter plots
+        xlims_temp = (-17, 7)
+        ylims_temp = (-17, 7)
+
+        # Set the xlims and ylims for the scatter plots
+        xlims_wind = (-4, 4)
+        ylims_wind = (-4, 4)
+
+        # Set the x and y limits for the scatter plots
+        ax_wind_scatter.set_xlim(xlims_wind)
+        ax_wind_scatter.set_ylim(ylims_wind)
+
+        if i == 2:
+            # Set the x and y labels for the scatter plots
+            ax_wind_scatter.set_xlabel("NN wind anomaly (m/s)", fontsize=12)
+        ax_wind_scatter.set_ylabel("UK wind anomaly (m/s)", fontsize=12)
+
+        # Set up titles for the scatter plots
+        if i == 0:
+            ax_wind_scatter.set_title("UK vs. NN.", fontsize=12)
+
+        # include a legend in the top left
+        ax_wind_scatter.legend(
+            loc="upper left",
+            fontsize=12,
+            markerscale=2,
+            frameon=False,
+        )
+
+    # minimise the vertical spacing between subplots
+    # fig.subplots_adjust(hspace=0.001)
+
+    # # make sure the aspect ratios are all equal
+    for ax in all_axes:
+        ax.set_aspect("equal", adjustable="box")
+
+    return None
+
 
 # Define the main function
 def main():
@@ -4097,6 +4679,40 @@ def main():
     #     suptitle=suptitle,
     #     figsize=(8, 9),
     # )
+
+    # plot the wind composites
+    plot_wind_composites(
+        subset_dfs_obs=subset_dfs_obs,
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_obs_wind=subset_arrs_obs_wind,
+        subset_arrs_model_wind=subset_arrs_model_wind,
+        clim_arrs_obs_wind=clim_arrs_obs_wind,
+        clim_arrs_model_wind=clim_arrs_model_wind,
+        dates_lists_obs_wind=dates_lists_obs_wind,
+        model_index_dicts_wind=model_index_dicts_wind,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        suptitle=suptitle,
+        figsize=(10, 10),
+    )
+
+    # test the function for just plotting the tas composites
+    plot_tas_composites(
+        subset_dfs_obs=subset_dfs_obs,
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_obs_tas=subset_arrs_obs_tas,
+        subset_arrs_model_tas=subset_arrs_model_tas,
+        clim_arrs_obs_tas=clim_arrs_obs_tas,
+        clim_arrs_model_tas=clim_arrs_model_tas,
+        dates_lists_obs_tas=dates_lists_obs_tas,
+        model_index_dicts_tas=model_index_dicts_tas,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        suptitle=suptitle,
+        figsize=(10, 10),
+    )
+
+    sys.exit()
 
     # test the tas wind composites function
     plot_tas_wind_composites(
