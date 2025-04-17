@@ -29,6 +29,7 @@ from tqdm import tqdm
 from typing import List, Tuple, Dict, Any
 from datetime import datetime, timedelta
 from scipy.stats import pearsonr, linregress
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 # Set up a function for loading the data
@@ -190,11 +191,13 @@ def extract_obs_data(
     if variable == "tas":
         # Set up an array to append the data
         data_arr_detrended = np.zeros((len(unique_dec_years), lat_shape, lon_shape))
-        
+
         # loop over the unique dec years
         for i, unique_dec_year in enumerate(unique_dec_years):
             # Set up the fname this
-            fname_this = f"ERA5_{variable}_{region}_{unique_dec_year}_{season}_{time_freq}.npy"
+            fname_this = (
+                f"ERA5_{variable}_{region}_{unique_dec_year}_{season}_{time_freq}.npy"
+            )
 
             # if the file does not exist, then raise an error
             if not os.path.exists(os.path.join(arrs_dir, fname_this)):
@@ -212,7 +215,6 @@ def extract_obs_data(
     print("--------------------------------")
     print(f"Shape of data arr detrended: {data_arr_detrended.shape}")
     print("--------------------------------")
-
 
     # Set up an empty dates list
     dates_list = []
@@ -290,9 +292,7 @@ def extract_obs_data(
                     )
 
                     # Calculate the trend line this
-                    trend_line_this = (
-                        slope_T_this * unique_dec_years + intercept_T_this
-                    )
+                    trend_line_this = slope_T_this * unique_dec_years + intercept_T_this
 
                     # Find the final point on the trend line
                     final_point_this = trend_line_this[-1]
@@ -310,10 +310,7 @@ def extract_obs_data(
                     # print(f"Type of year to extract this: {type(year_to_extract_this)}")
 
                     # find the index of year to extract this in unique_dec_years
-                    y_index = np.where(
-                        unique_dec_years == year_to_extract_this
-                    )[0][0]
-
+                    y_index = np.where(unique_dec_years == year_to_extract_this)[0][0]
 
                     # Remove the trend for the current year
                     # from the data subset
@@ -324,7 +321,9 @@ def extract_obs_data(
                         #     final_point_this - trend_line_this[y_index] + data_this[l, j, k]
                         # )
                         data_arr_detrended_full[l, j, k] = (
-                            final_point_this - trend_line_this[y_index] + data_this[l, j, k]
+                            final_point_this
+                            - trend_line_this[y_index]
+                            + data_this[l, j, k]
                         )
         else:
             # print the shape of the data this
@@ -591,6 +590,7 @@ def plot_data_postage_stamp(
 
     return None
 
+
 # Define a function to plot the composites for the model data
 def plot_composites_model(
     subset_df: pd.DataFrame,
@@ -605,7 +605,7 @@ def plot_composites_model(
 ):
     """
     Plots the composites for the model data.
-    
+
     Args:
     =====
         subset_df (pd.DataFrame): The subset dataframe.
@@ -675,15 +675,17 @@ def plot_composites_model(
             # from the index dict this
             index_dict_this = index_dicts[i]
 
-            effective_dec_years_arr = np.array(
-                index_dict_this["effective_dec_year"]
-            )
+            effective_dec_years_arr = np.array(index_dict_this["effective_dec_year"])
 
             unique_effective_dec_years = np.unique(effective_dec_years_arr)
 
             # Set up a new array to append to
             subset_arr_this_detrended = np.zeros(
-                (len(unique_effective_dec_years), subset_arr_this.shape[1], subset_arr_this.shape[2])
+                (
+                    len(unique_effective_dec_years),
+                    subset_arr_this.shape[1],
+                    subset_arr_this.shape[2],
+                )
             )
 
             # Loop over the unique effective dec years
@@ -693,7 +695,7 @@ def plot_composites_model(
 
                 # print the index this
                 # print(f"Index this: {index_this}")
-        
+
                 # # Extract the subset arr this for this index
                 subset_arr_this_detrended[j, :, :] = np.mean(
                     subset_arr_this[index_this, :, :], axis=0
@@ -727,11 +729,17 @@ def plot_composites_model(
                         for m in index_this_l:
                             # Detrend the data
                             subset_arr_this[m, j, k] = (
-                                final_point_this - trend_line_this[l] + subset_arr_this[m, j, k]
+                                final_point_this
+                                - trend_line_this[l]
+                                + subset_arr_this[m, j, k]
                             )
 
         # Loop over the rows in the subset df
-        for j, (_, row) in tqdm(enumerate(subset_df.iterrows()), desc="Processing dataframe", total=len(subset_df)):
+        for j, (_, row) in tqdm(
+            enumerate(subset_df.iterrows()),
+            desc="Processing dataframe",
+            total=len(subset_df),
+        ):
             # Extract the init_year from the df
             init_year_df = int(row["init_year"])
             member_df = int(row["member"])
@@ -757,9 +765,9 @@ def plot_composites_model(
 
             # Construct the condition using element-wise comparison
             condition = (
-                (init_year_array == init_year_df) &
-                (member_array == member_df) &
-                (lead_array == lead_df)
+                (init_year_array == init_year_df)
+                & (member_array == member_df)
+                & (lead_array == lead_df)
             )
 
             # Use np.where to find the index
@@ -944,9 +952,10 @@ def plot_composites_model(
         ax.gridlines()
 
         # set up the colorbar beneath the plot
-        cbar = fig.colorbar(im, ax=ax, orientation="horizontal", pad=0.05, shrink=0.8,
-                            location="bottom")
-        
+        cbar = fig.colorbar(
+            im, ax=ax, orientation="horizontal", pad=0.05, shrink=0.8, location="bottom"
+        )
+
         # Set the colorbar ticks
         cbar.set_ticks(levels)
 
@@ -980,12 +989,8 @@ def plot_composites_model(
             print(f"Shape of the anoms scatter this uk: {anoms_scatter_this_uk.shape}")
 
             # take the spatial means of the anoms for the EU and UK
-            anoms_scatter_this_mean_eu = np.mean(
-                anoms_scatter_this_eu, axis=(1, 2)
-            )
-            anoms_scatter_this_mean_uk = np.mean(
-                anoms_scatter_this_uk, axis=(1, 2)
-            )
+            anoms_scatter_this_mean_eu = np.mean(anoms_scatter_this_eu, axis=(1, 2))
+            anoms_scatter_this_mean_uk = np.mean(anoms_scatter_this_uk, axis=(1, 2))
 
             # calculate the pearson correlation
             corr, _ = pearsonr(
@@ -1034,6 +1039,7 @@ def plot_composites_model(
         fig.suptitle(suptitle, fontsize=16)
 
     return None
+
 
 # Plot the composites
 # for a subset of the df
@@ -1485,6 +1491,7 @@ def plot_composites(
 
     return None
 
+
 # Define a function to plot MSLP composites
 def plot_mslp_composites(
     subset_dfs_obs: List[pd.DataFrame],
@@ -1531,27 +1538,27 @@ def plot_mslp_composites(
     ========
 
         None
-    
+
     """
 
     # hardcode the cmap and levels for psl
     cmap = "coolwarm"
     levels = np.array(
-                [
-                    -12,
-                    -10,
-                    -8,
-                    -6,
-                    -4,
-                    -2,
-                    2,
-                    4,
-                    6,
-                    8,
-                    10,
-                    12,
-                ]
-            )
+        [
+            -12,
+            -10,
+            -8,
+            -6,
+            -4,
+            -2,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+        ]
+    )
     ticks = levels
 
     # Load the lats and lons
@@ -1609,9 +1616,7 @@ def plot_mslp_composites(
         for date in subset_dates_obs_cf:
             print(f"Date: {date}")
 
-            index_this = np.where(
-                dates_lists_obs[i] == date
-            )[0][0]
+            index_this = np.where(dates_lists_obs[i] == date)[0][0]
             indices_dates_obs_this.append(index_this)
 
         # Set up the subset arr this for the obs
@@ -1644,15 +1649,9 @@ def plot_mslp_composites(
         model_index_dict_this = model_index_dicts[i]
 
         # Extract the init years as arrays
-        init_year_array_this = np.array(
-            model_index_dict_this["init_year"]
-        )
-        member_array_this = np.array(
-            model_index_dict_this["member"]
-        )
-        lead_array_this = np.array(
-            model_index_dict_this["lead"]
-        )
+        init_year_array_this = np.array(model_index_dict_this["init_year"])
+        member_array_this = np.array(model_index_dict_this["member"])
+        lead_array_this = np.array(model_index_dict_this["lead"])
 
         # zero the missing daya here
         missing_days = 0
@@ -1675,7 +1674,9 @@ def plot_mslp_composites(
                 # Find the index where this condition is met
                 index_this = np.where(condition)[0][0]
             except IndexError:
-                print(f"init year {init_year_df}, member {member_df}, lead {lead_df} not found")
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found"
+                )
                 missing_days += 1
 
             # Extract the corresponding value from the subset_arr_this_model
@@ -1726,7 +1727,7 @@ def plot_mslp_composites(
             verticalalignment="top",
             transform=ax_obs.transAxes,
             fontsize=12,
-            bbox=dict(facecolor='white', alpha=0.5)
+            bbox=dict(facecolor="white", alpha=0.5),
         )
         ax_model.text(
             0.95,
@@ -1736,7 +1737,7 @@ def plot_mslp_composites(
             verticalalignment="top",
             transform=ax_model.transAxes,
             fontsize=12,
-            bbox=dict(facecolor='white', alpha=0.5)
+            bbox=dict(facecolor="white", alpha=0.5),
         )
 
         # add coastlines
@@ -1781,7 +1782,7 @@ def plot_mslp_composites(
         va="bottom",
         transform=ax1.transAxes,
         fontsize=12,
-        bbox=dict(facecolor='white', alpha=0.5)
+        bbox=dict(facecolor="white", alpha=0.5),
     )
     ax2.text(
         0.95,
@@ -1791,7 +1792,7 @@ def plot_mslp_composites(
         va="bottom",
         transform=ax2.transAxes,
         fontsize=12,
-        bbox=dict(facecolor='white', alpha=0.5)
+        bbox=dict(facecolor="white", alpha=0.5),
     )
 
     # set the text for ax3 and ax4
@@ -1803,7 +1804,7 @@ def plot_mslp_composites(
         va="bottom",
         transform=ax3.transAxes,
         fontsize=12,
-        bbox=dict(facecolor='white', alpha=0.5)
+        bbox=dict(facecolor="white", alpha=0.5),
     )
     ax4.text(
         0.95,
@@ -1813,7 +1814,7 @@ def plot_mslp_composites(
         va="bottom",
         transform=ax4.transAxes,
         fontsize=12,
-        bbox=dict(facecolor='white', alpha=0.5)
+        bbox=dict(facecolor="white", alpha=0.5),
     )
 
     # set the text for ax5 and ax6
@@ -1825,7 +1826,7 @@ def plot_mslp_composites(
         va="bottom",
         transform=ax5.transAxes,
         fontsize=12,
-        bbox=dict(facecolor='white', alpha=0.5)
+        bbox=dict(facecolor="white", alpha=0.5),
     )
     ax6.text(
         0.95,
@@ -1835,7 +1836,7 @@ def plot_mslp_composites(
         va="bottom",
         transform=ax6.transAxes,
         fontsize=12,
-        bbox=dict(facecolor='white', alpha=0.5)
+        bbox=dict(facecolor="white", alpha=0.5),
     )
 
     # If the suptitle is not none then set it
@@ -1846,6 +1847,7 @@ def plot_mslp_composites(
     plt.subplots_adjust(wspace=0.05, hspace=0.05)
 
     return None
+
 
 # Define a functoin to plot the tas wind composites
 def plot_tas_wind_composites(
@@ -1858,8 +1860,11 @@ def plot_tas_wind_composites(
     clim_arrs_obs_tas: List[np.ndarray],
     clim_arrs_model_tas: List[np.ndarray],
     clim_arrs_obs_wind: List[np.ndarray],
-    dates_lists_obs: List[List[cftime.DatetimeProlepticGregorian]],
-    model_index_dicts: List[Dict[str, np.ndarray]],
+    clim_arrs_model_wind: List[np.ndarray],
+    dates_lists_obs_tas: List[List[cftime.DatetimeProlepticGregorian]],
+    dates_lists_obs_wind: List[List[cftime.DatetimeProlepticGregorian]],
+    model_index_dicts_tas: List[Dict[str, np.ndarray]],
+    model_index_dicts_wind: List[Dict[str, np.ndarray]],
     lats_path: str,
     lons_path: str,
     suptitle: str = None,
@@ -1867,7 +1872,7 @@ def plot_tas_wind_composites(
 ):
     """
     Plots the tas and wind composites for the given variables.
-    
+
     Args:
     =====
 
@@ -1891,43 +1896,43 @@ def plot_tas_wind_composites(
     ========
 
         None
-    
+
     """
 
     # Hardcoe the cmap and levels for tas
     cmap_tas = "bwr"
     levels_tas = np.array(
-                [
-                    -10,
-                    -8,
-                    -6,
-                    -4,
-                    -2,
-                    2,
-                    4,
-                    6,
-                    8,
-                    10,
-                ]
-            )
-    
+        [
+            -10,
+            -8,
+            -6,
+            -4,
+            -2,
+            2,
+            4,
+            6,
+            8,
+            10,
+        ]
+    )
+
     # Hardcode the cmap and levels for wind
     cmap_wind = "PRGn"
     levels_wind = np.array(
-                [
-                    -5,
-                    -4,
-                    -3,
-                    -2,
-                    -1,
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                ]
-            )
-    
+        [
+            -5,
+            -4,
+            -3,
+            -2,
+            -1,
+            1,
+            2,
+            3,
+            4,
+            5,
+        ]
+    )
+
     # hard code the nearest neighbour countries
     nearest_neighbour_countries = [
         "Ireland",
@@ -1939,16 +1944,70 @@ def plot_tas_wind_composites(
     ]
     uk_names = ["United Kingdom"]
 
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
     # Set up the countries shapefile
     countries_shp = shpreader.natural_earth(
-            resolution="10m",
-            category="cultural",
-            name="admin_0_countries",
-        )
+        resolution="10m",
+        category="cultural",
+        name="admin_0_countries",
+    )
 
+    # Set up the x and y
+    x, y = lons, lats
+
+    # Set up a landmask for the temperature data
+    MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
+    country_shapely = []
+    for country in shpreader.Reader(countries_shp).records():
+        country_shapely.append(country.geometry)
+
+    # Loop over the latitude and longitude points
+    for l in range(len(lats)):
+        for j in range(len(lons)):
+            point = shapely.geometry.Point(lons[j], lats[l])
+            for country in country_shapely:
+                if country.contains(point):
+                    MASK_MATRIX_TMP[l, j] = 1.0
+
+    # Reshape the mask to match the shape of the data
+    MASK_MATRIX_RESHAPED_LAND = MASK_MATRIX_TMP
+
+    # Set up a mask for the countries
+    nn_countries_geom = []
+    for country in shpreader.Reader(countries_shp).records():
+        if country.attributes["NAME"] in nearest_neighbour_countries:
+            nn_countries_geom.append(country.geometry)
+
+    # Set up a mask for the UK
+    uk_country_geom = []
+    for country in shpreader.Reader(countries_shp).records():
+        if country.attributes["NAME"] in uk_names:
+            uk_country_geom.append(country.geometry)
+
+    # Set up the mask matrix for the nearest neighbour countries
+    MASK_MATRIX_NN = np.zeros((len(lats), len(lons)))
+    MASK_MATRIX_UK = np.zeros((len(lats), len(lons)))
+
+    # Loop over the latitude and longitude points
+    for l in range(len(lats)):
+        for j in range(len(lons)):
+            point = shapely.geometry.Point(lons[j], lats[l])
+            for country in nn_countries_geom:
+                if country.contains(point):
+                    MASK_MATRIX_NN[l, j] = 1.0
+            for country in uk_country_geom:
+                if country.contains(point):
+                    MASK_MATRIX_UK[l, j] = 1.0
+
+    plt.rcParams['figure.constrained_layout.use'] = False
     # Set up the figure
     fig = plt.figure(figsize=figsize, layout="constrained")
-    gs = fig.add_gridspec(6, 3, figure=fig, width_ratios=[1, 1, 0.05])
+    gs = fig.add_gridspec(6, 3, figure=fig)
+    # Set up the gridspec
+    gs.update(wspace=0.01, hspace=0.01)
 
     # Set up the axes
 
@@ -1959,7 +2018,6 @@ def plot_tas_wind_composites(
     ax3 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())  # Row 1, Col 0
     ax4 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 1, Col 1
     ax5 = fig.add_subplot(gs[1, 2])  # Row 1, Col 2
-
 
     # Yellow dots sublots
     ax6 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
@@ -1975,9 +2033,1349 @@ def plot_tas_wind_composites(
     ax14 = fig.add_subplot(gs[4, 2])  # Row 4, Col 2
     ax15 = fig.add_subplot(gs[5, 0], projection=ccrs.PlateCarree())  # Row 5, Col 0
     ax16 = fig.add_subplot(gs[5, 1], projection=ccrs.PlateCarree())  # Row 5, Col 1
+    ax17 = fig.add_subplot(gs[5, 2])  # Row 5, Col 2
 
-    # TODO: COMPLETE THIS FUNCTION
+    # # Set aspect ratio to square for all scatter plot axes
+    scatter_axes = [ax2, ax5, ax8, ax11, ax14, ax17]  # Replace with the axes where scatter plots are drawn
+    for ax in scatter_axes:
+        ax.set_aspect('equal', adjustable='box')
 
+    all_axes = [
+        ax0,
+        ax1,
+        ax3,
+        ax4,
+        ax6,
+        ax7,
+        ax9,
+        ax10,
+        ax12,
+        ax13,
+        ax15,
+        ax16,
+    ]
+
+    for i in range(len(all_axes)):
+        ax_this = all_axes[i]
+        plt.axis("on")
+        ax_this.set_xticklabels([])
+        ax_this.set_yticklabels([])
+        ax_this.set_aspect("equal")
+
+
+    # Set up the cmap_axes
+    # cmap_axes = [
+    #     ax0,
+    #     ax1,
+
+    # # set a tight layout for the gridspec
+    # fig.tight_layout()
+
+    # Set up the axes groups
+    axes_groups = [
+        (ax0, ax1, ax2, ax3, ax4, ax5),
+        (ax6, ax7, ax8, ax9, ax10, ax11),
+        (ax12, ax13, ax14, ax15, ax16, ax17),
+    ]
+
+    # Set up the names
+    names_list = [
+        ("Block max days", "Block max days"),
+        ("Extreme days", "Extreme days"),
+        ("21-12-2010", "Unseen days"),
+    ]
+
+    for i, (axes_group) in enumerate(axes_groups):
+        # Set the axes up for this
+        ax_temp_obs = axes_group[0]
+        ax_temp_model = axes_group[1]
+        ax_temp_scatter = axes_group[2]
+        ax_wind_obs = axes_group[3]
+        ax_wind_model = axes_group[4]
+        ax_wind_scatter = axes_group[5]
+
+        # ----------------------------
+        # Detrend the model tas data
+        # ----------------------------
+
+        # extract the subset array this for tas
+        subset_arr_this_tas = subset_arrs_model_tas[i]
+
+        # Extract the unique effective dec years
+        # from the index dict this
+        index_dict_this_tas = model_index_dicts_tas[i]
+
+        effective_dec_years_arr_tas = np.array(
+            index_dict_this_tas["effective_dec_year"]
+        )
+        unique_effective_dec_years_tas = np.unique(effective_dec_years_arr_tas)
+
+        # Set up a new array to append to
+        subset_arr_this_detrended = np.zeros(
+            (len(unique_effective_dec_years_tas), len(lats), len(lons))
+        )
+
+        # Loop over the unique effective dec years
+        for j, effective_dec_year in enumerate(unique_effective_dec_years_tas):
+            # Find the index of this effective dec year in the index dict this
+            index_this = np.where(effective_dec_years_arr_tas == effective_dec_year)[0]
+
+            # print the index this
+            # print(f"Index this: {index_this}")
+
+            # # Extract the subset arr this for this index
+            subset_arr_this_detrended[j, :, :] = np.mean(
+                subset_arr_this_tas[index_this, :, :], axis=0
+            )
+
+        # loop over the lats and lons
+        for j in range(subset_arr_this_detrended.shape[1]):
+            for k in range(subset_arr_this_detrended.shape[2]):
+                # Calculate the mean trend line
+                slope_T_this, intercept_T_this, _, _, _ = linregress(
+                    unique_effective_dec_years_tas,
+                    subset_arr_this_detrended[:, j, k],
+                )
+
+                # Calculate the trend line this
+                trend_line_this = (
+                    slope_T_this * unique_effective_dec_years_tas + intercept_T_this
+                )
+
+                # Find the final point on the trend line
+                final_point_this = trend_line_this[-1]
+
+                # Loop over the unique effective dec years
+                for l in range(len(unique_effective_dec_years_tas)):
+                    # Find the indcides of the effective dec years
+                    index_this_l = np.where(
+                        effective_dec_years_arr_tas == unique_effective_dec_years_tas[l]
+                    )[0]
+
+                    # Loop over the indices
+                    for m in index_this_l:
+                        # Detrend the data
+                        subset_arr_this_tas[m, j, k] = (
+                            final_point_this
+                            - trend_line_this[l]
+                            + subset_arr_this_tas[m, j, k]
+                        )
+
+        # Set up the subset dates to select the obs for
+        subset_dates_obs_cf_this = []
+
+        # Extract the subset dates this
+        subset_dates_obs_this = subset_dfs_obs[i]["time"].values
+
+        # Format these as datetimes
+        subset_dates_obs_dt_this = [
+            datetime.strptime(date, "%Y-%m-%d") for date in subset_dates_obs_this
+        ]
+
+        # Format the subset dates to extract
+        for date in subset_dates_obs_dt_this:
+            date_this_cf = cftime.DatetimeProlepticGregorian(
+                date.year,
+                date.month,
+                date.day,
+                hour=0,
+                calendar="proleptic_gregorian",
+            )
+
+            subset_dates_obs_cf_this.append(date_this_cf)
+
+        # Set up an empty list for the indices dates obs this
+        indices_dates_obs_this_tas = []
+        indices_dates_obs_this_wind = []
+
+        # Loop over the dates in subset dtes obs cf
+        for date in subset_dates_obs_cf_this:
+            try:
+                # Find the index of the date in the dates list
+                index_this_tas = np.where(dates_lists_obs_tas[i] == date)[0][0]
+            except IndexError:
+                print(
+                    f"Date {date} not found in dates list obs tas for index {i}"
+                )
+                print(
+                    f"Dates list obs tas: {dates_lists_obs_tas[i]}"
+                )
+            indices_dates_obs_this_tas.append(index_this_tas)
+
+            # Find the index of the date in the dates list
+            index_this_wind = np.where(dates_lists_obs_wind[i] == date)[0][0]
+            indices_dates_obs_this_wind.append(index_this_wind)
+
+        # Set up the subset arr this for the obs
+        subset_arr_this_obs_tas = subset_arrs_obs_tas[i]
+        subset_arr_this_obs_wind = subset_arrs_obs_wind[i]
+
+        # assert that the indices have the same length
+        assert len(indices_dates_obs_this_tas) == len(
+            indices_dates_obs_this_wind
+        ), "Indices for tas and wind do not match in length"
+
+        # Apply these indices to the subset data
+        subset_arr_this_obs_tas = subset_arr_this_obs_tas[
+            indices_dates_obs_this_tas, :, :
+        ]
+        subset_arr_this_obs_wind = subset_arr_this_obs_wind[
+            indices_dates_obs_this_wind, :, :
+        ]
+
+        # Get the N for the obs this
+        N_obs_this = np.shape(subset_arr_this_obs_tas)[0]
+
+        # Take the mean over this
+        subset_arr_this_obs_tas_mean = np.mean(subset_arr_this_obs_tas, axis=0)
+        subset_arr_this_obs_wind_mean = np.mean(subset_arr_this_obs_wind, axis=0)
+
+        # Calculate the obs anoms
+        anoms_this_obs_tas = subset_arr_this_obs_tas_mean - clim_arrs_obs_tas[i]
+        anoms_this_obs_wind = subset_arr_this_obs_wind_mean - clim_arrs_obs_wind[i]
+
+        # Set up the subset arr this for the model
+        subset_arr_this_model_tas = subset_arr_this_tas
+        subset_arr_this_model_wind = subset_arrs_model_wind[i]
+
+        # Set up the subset arr this model full
+        subset_arr_this_model_tas_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+        subset_arr_this_model_wind_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+
+        # Set up the N for model this
+        N_model_this = np.shape(subset_arr_this_model_tas_full)[0]
+
+        # Extract the index dict for the model this
+        model_index_dict_tas_this = model_index_dicts_tas[i]
+        model_index_dict_wind_this = model_index_dicts_wind[i]
+
+        # Extract the init years as arrays
+        init_year_array_tas_this = np.array(model_index_dict_tas_this["init_year"])
+        member_array_tas_this = np.array(model_index_dict_tas_this["member"])
+        lead_array_tas_this = np.array(model_index_dict_tas_this["lead"])
+
+        # do the same for wind speed
+        init_year_array_wind_this = np.array(model_index_dict_wind_this["init_year"])
+        member_array_wind_this = np.array(model_index_dict_wind_this["member"])
+        lead_array_wind_this = np.array(model_index_dict_wind_this["lead"])
+
+        # Zero the missing days her
+        missing_days_tas = 0
+        missing_days_wind = 0
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_dfs_model[i].iterrows())):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition_tas = (
+                (init_year_array_tas_this == init_year_df)
+                & (member_array_tas_this == member_df)
+                & (lead_array_tas_this == lead_df)
+            )
+            condition_wind = (
+                (init_year_array_wind_this == init_year_df)
+                & (member_array_wind_this == member_df)
+                & (lead_array_wind_this == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this_tas = np.where(condition_tas)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found for tas"
+                )
+                missing_days_tas += 1
+
+            try:
+                # Find the index where this condition is met
+                index_this_wind = np.where(condition_wind)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found for wind"
+                )
+                missing_days_wind += 1
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_tas_index_this = subset_arr_this_model_tas[
+                index_this_tas, :, :
+            ]
+            subset_arr_this_model_wind_index_this = subset_arr_this_model_wind[
+                index_this_wind, :, :
+            ]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_tas_full[j, :, :] = (
+                subset_arr_this_model_tas_index_this
+            )
+            subset_arr_this_model_wind_full[j, :, :] = (
+                subset_arr_this_model_wind_index_this
+            )
+
+        # Print the row index
+        print(f"Row index: {i}")
+        print(f"Number of missing days for tas: {missing_days_tas}")
+        print(f"Number of missing days for wind: {missing_days_wind}")
+        print(f"Model overall N: {N_model_this}")
+
+        # Take the mean over this
+        subset_arr_this_model_tas_mean = np.mean(subset_arr_this_model_tas_full, axis=0)
+        subset_arr_this_model_wind_mean = np.mean(
+            subset_arr_this_model_wind_full, axis=0
+        )
+
+        # Calculate the model anoms
+        anoms_this_model_tas = subset_arr_this_model_tas_mean - clim_arrs_model_tas[i]
+        anoms_this_model_wind = (
+            subset_arr_this_model_wind_mean - clim_arrs_model_wind[i]
+        )
+
+        # Apply the europe land mask to the temperature data
+        anoms_this_obs_tas = np.ma.masked_where(
+            MASK_MATRIX_RESHAPED_LAND == 0, anoms_this_obs_tas
+        )
+        anoms_this_model_tas = np.ma.masked_where(
+            MASK_MATRIX_RESHAPED_LAND == 0, anoms_this_model_tas
+        )
+
+        # Plot the obs data on the left
+        im_obs_tas = ax_temp_obs.contourf(
+            lons,
+            lats,
+            anoms_this_obs_tas,
+            cmap=cmap_tas,
+            transform=ccrs.PlateCarree(),
+            levels=levels_tas,
+            extend="both",
+        )
+
+        # Plot the model data on the right
+        im_model_tas = ax_temp_model.contourf(
+            lons,
+            lats,
+            anoms_this_model_tas,
+            cmap=cmap_tas,
+            transform=ccrs.PlateCarree(),
+            levels=levels_tas,
+            extend="both",
+        )
+
+        # Plot the obs data on the left
+        im_obs_wind = ax_wind_obs.contourf(
+            lons,
+            lats,
+            anoms_this_obs_wind,
+            cmap=cmap_wind,
+            transform=ccrs.PlateCarree(),
+            levels=levels_wind,
+            extend="both",
+        )
+
+        # Plot the model data on the right
+        im_model_wind = ax_wind_model.contourf(
+            lons,
+            lats,
+            anoms_this_model_wind,
+            cmap=cmap_wind,
+            transform=ccrs.PlateCarree(),
+            levels=levels_wind,
+            extend="both",
+        )
+
+        # add coastlines to all of these
+        ax_temp_obs.coastlines()
+        ax_temp_model.coastlines()
+        ax_wind_obs.coastlines()
+        ax_wind_model.coastlines()
+
+        # Set up the min and max lats
+        min_lat = np.min(lats)
+        max_lat = np.max(lats)
+        min_lon = np.min(lons)
+        max_lon = np.max(lons)
+
+        # restrict the domain of the plots
+        ax_temp_obs.set_extent([min_lon, max_lon, min_lat, max_lat])
+        ax_temp_model.set_extent([min_lon, max_lon, min_lat, max_lat])
+        ax_wind_obs.set_extent([min_lon, max_lon, min_lat, max_lat])
+        ax_wind_model.set_extent([min_lon, max_lon, min_lat, max_lat])
+
+        # Include a textbox in the rop right for N
+        ax_temp_obs.text(
+            0.95,
+            0.95,
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_temp_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_temp_model.text(
+            0.95,
+            0.95,
+            f"N = {N_model_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_temp_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_wind_obs.text(
+            0.95,
+            0.95,
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_wind_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_wind_model.text(
+            0.95,
+            0.95,
+            f"N = {N_model_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_wind_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Add the colorbar
+        cbar_temp = fig.colorbar(
+            im_obs_tas,
+            ax=(ax_temp_obs, ax_temp_model),
+            orientation="horizontal",
+            pad=0.0,
+            shrink=0.8,
+        )
+        cbar_temp.set_ticks(levels_tas)
+
+        # add the colorbar for wind
+        cbar_wind = fig.colorbar(
+            im_obs_wind,
+            ax=(ax_wind_obs, ax_wind_model),
+            orientation="horizontal",
+            pad=0.0,
+            shrink=0.8,
+        )
+        cbar_wind.set_ticks(levels_wind)
+
+        # if i is 0
+        if i == 0:
+            # Set the title for ax0 and ax1 in bold
+            ax_temp_obs.set_title("Obs (ERA5)", fontsize=12, fontweight="bold")
+            ax_temp_model.set_title("Model (DePreSys)", fontsize=12, fontweight="bold")
+
+        # Set up a textbox in the bottom right
+        ax_temp_obs.text(
+            0.95,
+            0.05,
+            names_list[i][0],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_temp_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_temp_model.text(
+            0.95,
+            0.05,
+            names_list[i][1],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_temp_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_wind_obs.text(
+            0.95,
+            0.05,
+            names_list[i][0],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_wind_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_wind_model.text(
+            0.95,
+            0.05,
+            names_list[i][1],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_wind_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Now process the data for the scatter functions
+        anoms_scatter_tas_model_this = (
+            subset_arr_this_model_tas_full - clim_arrs_model_tas[i]
+        )
+        anoms_scatter_wind_model_this = (
+            subset_arr_this_model_wind_full - clim_arrs_model_wind[i]
+        )
+        anoms_scatter_tas_obs_this = subset_arr_this_obs_tas - clim_arrs_obs_tas[i]
+        anoms_scatter_wind_obs_this = subset_arr_this_obs_wind - clim_arrs_obs_wind[i]
+
+        # assert that the shape of the anoms scatter is the same as the shape of the mask
+        assert np.shape(anoms_scatter_tas_model_this) == np.shape(
+            anoms_scatter_wind_model_this
+        ), "Anoms scatter tas and wind do not match in shape"
+
+        # assert that the obs and model are the same shape
+        assert np.shape(anoms_scatter_tas_obs_this) == np.shape(
+            anoms_scatter_wind_obs_this
+        ), "Anoms scatter tas and wind do not match in shape"
+
+        # Ensure the second and third dimensions match
+        assert np.shape(anoms_scatter_tas_model_this)[1:] == np.shape(anoms_scatter_tas_obs_this)[1:], \
+            "The second and third dimensions of the arrays do not match"
+
+        # Expand the mask to match the shape of the anoms scatter this
+        MASK_MATRIX_NN_RESHAPED_model = np.broadcast_to(
+            MASK_MATRIX_NN, anoms_scatter_tas_model_this.shape
+        )
+        MASK_MATRIX_UK_RESHAPED_model = np.broadcast_to(
+            MASK_MATRIX_UK, anoms_scatter_tas_model_this.shape
+        )
+        MASK_MATRIX_NN_RESHAPED_obs = np.broadcast_to(
+            MASK_MATRIX_NN, anoms_scatter_tas_obs_this.shape
+        )
+        MASK_MATRIX_UK_RESHAPED_obs = np.broadcast_to(
+            MASK_MATRIX_UK, anoms_scatter_tas_obs_this.shape
+        )
+
+        # Apply the mask to the anoms scatter this
+        anoms_scatter_tas_model_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_model == 0, anoms_scatter_tas_model_this
+        )
+        anoms_scatter_tas_model_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_model == 0, anoms_scatter_tas_model_this
+        )
+        anoms_scatter_wind_model_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_model == 0, anoms_scatter_wind_model_this
+        )
+        anoms_scatter_wind_model_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_model == 0, anoms_scatter_wind_model_this
+        )
+
+        # do the same for the obs
+        anoms_scatter_tas_obs_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_obs == 0, anoms_scatter_tas_obs_this
+        )
+        anoms_scatter_tas_obs_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_obs == 0, anoms_scatter_tas_obs_this
+        )
+        anoms_scatter_wind_obs_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_obs == 0, anoms_scatter_wind_obs_this
+        )
+        anoms_scatter_wind_obs_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_obs == 0, anoms_scatter_wind_obs_this
+        )
+
+        # Set up a list of all of these
+        list_anoms_scatter = [
+            anoms_scatter_tas_model_this_NN,
+            anoms_scatter_tas_model_this_UK,
+            anoms_scatter_wind_model_this_NN,
+            anoms_scatter_wind_model_this_UK,
+            anoms_scatter_tas_obs_this_NN,
+            anoms_scatter_tas_obs_this_UK,
+            anoms_scatter_wind_obs_this_NN,
+            anoms_scatter_wind_obs_this_UK,
+        ]
+
+        # loop over and assert that each of them have three dimensions
+        for arr in list_anoms_scatter:
+            assert (
+                len(np.shape(arr)) == 3
+            ), "Anoms scatter tas and wind do not match in shape"
+
+        # take the spatial mean of these
+        anoms_this_model_nn_tas_mean = np.mean(
+            anoms_scatter_tas_model_this_NN, axis=(1, 2)
+        )
+        anoms_this_model_uk_tas_mean = np.mean(
+            anoms_scatter_tas_model_this_UK, axis=(1, 2)
+        )
+        anoms_this_model_nn_wind_mean = np.mean(
+            anoms_scatter_wind_model_this_NN, axis=(1, 2)
+        )
+        anoms_this_model_uk_wind_mean = np.mean(
+            anoms_scatter_wind_model_this_UK, axis=(1, 2)
+        )
+        anoms_this_obs_nn_tas_mean = np.mean(anoms_scatter_tas_obs_this_NN, axis=(1, 2))
+        anoms_this_obs_uk_tas_mean = np.mean(anoms_scatter_tas_obs_this_UK, axis=(1, 2))
+        anoms_this_obs_nn_wind_mean = np.mean(
+            anoms_scatter_wind_obs_this_NN, axis=(1, 2)
+        )
+        anoms_this_obs_uk_wind_mean = np.mean(
+            anoms_scatter_wind_obs_this_UK, axis=(1, 2)
+        )
+
+        # calculate the correlation between the two sets of points
+        corr_tas_model, _ = pearsonr(
+            anoms_this_model_nn_tas_mean, anoms_this_model_uk_tas_mean
+        )
+        if i == 2:
+            corr_tas_obs = 0.0
+        else:
+            corr_tas_obs, _ = pearsonr(
+                anoms_this_obs_nn_tas_mean, anoms_this_obs_uk_tas_mean
+            )
+        corr_wind_model, _ = pearsonr(
+            anoms_this_model_nn_wind_mean, anoms_this_model_uk_wind_mean
+        )
+        if i == 2:
+            corr_wind_obs = 0.0
+        else:
+            corr_wind_obs, _ = pearsonr(
+                anoms_this_obs_nn_wind_mean, anoms_this_obs_uk_wind_mean
+            )
+
+        # Plot the scatter plot for tas model as grey circles
+        ax_temp_scatter.scatter(
+            anoms_this_model_nn_tas_mean,
+            anoms_this_model_uk_tas_mean,
+            color="grey",
+            s=10,
+            alpha=0.5,
+            label=f"Model (r={corr_tas_model:.2f})",
+        )
+
+        # Plot the scatter plot for tas obs as black crosses
+        ax_temp_scatter.scatter(
+            anoms_this_obs_nn_tas_mean,
+            anoms_this_obs_uk_tas_mean,
+            color="black",
+            s=10,
+            marker="x",
+            label=f"Obs (r={corr_tas_obs:.2f})",
+        )
+
+        # Plot the scatter plot for wind model as grey circles
+        ax_wind_scatter.scatter(
+            anoms_this_model_nn_wind_mean,
+            anoms_this_model_uk_wind_mean,
+            color="grey",
+            s=10,
+            alpha=0.5,
+            label=f"Model (r={corr_wind_model:.2f})",
+        )
+
+        # Plot the scatter plot for wind obs as black crosses
+        ax_wind_scatter.scatter(
+            anoms_this_obs_nn_wind_mean,
+            anoms_this_obs_uk_wind_mean,
+            color="black",
+            s=10,
+            marker="x",
+            label=f"Obs (r={corr_wind_obs:.2f})",
+        )
+
+        # set the x and y limits for the scatter plots
+        xlims_temp = (-17, 7)
+        ylims_temp = (-17, 7)
+
+        # Set the xlims and ylims for the scatter plots
+        xlims_wind = (-4, 4)
+        ylims_wind = (-4, 4)
+
+        # Set the x and y limits for the scatter plots
+        ax_temp_scatter.set_xlim(xlims_temp)
+        ax_temp_scatter.set_ylim(ylims_temp)
+        ax_wind_scatter.set_xlim(xlims_wind)
+        ax_wind_scatter.set_ylim(ylims_wind)
+
+        # Set the x and y labels for the scatter plots
+        ax_temp_scatter.set_xlabel("NN temperature anomaly (°C)", fontsize=12)
+        ax_temp_scatter.set_ylabel("UK temperature anomaly (°C)", fontsize=12)
+        ax_wind_scatter.set_xlabel("NN wind anomaly (m/s)", fontsize=12)
+        ax_wind_scatter.set_ylabel("UK wind anomaly (m/s)", fontsize=12)
+
+        # Set up titles for the scatter plots
+        ax_temp_scatter.set_title("UK vs. NN.", fontsize=12)
+        ax_wind_scatter.set_title("UK vs. NN.", fontsize=12)
+
+        # include a legend in the top left
+        ax_temp_scatter.legend(
+            loc="upper left",
+            fontsize=12,
+            markerscale=2,
+            frameon=False,
+        )
+        ax_wind_scatter.legend(
+            loc="upper left",
+            fontsize=12,
+            markerscale=2,
+            frameon=False,
+        )
+
+    # minimise the vertical spacing between subplots
+    fig.subplots_adjust(hspace=0.001)
+
+    # # make sure the aspect ratios are all equal
+    # for ax in all_axes:
+    #     ax.set_aspect("equal", adjustable="box")
+
+    return None
+
+# Define a functoin to plot the tas wind composites
+def plot_tas_composites(
+    subset_dfs_obs: List[pd.DataFrame],
+    subset_dfs_model: List[pd.DataFrame],
+    subset_arrs_obs_tas: List[np.ndarray],
+    subset_arrs_model_tas: List[np.ndarray],
+    clim_arrs_obs_tas: List[np.ndarray],
+    clim_arrs_model_tas: List[np.ndarray],
+    dates_lists_obs_tas: List[List[cftime.DatetimeProlepticGregorian]],
+    model_index_dicts_tas: List[Dict[str, np.ndarray]],
+    lats_path: str,
+    lons_path: str,
+    suptitle: str = None,
+    figsize: Tuple[int, int] = (8, 9),
+):
+    """
+    Plots the tas and wind composites for the given variables.
+
+    Args:
+    =====
+
+        subset_dfs_obs (List[pd.DataFrame]): The list of subset dataframes for observations.
+        subset_dfs_model (List[pd.DataFrame]): The list of subset dataframes for the model.
+        subset_arrs_obs_tas (List[np.ndarray]): The list of tas subset arrays for observations.
+        subset_arrs_model_tas (List[np.ndarray]): The list of tas subset arrays for the model.
+        subset_arrs_obs_wind (List[np.ndarray]): The list of wind subset arrays for observations.
+        subset_arrs_model_wind (List[np.ndarray]): The list of wind subset arrays for the model.
+        clim_arrs_obs_tas (List[np.ndarray]): The list of climatology arrays for observations.
+        clim_arrs_model_tas (List[np.ndarray]): The list of climatology arrays for the model.
+        clim_arrs_obs_wind (List[np.ndarray]): The list of climatology arrays for observations.
+        dates_lists_obs (List[List[cftime.DatetimeProlepticGregorian]]): The list of dates lists for observations.
+        model_index_dicts (List[Dict[str, np.ndarray]]): The list of model index dictionaries.
+        lats_path (str): The path to the latitude file.
+        lons_path (str): The path to the longitude file.
+        suptitle (str): The suptitle for the plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+
+    """
+
+    # Hardcoe the cmap and levels for tas
+    cmap_tas = "bwr"
+    levels_tas = np.array(
+        [
+            -10,
+            -8,
+            -6,
+            -4,
+            -2,
+            2,
+            4,
+            6,
+            8,
+            10,
+        ]
+    )
+
+    # Hardcode the cmap and levels for wind
+    cmap_wind = "PRGn"
+    levels_wind = np.array(
+        [
+            -5,
+            -4,
+            -3,
+            -2,
+            -1,
+            1,
+            2,
+            3,
+            4,
+            5,
+        ]
+    )
+
+    # hard code the nearest neighbour countries
+    nearest_neighbour_countries = [
+        "Ireland",
+        "Germany",
+        "France",
+        "Netherlands",
+        "Belgium",
+        "Denmark",
+    ]
+    uk_names = ["United Kingdom"]
+
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # Set up the countries shapefile
+    countries_shp = shpreader.natural_earth(
+        resolution="10m",
+        category="cultural",
+        name="admin_0_countries",
+    )
+
+    # Set up the x and y
+    x, y = lons, lats
+
+    # Set up a landmask for the temperature data
+    MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
+    country_shapely = []
+    for country in shpreader.Reader(countries_shp).records():
+        country_shapely.append(country.geometry)
+
+    # Loop over the latitude and longitude points
+    for l in range(len(lats)):
+        for j in range(len(lons)):
+            point = shapely.geometry.Point(lons[j], lats[l])
+            for country in country_shapely:
+                if country.contains(point):
+                    MASK_MATRIX_TMP[l, j] = 1.0
+
+    # Reshape the mask to match the shape of the data
+    MASK_MATRIX_RESHAPED_LAND = MASK_MATRIX_TMP
+
+    # Set up a mask for the countries
+    nn_countries_geom = []
+    for country in shpreader.Reader(countries_shp).records():
+        if country.attributes["NAME"] in nearest_neighbour_countries:
+            nn_countries_geom.append(country.geometry)
+
+    # Set up a mask for the UK
+    uk_country_geom = []
+    for country in shpreader.Reader(countries_shp).records():
+        if country.attributes["NAME"] in uk_names:
+            uk_country_geom.append(country.geometry)
+
+    # Set up the mask matrix for the nearest neighbour countries
+    MASK_MATRIX_NN = np.zeros((len(lats), len(lons)))
+    MASK_MATRIX_UK = np.zeros((len(lats), len(lons)))
+
+    # Loop over the latitude and longitude points
+    for l in range(len(lats)):
+        for j in range(len(lons)):
+            point = shapely.geometry.Point(lons[j], lats[l])
+            for country in nn_countries_geom:
+                if country.contains(point):
+                    MASK_MATRIX_NN[l, j] = 1.0
+            for country in uk_country_geom:
+                if country.contains(point):
+                    MASK_MATRIX_UK[l, j] = 1.0
+
+    plt.rcParams['figure.constrained_layout.use'] = False
+    # Set up the figure
+    fig = plt.figure(figsize=figsize, layout="constrained")
+    gs = fig.add_gridspec(3, 3, figure=fig)
+    # Set up the gridspec
+    gs.update(wspace=0.001, hspace=0.001)
+
+    # Set up the axes
+
+    # Grey dots subplots
+    ax0 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())  # Row 0, Col 0
+    ax1 = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())  # Row 0, Col 1
+    ax2 = fig.add_subplot(gs[0, 2])  # Row 0, Col 2
+
+    # Yellow dots sublots
+    ax6 = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())  # Row 2, Col 0
+    ax7 = fig.add_subplot(gs[1, 1], projection=ccrs.PlateCarree())  # Row 2, Col 1
+    ax8 = fig.add_subplot(gs[1, 2])  # Row 2, Col 2
+
+    # Red dots subplots
+    ax12 = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())  # Row 4, Col 0
+    ax13 = fig.add_subplot(gs[2, 1], projection=ccrs.PlateCarree())  # Row 4, Col 1
+    ax14 = fig.add_subplot(gs[2, 2])  # Row 4, Col 2
+
+    # # Set aspect ratio to square for all scatter plot axes
+    scatter_axes = [ax2, ax8, ax14]  # Replace with the axes where scatter plots are drawn
+    for ax in scatter_axes:
+        ax.set_aspect('equal', adjustable='box')
+
+    all_axes = [
+        ax0,
+        ax1,
+        ax6,
+        ax7,
+        ax12,
+        ax13,
+    ]
+
+    for i in range(len(all_axes)):
+        ax_this = all_axes[i]
+        plt.axis("on")
+        ax_this.set_xticklabels([])
+        ax_this.set_yticklabels([])
+        ax_this.set_aspect("equal")
+
+
+    # Set up the cmap_axes
+    # cmap_axes = [
+    #     ax0,
+    #     ax1,
+
+    # # set a tight layout for the gridspec
+    # fig.tight_layout()
+
+    # Set up the axes groups
+    axes_groups = [
+        (ax0, ax1, ax2),
+        (ax6, ax7, ax8),
+        (ax12, ax13, ax14),
+    ]
+
+    # Set up the names
+    names_list = [
+        ("Block max days", "Block max days"),
+        ("Extreme days", "Extreme days"),
+        ("21-12-2010", "Unseen days"),
+    ]
+
+    for i, (axes_group) in enumerate(axes_groups):
+        # Set the axes up for this
+        ax_temp_obs = axes_group[0]
+        ax_temp_model = axes_group[1]
+        ax_temp_scatter = axes_group[2]
+
+        # ----------------------------
+        # Detrend the model tas data
+        # ----------------------------
+
+        # extract the subset array this for tas
+        subset_arr_this_tas = subset_arrs_model_tas[i]
+
+        # Extract the unique effective dec years
+        # from the index dict this
+        index_dict_this_tas = model_index_dicts_tas[i]
+
+        effective_dec_years_arr_tas = np.array(
+            index_dict_this_tas["effective_dec_year"]
+        )
+        unique_effective_dec_years_tas = np.unique(effective_dec_years_arr_tas)
+
+        # Set up a new array to append to
+        subset_arr_this_detrended = np.zeros(
+            (len(unique_effective_dec_years_tas), len(lats), len(lons))
+        )
+
+        # Loop over the unique effective dec years
+        for j, effective_dec_year in enumerate(unique_effective_dec_years_tas):
+            # Find the index of this effective dec year in the index dict this
+            index_this = np.where(effective_dec_years_arr_tas == effective_dec_year)[0]
+
+            # print the index this
+            # print(f"Index this: {index_this}")
+
+            # # Extract the subset arr this for this index
+            subset_arr_this_detrended[j, :, :] = np.mean(
+                subset_arr_this_tas[index_this, :, :], axis=0
+            )
+
+        # loop over the lats and lons
+        for j in range(subset_arr_this_detrended.shape[1]):
+            for k in range(subset_arr_this_detrended.shape[2]):
+                # Calculate the mean trend line
+                slope_T_this, intercept_T_this, _, _, _ = linregress(
+                    unique_effective_dec_years_tas,
+                    subset_arr_this_detrended[:, j, k],
+                )
+
+                # Calculate the trend line this
+                trend_line_this = (
+                    slope_T_this * unique_effective_dec_years_tas + intercept_T_this
+                )
+
+                # Find the final point on the trend line
+                final_point_this = trend_line_this[-1]
+
+                # Loop over the unique effective dec years
+                for l in range(len(unique_effective_dec_years_tas)):
+                    # Find the indcides of the effective dec years
+                    index_this_l = np.where(
+                        effective_dec_years_arr_tas == unique_effective_dec_years_tas[l]
+                    )[0]
+
+                    # Loop over the indices
+                    for m in index_this_l:
+                        # Detrend the data
+                        subset_arr_this_tas[m, j, k] = (
+                            final_point_this
+                            - trend_line_this[l]
+                            + subset_arr_this_tas[m, j, k]
+                        )
+
+        # Set up the subset dates to select the obs for
+        subset_dates_obs_cf_this = []
+
+        # Extract the subset dates this
+        subset_dates_obs_this = subset_dfs_obs[i]["time"].values
+
+        # Format these as datetimes
+        subset_dates_obs_dt_this = [
+            datetime.strptime(date, "%Y-%m-%d") for date in subset_dates_obs_this
+        ]
+
+        # Format the subset dates to extract
+        for date in subset_dates_obs_dt_this:
+            date_this_cf = cftime.DatetimeProlepticGregorian(
+                date.year,
+                date.month,
+                date.day,
+                hour=0,
+                calendar="proleptic_gregorian",
+            )
+
+            subset_dates_obs_cf_this.append(date_this_cf)
+
+        # Set up an empty list for the indices dates obs this
+        indices_dates_obs_this_tas = []
+
+        # Loop over the dates in subset dtes obs cf
+        for date in subset_dates_obs_cf_this:
+            try:
+                # Find the index of the date in the dates list
+                index_this_tas = np.where(dates_lists_obs_tas[i] == date)[0][0]
+            except IndexError:
+                print(
+                    f"Date {date} not found in dates list obs tas for index {i}"
+                )
+                print(
+                    f"Dates list obs tas: {dates_lists_obs_tas[i]}"
+                )
+            indices_dates_obs_this_tas.append(index_this_tas)
+
+        # Set up the subset arr this for the obs
+        subset_arr_this_obs_tas = subset_arrs_obs_tas[i]
+
+        # Apply these indices to the subset data
+        subset_arr_this_obs_tas = subset_arr_this_obs_tas[
+            indices_dates_obs_this_tas, :, :
+        ]
+
+        # Get the N for the obs this
+        N_obs_this = np.shape(subset_arr_this_obs_tas)[0]
+
+        # Take the mean over this
+        subset_arr_this_obs_tas_mean = np.mean(subset_arr_this_obs_tas, axis=0)
+
+        # Calculate the obs anoms
+        anoms_this_obs_tas = subset_arr_this_obs_tas_mean - clim_arrs_obs_tas[i]
+
+        # Set up the subset arr this for the model
+        subset_arr_this_model_tas = subset_arr_this_tas
+
+        # Set up the subset arr this model full
+        subset_arr_this_model_tas_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+        subset_arr_this_model_wind_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+
+        # Set up the N for model this
+        N_model_this = np.shape(subset_arr_this_model_tas_full)[0]
+
+        # Extract the index dict for the model this
+        model_index_dict_tas_this = model_index_dicts_tas[i]
+
+        # Extract the init years as arrays
+        init_year_array_tas_this = np.array(model_index_dict_tas_this["init_year"])
+        member_array_tas_this = np.array(model_index_dict_tas_this["member"])
+        lead_array_tas_this = np.array(model_index_dict_tas_this["lead"])
+
+        # Zero the missing days her
+        missing_days_tas = 0
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_dfs_model[i].iterrows())):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition_tas = (
+                (init_year_array_tas_this == init_year_df)
+                & (member_array_tas_this == member_df)
+                & (lead_array_tas_this == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this_tas = np.where(condition_tas)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found for tas"
+                )
+                missing_days_tas += 1
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_tas_index_this = subset_arr_this_model_tas[
+                index_this_tas, :, :
+            ]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_tas_full[j, :, :] = (
+                subset_arr_this_model_tas_index_this
+            )
+
+        # Print the row index
+        print(f"Row index: {i}")
+        print(f"Number of missing days for tas: {missing_days_tas}")
+        print(f"Model overall N: {N_model_this}")
+
+        # Take the mean over this
+        subset_arr_this_model_tas_mean = np.mean(subset_arr_this_model_tas_full, axis=0)
+        subset_arr_this_model_wind_mean = np.mean(
+            subset_arr_this_model_wind_full, axis=0
+        )
+
+        # Apply the europe land mask to the temperature data
+        anoms_this_obs_tas = np.ma.masked_where(
+            MASK_MATRIX_RESHAPED_LAND == 0, anoms_this_obs_tas
+        )
+        anoms_this_model_tas = np.ma.masked_where(
+            MASK_MATRIX_RESHAPED_LAND == 0, anoms_this_model_tas
+        )
+
+        # Plot the obs data on the left
+        im_obs_tas = ax_temp_obs.contourf(
+            lons,
+            lats,
+            anoms_this_obs_tas,
+            cmap=cmap_tas,
+            transform=ccrs.PlateCarree(),
+            levels=levels_tas,
+            extend="both",
+        )
+
+        # Plot the model data on the right
+        im_model_tas = ax_temp_model.contourf(
+            lons,
+            lats,
+            anoms_this_model_tas,
+            cmap=cmap_tas,
+            transform=ccrs.PlateCarree(),
+            levels=levels_tas,
+            extend="both",
+        )
+
+        # add coastlines to all of these
+        ax_temp_obs.coastlines()
+        ax_temp_model.coastlines()
+
+        # Set up the min and max lats
+        min_lat = np.min(lats)
+        max_lat = np.max(lats)
+        min_lon = np.min(lons)
+        max_lon = np.max(lons)
+
+        # restrict the domain of the plots
+        ax_temp_obs.set_extent([min_lon, max_lon, min_lat, max_lat])
+        ax_temp_model.set_extent([min_lon, max_lon, min_lat, max_lat])
+
+        # Include a textbox in the rop right for N
+        ax_temp_obs.text(
+            0.95,
+            0.95,
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_temp_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_temp_model.text(
+            0.95,
+            0.95,
+            f"N = {N_model_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_temp_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # if i is 2
+        if i == 2:
+            # Add the colorbar
+            cbar_temp = fig.colorbar(
+                im_obs_tas,
+                ax=(ax_temp_obs, ax_temp_model),
+                orientation="horizontal",
+                pad=0.0,
+                shrink=0.8,
+            )
+            cbar_temp.set_ticks(levels_tas)
+
+        # if i is 0
+        if i == 0:
+            # Set the title for ax0 and ax1 in bold
+            ax_temp_obs.set_title("Obs (ERA5)", fontsize=12, fontweight="bold")
+            ax_temp_model.set_title("Model (DePreSys)", fontsize=12, fontweight="bold")
+
+        # Set up a textbox in the bottom right
+        ax_temp_obs.text(
+            0.95,
+            0.05,
+            names_list[i][0],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_temp_obs.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+        ax_temp_model.text(
+            0.95,
+            0.05,
+            names_list[i][1],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_temp_model.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Now process the data for the scatter functions
+        anoms_scatter_tas_model_this = (
+            subset_arr_this_model_tas_full - clim_arrs_model_tas[i]
+        )
+        anoms_scatter_tas_obs_this = subset_arr_this_obs_tas - clim_arrs_obs_tas[i]
+
+        # Ensure the second and third dimensions match
+        assert np.shape(anoms_scatter_tas_model_this)[1:] == np.shape(anoms_scatter_tas_obs_this)[1:], \
+            "The second and third dimensions of the arrays do not match"
+
+        # Expand the mask to match the shape of the anoms scatter this
+        MASK_MATRIX_NN_RESHAPED_model = np.broadcast_to(
+            MASK_MATRIX_NN, anoms_scatter_tas_model_this.shape
+        )
+        MASK_MATRIX_UK_RESHAPED_model = np.broadcast_to(
+            MASK_MATRIX_UK, anoms_scatter_tas_model_this.shape
+        )
+        MASK_MATRIX_NN_RESHAPED_obs = np.broadcast_to(
+            MASK_MATRIX_NN, anoms_scatter_tas_obs_this.shape
+        )
+        MASK_MATRIX_UK_RESHAPED_obs = np.broadcast_to(
+            MASK_MATRIX_UK, anoms_scatter_tas_obs_this.shape
+        )
+
+        # Apply the mask to the anoms scatter this
+        anoms_scatter_tas_model_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_model == 0, anoms_scatter_tas_model_this
+        )
+        anoms_scatter_tas_model_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_model == 0, anoms_scatter_tas_model_this
+        )
+
+        # do the same for the obs
+        anoms_scatter_tas_obs_this_NN = np.ma.masked_where(
+            MASK_MATRIX_NN_RESHAPED_obs == 0, anoms_scatter_tas_obs_this
+        )
+        anoms_scatter_tas_obs_this_UK = np.ma.masked_where(
+            MASK_MATRIX_UK_RESHAPED_obs == 0, anoms_scatter_tas_obs_this
+        )
+
+        # Set up a list of all of these
+        list_anoms_scatter = [
+            anoms_scatter_tas_model_this_NN,
+            anoms_scatter_tas_model_this_UK,
+            anoms_scatter_tas_obs_this_NN,
+            anoms_scatter_tas_obs_this_UK,
+        ]
+
+        # loop over and assert that each of them have three dimensions
+        for arr in list_anoms_scatter:
+            assert (
+                len(np.shape(arr)) == 3
+            ), "Anoms scatter tas and wind do not match in shape"
+
+        # take the spatial mean of these
+        anoms_this_model_nn_tas_mean = np.mean(
+            anoms_scatter_tas_model_this_NN, axis=(1, 2)
+        )
+        anoms_this_model_uk_tas_mean = np.mean(
+            anoms_scatter_tas_model_this_UK, axis=(1, 2)
+        )
+
+        anoms_this_obs_nn_tas_mean = np.mean(anoms_scatter_tas_obs_this_NN, axis=(1, 2))
+        anoms_this_obs_uk_tas_mean = np.mean(anoms_scatter_tas_obs_this_UK, axis=(1, 2))
+
+        # calculate the correlation between the two sets of points
+        corr_tas_model, _ = pearsonr(
+            anoms_this_model_nn_tas_mean, anoms_this_model_uk_tas_mean
+        )
+        if i == 2:
+            corr_tas_obs = 0.0
+        else:
+            corr_tas_obs, _ = pearsonr(
+                anoms_this_obs_nn_tas_mean, anoms_this_obs_uk_tas_mean
+            )
+
+        # Plot the scatter plot for tas model as grey circles
+        ax_temp_scatter.scatter(
+            anoms_this_model_nn_tas_mean,
+            anoms_this_model_uk_tas_mean,
+            color="grey",
+            s=10,
+            alpha=0.5,
+            label=f"Model (r={corr_tas_model:.2f})",
+        )
+
+        # Plot the scatter plot for tas obs as black crosses
+        ax_temp_scatter.scatter(
+            anoms_this_obs_nn_tas_mean,
+            anoms_this_obs_uk_tas_mean,
+            color="black",
+            s=10,
+            marker="x",
+            label=f"Obs (r={corr_tas_obs:.2f})",
+        )
+
+        # set the x and y limits for the scatter plots
+        xlims_temp = (-17, 7)
+        ylims_temp = (-17, 7)
+
+        # Set the x and y limits for the scatter plots
+        ax_temp_scatter.set_xlim(xlims_temp)
+        ax_temp_scatter.set_ylim(ylims_temp)
+
+        # Set the x and y labels for the scatter plots
+        ax_temp_scatter.set_xlabel("NN temperature anomaly (°C)", fontsize=12)
+        ax_temp_scatter.set_ylabel("UK temperature anomaly (°C)", fontsize=12)
+
+        # Set up titles for the scatter plots
+        ax_temp_scatter.set_title("UK vs. NN.", fontsize=12)
+
+        # include a legend in the top left
+        ax_temp_scatter.legend(
+            loc="upper left",
+            fontsize=12,
+            markerscale=2,
+            frameon=False,
+        )
+
+    # minimise the vertical spacing between subplots
+    fig.subplots_adjust(hspace=0.001)
+
+    # # make sure the aspect ratios are all equal
+    # for ax in all_axes:
+    #     ax.set_aspect("equal", adjustable="box")
 
     return None
 
@@ -2003,7 +3401,7 @@ def main():
         obs_df = pd.read_csv(os.path.join(dfs_dir, obs_df_fname), index_col=0)
     else:
         raise FileNotFoundError(f"File {obs_df_fname} does not exist in {dfs_dir}")
-    
+
     # If the path esists, load in the model df
     if os.path.exists(os.path.join(dfs_dir, model_df_fname)):
         model_df = pd.read_csv(os.path.join(dfs_dir, model_df_fname))
@@ -2070,17 +3468,21 @@ def main():
     print("Tail of the obs df:")
     print(obs_df.tail())
 
+    # extract the current date
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
     # Set up fnames for the psl data
-    psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}.npy"
-    psl_times_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times.npy"
+    psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    psl_times_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
 
     # set up fnames for the temperature data
-    temp_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr.npy"
-    temp_times_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr.npy"
+    # NOTE: Detrended temperature here
+    temp_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
+    temp_times_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
 
     # set up fnames for the wind data
-    wind_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}.npy"
-    wind_times_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times.npy"
+    wind_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    wind_times_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
 
     # if the psl files do not exist then  create them
     if not os.path.exists(
@@ -2192,12 +3594,22 @@ def main():
         os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
     )
 
+    # # assert that the dates list arrays are equal
+    # assert np.array_equal(
+    #     obs_psl_dates_list, obs_temp_dates_list
+    # ), "Dates list arrays are not equal"
+    # assert np.array_equal(
+    #     obs_psl_dates_list, obs_wind_dates_list
+    # ), "Dates list arrays are not equal"
+
+    # sys.exit()
+
     # load in the model subset files
     model_psl_subset_fname = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_{season}_{time_freq}_DnW_subset.npy"
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
     )
     model_psl_subset_json_fname = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list.json"
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
     )
 
     # if the file does not exist then raise an error
@@ -2239,10 +3651,10 @@ def main():
 
     # set up the fnames for sfcWind
     model_wind_subset_fname = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_{season}_{time_freq}_DnW_subset.npy"
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
     )
     model_wind_subset_json_fname = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list.json"
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
     )
 
     # if the file does not exist then raise an error
@@ -2282,10 +3694,10 @@ def main():
 
     # set up the fnames for tas
     model_temp_subset_fname = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_{season}_{time_freq}_DnW_subset.npy"
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
     )
     model_temp_subset_json_fname = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list.json"
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
     )
 
     # if the file does not exist then raise an error
@@ -2325,7 +3737,9 @@ def main():
 
     # load in the climatology file for psl
     psl_clim_fname = f"climatology_HadGEM3-GC31-MM_psl_DJF_NA_1960_2018_day.npy"
-    sfcWind_clim_fname = f"climatology_HadGEM3-GC31-MM_sfcWind_DJF_Europe_1960_2018_day.npy"
+    sfcWind_clim_fname = (
+        f"climatology_HadGEM3-GC31-MM_sfcWind_DJF_Europe_1960_2018_day.npy"
+    )
     tas_clim_fname = f"climatology_HadGEM3-GC31-MM_tas_DJF_Europe_1960_2018_day.npy"
 
     # if the file does not exist then raise an error
@@ -2380,9 +3794,7 @@ def main():
     ]
 
     # do the same for the obs
-    obs_df_subset_grey = obs_df[
-        obs_df["demand_net_wind_max"] < obs_dnw_80th
-    ]
+    obs_df_subset_grey = obs_df[obs_df["demand_net_wind_max"] < obs_dnw_80th]
 
     # subset the model df to yellow points
     model_df_subset_yellow = model_df[
@@ -2397,14 +3809,10 @@ def main():
     ]
 
     # subset the model df to red points
-    model_df_subset_red = model_df[
-        model_df["demand_net_wind_bc_max_bc"] >= obs_dnw_max
-    ]
+    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max_bc"] >= obs_dnw_max]
 
     # do the same for the obs
-    obs_df_subset_red = obs_df[
-        obs_df["demand_net_wind_max"] >= obs_dnw_max
-    ]
+    obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_max]
 
     # print the shape of moel df subset red
     print(f"Shape of model df subset red: {model_df_subset_red.shape}")
@@ -2417,47 +3825,47 @@ def main():
 
     # plot the composites
     # plot the composites f`or all of the winter days
-    plot_composites(
-        subset_df=obs_df_subset_yellow,
-        subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        dates_lists=[
-            obs_psl_dates_list,
-            obs_temp_dates_list,
-            obs_wind_dates_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="All obs DnW max",
-        figsize=(12, 6),
-    )
+    # plot_composites(
+    #     subset_df=obs_df_subset_yellow,
+    #     subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         obs_psl_dates_list,
+    #         obs_temp_dates_list,
+    #         obs_wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="All obs DnW max",
+    #     figsize=(12, 6),
+    # )
 
     # # plot the composite
     # # plot the composites for all of the winter days
@@ -2526,11 +3934,39 @@ def main():
         obs_psl_subset,
     ]
 
+    # Set up the subset arrs obs tas
+    subset_arrs_obs_tas = [
+        obs_temp_subset,
+        obs_temp_subset,
+        obs_temp_subset,
+    ]
+
+    # Set up the subset arrs obs wind
+    subset_arrs_obs_wind = [
+        obs_wind_subset,
+        obs_wind_subset,
+        obs_wind_subset,
+    ]
+
     # Set up the subset arrs model
     subset_arrs_model = [
         model_psl_subset,
         model_psl_subset,
         model_psl_subset,
+    ]
+
+    # Set up the subset arrs model tas
+    subset_arrs_model_tas = [
+        model_temp_subset,
+        model_temp_subset,
+        model_temp_subset,
+    ]
+
+    # Set up the subset arrs model wind
+    subset_arrs_model_wind = [
+        model_wind_subset,
+        model_wind_subset,
+        model_wind_subset,
     ]
 
     # Set up the clim arrs obs
@@ -2540,11 +3976,39 @@ def main():
         obs_psl_clim,
     ]
 
+    # set up the clim arrs obs tas
+    clim_arrs_obs_tas = [
+        obs_tas_clim,
+        obs_tas_clim,
+        obs_tas_clim,
+    ]
+
+    # Set up the clim arrs obs wind
+    clim_arrs_obs_wind = [
+        obs_wind_clim,
+        obs_wind_clim,
+        obs_wind_clim,
+    ]
+
     # Set up the clim arrs model
     clim_arrs_model = [
         model_psl_clim,
         model_psl_clim,
         model_psl_clim,
+    ]
+
+    # set up the clim arr for model tas
+    clim_arrs_model_tas = [
+        model_tas_clim,
+        model_tas_clim,
+        model_tas_clim,
+    ]
+
+    # Set up the clim arrs model wind
+    clim_arrs_model_wind = [
+        model_wind_clim,
+        model_wind_clim,
+        model_wind_clim,
     ]
 
     # Set up the dates lists obs
@@ -2554,6 +4018,20 @@ def main():
         obs_psl_dates_list,
     ]
 
+    # set up the dates list obs tas
+    dates_lists_obs_tas = [
+        obs_temp_dates_list,
+        obs_temp_dates_list,
+        obs_temp_dates_list,
+    ]
+
+    # Set up the dates lists obs wind
+    dates_lists_obs_wind = [
+        obs_wind_dates_list,
+        obs_wind_dates_list,
+        obs_wind_dates_list,
+    ]
+
     # Set up the model index dicts
     model_index_dicts = [
         model_psl_subset_index_list,
@@ -2561,52 +4039,85 @@ def main():
         model_psl_subset_index_list,
     ]
 
+    # Set up the model index dicts tas
+    model_index_dicts_tas = [
+        model_temp_subset_index_list,
+        model_temp_subset_index_list,
+        model_temp_subset_index_list,
+    ]
+
+    # Set up the model index dicts wind
+    model_index_dicts_wind = [
+        model_wind_subset_index_list,
+        model_wind_subset_index_list,
+        model_wind_subset_index_list,
+    ]
+
     # Set up the lats path
     lats_paths = [
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-        ),
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-        ),
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-        ),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
     ]
 
     # Set up the lons path
     lons_paths = [
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-        ),
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-        ),
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-        ),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
     ]
 
+    lats_europe = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    )
+    lons_europe = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    )
+
     # Set up the suptitle
-    suptitle = "ERA5 and HadGEM3-GC31-MM DnW max MSLP anoms, relative to 1960-2018 climatology"
+    suptitle = (
+        "ERA5 and HadGEM3-GC31-MM DnW max MSLP anoms, relative to 1960-2018 climatology"
+    )
 
     # Set up the figure size
     figsize = (12, 6)
 
-    # Now test the new function
-    plot_mslp_composites(
+    # # Now test the new function
+    # plot_mslp_composites(
+    #     subset_dfs_obs=subset_dfs_obs,
+    #     subset_dfs_model=subset_dfs_model,
+    #     subset_arrs_obs=subset_arrs_obs,
+    #     subset_arrs_model=subset_arrs_model,
+    #     clim_arrs_obs=clim_arrs_obs,
+    #     clim_arrs_model=clim_arrs_model,
+    #     dates_lists_obs=dates_lists_obs,
+    #     model_index_dicts=model_index_dicts,
+    #     lats_paths=lats_paths,
+    #     lons_paths=lons_paths,
+    #     suptitle=suptitle,
+    #     figsize=(8, 9),
+    # )
+
+    # test the tas wind composites function
+    plot_tas_wind_composites(
         subset_dfs_obs=subset_dfs_obs,
         subset_dfs_model=subset_dfs_model,
-        subset_arrs_obs=subset_arrs_obs,
-        subset_arrs_model=subset_arrs_model,
-        clim_arrs_obs=clim_arrs_obs,
-        clim_arrs_model=clim_arrs_model,
-        dates_lists_obs=dates_lists_obs,
-        model_index_dicts=model_index_dicts,
-        lats_paths=lats_paths,
-        lons_paths=lons_paths,
+        subset_arrs_obs_tas=subset_arrs_obs_tas,
+        subset_arrs_model_tas=subset_arrs_model_tas,
+        subset_arrs_obs_wind=subset_arrs_obs_wind,
+        subset_arrs_model_wind=subset_arrs_model_wind,
+        clim_arrs_obs_tas=clim_arrs_obs_tas,
+        clim_arrs_model_tas=clim_arrs_model_tas,
+        clim_arrs_obs_wind=clim_arrs_obs_wind,
+        clim_arrs_model_wind=clim_arrs_model_wind,
+        dates_lists_obs_tas=dates_lists_obs_tas,
+        dates_lists_obs_wind=dates_lists_obs_wind,
+        model_index_dicts_tas=model_index_dicts_tas,
+        model_index_dicts_wind=model_index_dicts_wind,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
         suptitle=suptitle,
-        figsize=(8, 9),
+        figsize=(12, 28),
     )
 
     sys.exit()
