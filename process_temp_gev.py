@@ -39,15 +39,415 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import select_leads_wyears_DJF
+from process_dnw_gev import select_leads_wyears_DJF
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
-from functions import sigmoid, dot_plot
+from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_level
 
 # Silence warnings
 warnings.filterwarnings("ignore")
 
+# Define a function for plotting the return periods
+# empirical
+def plot_emp_rps(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_val_name: str,
+    model_val_name: str,
+    obs_time_name: str,
+    model_time_name: str,
+    ylabel: str,
+    nsamples: int = 10000,
+    ylims: tuple = (0, 1),
+    blue_line: callable = np.min,
+    high_values_rare: bool = False,
+    figsize: tuple = (5, 5),
+) -> None:
+    """
+    Plot the empirical return periods for the model data.
+    
+    Parameters
+    ==========
+
+        obs_df : pd.DataFrame
+            DataFrame of observed data.
+        model_df : pd.DataFrame
+            DataFrame of model data.
+        obs_val_name : str
+            Name of the column to use in the observed DataFrame.
+        model_val_name : str
+            Name of the column to use in the model DataFrame.
+        obs_time_name : str
+            Name of the column to use as the time axis in the observed DataFrame.
+        model_time_name : str
+            Name of the column to use as the time axis in the model DataFrame.
+        ylabel : str
+            Name of the y-axis label.
+        nsamples : int, optional
+            Number of samples to use for the empirical return periods, by default 10000.
+        ylims : tuple, optional
+            Y-axis limits, by default (0, 1).
+        blue_line : callable, optional
+            Function to use for the blue line, by default np.min.
+        high_values_rare : bool, optional
+            If True, the high values are rare, by default False.
+
+    Returns
+    =======
+
+        None
+    
+    """
+
+    # if the time column is not datetime
+    if not isinstance(obs_df[obs_time_name].values[0], np.datetime64):
+        obs_df[obs_time_name] = pd.to_datetime(obs_df[obs_time_name])
+
+    # if the time column is not datetime
+    if not isinstance(model_df[model_time_name].values[0], np.datetime64):
+        model_df[model_time_name] = pd.to_datetime(model_df[model_time_name])
+
+    # Set up the central return levels
+    model_df_central_rps = empirical_return_level(
+        data=model_df[model_val_name].values,
+        high_values_rare=high_values_rare,
+    )
+
+    # Set up the bootstrap
+    model_df_bootstrap_rps = np.zeros([nsamples, len(model_df_central_rps)])
+
+    # Loop over the samples
+    for i in tqdm(
+        range(nsamples)
+    ):
+        # Resample the model data
+        model_vals_this = np.random.choice(
+            model_df[model_val_name].values,
+            size=len(model_df_central_rps["sorted"]),
+            replace=True,
+        )
+
+        # Calculate the empirical return levels
+        model_df_rls_this = empirical_return_level(
+            data=model_vals_this,
+            high_values_rare=high_values_rare,
+        )
+
+        # Append the return levels to the array
+        model_df_bootstrap_rps[i, :] = model_df_rls_this["sorted"]
+
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot the central return levels
+    ax.plot(
+        model_df_central_rps["period"],
+        model_df_central_rps["sorted"],
+        color="red",
+        label="Rank",
+    )
+
+    _ = ax.fill_between(
+        model_df_central_rps["period"],
+        np.quantile(
+            model_df_bootstrap_rps,
+            0.025,
+            axis=0,
+        ),
+        np.quantile(
+            model_df_bootstrap_rps,
+            0.975,
+            axis=0,
+        ),
+        color="red",
+        alpha=0.5,
+        label="Rank uncertainty",
+    )
+
+    # Set up a logarithmic x-axis
+    ax.set_xscale("log")
+
+    # Limit to between 10 and 1000 years
+    ax.set_xlim(10, 1000)
+
+    # Set the xticks at 10, 20, 50, 100, 200, 500, 1000
+    plt.xticks(
+        [10, 20, 50, 100, 200, 500, 1000],
+        ["10", "20", "50", "100", "200", "500", "1000"],
+    )
+
+    # Set the ylim
+    ax.set_ylim(ylims)
+
+    # Set the y labels
+    ax.set_ylabel(
+        ylabel, fontsize=12,
+    )
+
+    # Set the x labels
+    ax.set_xlabel(
+        "Return period (years)", fontsize=12,
+    )
+
+    # Find the extreme value
+    extreme_value = blue_line(
+        obs_df[obs_val_name].values
+    )
+
+    # find the time in which this occurs
+    extreme_time = obs_df.loc[
+        obs_df[obs_val_name] == extreme_value, obs_time_name
+    ].values[0]
+
+    # Convert numpy.datetime64 to pandas.Timestamp and extract the year
+    extreme_time = pd.Timestamp(extreme_time).year
+
+    # Print the extreme value
+    print(f"Extreme value: {extreme_value}")
+
+    # Print the time in which this occurs
+    print(f"Extreme time (year): {extreme_time}")
+
+    # Plot the extreme value as a blue horizontal 
+    # dashed line
+    ax.axhline(
+        y=extreme_value,
+        color="blue",
+        linestyle="--",
+        label=f"{extreme_time}"
+    )
+
+    # include a legend in the top right
+    ax.legend(
+        loc="upper right",
+        fontsize=12,
+    )
+
+    return None
+
+# Define a function to plot the gev return periods
+def plot_gev_rps(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_val_name: str,
+    model_val_name: str,
+    obs_time_name: str,
+    model_time_name: str,
+    ylabel: str,
+    nsamples: int = 10000,
+    ylims: tuple = (0, 1),
+    blue_line: callable = np.min,
+    high_values_rare: bool = False,
+    figsize: tuple = (5, 5),
+) -> None:
+    """
+    Plots the return periods for the model and obs using a GEV.
+
+    Parameters
+    ==========
+
+        obs_df : pd.DataFrame
+            DataFrame of observed data.
+        model_df : pd.DataFrame
+            DataFrame of model data.
+        obs_val_name : str
+            Name of the column to use in the observed DataFrame.
+        model_val_name : str
+            Name of the column to use in the model DataFrame.
+        obs_time_name : str
+            Name of the column to use as the time axis in the observed DataFrame.
+        model_time_name : str
+            Name of the column to use as the time axis in the model DataFrame.
+        ylabel : str
+            Name of the y-axis label.
+        nsamples : int, optional
+            Number of samples to use for the empirical return periods, by default 10000.
+        ylims : tuple, optional
+            Y-axis limits, by default (0, 1).
+        blue_line : callable, optional
+            Function to use for the blue line, by default np.min.
+        high_values_rare : bool, optional
+            If True, the high values are rare, by default False.
+
+    Returns
+    =======
+
+        None
+    
+    """
+
+    # If the time column is not a datetime
+    if not isinstance(obs_df[obs_time_name].values[0], np.datetime64):
+        obs_df[obs_time_name] = pd.to_datetime(obs_df[obs_time_name])
+
+    # If the time column is not a datetime
+    if not isinstance(model_df[model_time_name].values[0], np.datetime64):
+        model_df[model_time_name] = pd.to_datetime(model_df[model_time_name])
+
+    # Set up the probabilities and years
+    probs = 1 / np.arange(1.1, 1000, 0.1) * 100
+    years = np.arange(1.1, 1000, 0.1)
+
+    # Set up the lists to store GEV params
+    model_gev_params = []
+    obs_gev_params = []
+
+    # Loop over the samples
+    for i in tqdm(
+        range(nsamples)
+    ):
+        # Resample the model data
+        model_vals_this = np.random.choice(
+            model_df[model_val_name].values,
+            size=len(model_df[model_val_name]),
+            replace=True,
+        )
+
+        # Resample the obs data
+        obs_vals_this = np.random.choice(
+            obs_df[obs_val_name].values,
+            size=len(obs_df[obs_val_name]),
+            replace=True,
+        )
+
+        # Quantify the model RLs using the GEV
+        model_gev_params.append(
+            gev.fit(
+                model_vals_this,
+            )
+        )
+
+        # Do the same for the obs data
+        obs_gev_params.append(
+            gev.fit(
+                obs_vals_this,
+            )
+        )
+
+    # Set up the return levels list for model and obs
+    model_gev_rls = []
+    obs_gev_rls = []
+
+    if high_values_rare:
+        years_ppf = 1 - 1 / years
+    else:
+        years_ppf = 1 / years
+
+    # Loop over the nsamples
+    for i in tqdm(
+        range(nsamples)
+    ):
+        # Calculate the return levels for the model
+        model_gev_rls.append(
+            np.array(
+                gev.ppf(
+                    years_ppf,
+                    *model_gev_params[i],
+                )
+            )
+        )
+
+        # Calculate the return levels for the obs
+        obs_gev_rls.append(
+            np.array(
+                gev.ppf(
+                    years_ppf,
+                    *obs_gev_params[i],
+                )
+            )
+        )
+
+    # Convert the probs to return years
+    return_years = 1 / (probs / 100)
+
+    # Convert the model and obs GEV params to arrays
+    model_gev_params = np.array(model_gev_params)
+    obs_gev_params = np.array(obs_gev_params)
+
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot the observed return levels
+    _ = ax.fill_between(
+        return_years,
+        np.quantile(obs_gev_rls, 0.025, axis=0).T,
+        np.quantile(obs_gev_rls, 0.975, axis=0).T,
+        color="gray",
+        alpha=0.5,
+        label="ERA5",
+    )
+
+    # Plot the model return levels
+    _ = ax.fill_between(
+        return_years,
+        np.quantile(model_gev_rls, 0.025, axis=0).T,
+        np.quantile(model_gev_rls, 0.975, axis=0).T,
+        color="red",
+        alpha=0.5,
+        label="DePreSys",
+    )
+
+        # Set up a logarithmic x-axis
+    ax.set_xscale("log")
+
+    # Limit to between 10 and 1000 years
+    ax.set_xlim(10, 1000)
+
+    # Set the xticks at 10, 20, 50, 100, 200, 500, 1000
+    plt.xticks(
+        [10, 20, 50, 100, 200, 500, 1000],
+        ["10", "20", "50", "100", "200", "500", "1000"],
+    )
+
+    # Set the ylim
+    ax.set_ylim(ylims)
+
+    # Set the y labels
+    ax.set_ylabel(
+        ylabel, fontsize=12,
+    )
+
+    # Set the x labels
+    ax.set_xlabel(
+        "Return period (years)", fontsize=12,
+    )
+
+    # Find the extreme value
+    extreme_value = blue_line(
+        obs_df[obs_val_name].values
+    )
+
+    # find the time in which this occurs
+    extreme_time = obs_df.loc[
+        obs_df[obs_val_name] == extreme_value, obs_time_name
+    ].values[0]
+
+    # Convert numpy.datetime64 to pandas.Timestamp and extract the year
+    extreme_time = pd.Timestamp(extreme_time).year
+
+    # Print the extreme value
+    print(f"Extreme value: {extreme_value}")
+
+    # Print the time in which this occurs
+    print(f"Extreme time (year): {extreme_time}")
+
+    # Plot the extreme value as a blue horizontal 
+    # dashed line
+    ax.axhline(
+        y=extreme_value,
+        color="blue",
+        linestyle="--",
+        label=f"{extreme_time}"
+    )
+
+    # include a legend in the top right
+    ax.legend(
+        loc="upper right",
+        fontsize=12,
+    )
+
+    return None
 
 # Set up a function to perform the model drift correction
 def model_drift_corr_plot(
@@ -244,355 +644,355 @@ def model_drift_corr_plot(
         model_df_copy[eff_dec_years_name].isin(effective_dec_years_constant)
     ]
 
-    # Set up the axes
-    # Set up the figure size
-    fig, axes = plt.subplots(
-        nrows=3,
-        ncols=4,
-        figsize=figsize,
-        sharex=True,
-        sharey=True,
-        layout="compressed",
-    )
+    # # Set up the axes
+    # # Set up the figure size
+    # fig, axes = plt.subplots(
+    #     nrows=3,
+    #     ncols=4,
+    #     figsize=figsize,
+    #     sharex=True,
+    #     sharey=True,
+    #     layout="compressed",
+    # )
 
-    # Loop over the unique leads
-    for i, lead in enumerate(unique_leads):
-        # Subset the model data to the lead this
-        model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
+    # # Loop over the unique leads
+    # for i, lead in enumerate(unique_leads):
+    #     # Subset the model data to the lead this
+    #     model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
 
-        # # print the lead
-        # print(f"Lead time: {lead}")
+    #     # # print the lead
+    #     # print(f"Lead time: {lead}")
 
-        # # print the first and last unique effective dec years in this df
-        # print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
-        # print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+    #     # # print the first and last unique effective dec years in this df
+    #     # print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+    #     # print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
 
-        # # print the len of the unique effective dec years in this df
-        # print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+    #     # # print the len of the unique effective dec years in this df
+    #     # print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
 
-        # calculate the mean
-        model_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+    #     # calculate the mean
+    #     model_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
 
-        # if the omodel mean is nan
-        if np.isnan(model_mean_this):
-            print(model_df_lead_this)
+    #     # if the omodel mean is nan
+    #     if np.isnan(model_mean_this):
+    #         print(model_df_lead_this)
 
-        # include the mean in the title
-        title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
+    #     # include the mean in the title
+    #     title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
 
-        # Plot the data
-        ax = axes.flatten()[i]
+    #     # Plot the data
+    #     ax = axes.flatten()[i]
 
-        # Plot the histograms using matplotlib
-        ax.hist(
-            model_df_lead_this[f"{model_var_name}"], 
-            bins=30, 
-            color="red", 
-            edgecolor="black"
-        )
+    #     # Plot the histograms using matplotlib
+    #     ax.hist(
+    #         model_df_lead_this[f"{model_var_name}"], 
+    #         bins=30, 
+    #         color="red", 
+    #         edgecolor="black"
+    #     )
 
-        # include the title
-        ax.set_title(title)
+    #     # include the title
+    #     ax.set_title(title)
 
-    # Add a suptitle including the min and max unique effective dec years
-    min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
-    max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
-    plt.suptitle(
-        f"Model raw block minima - {min_eff_dec_year} to {max_eff_dec_year}",
-        fontsize=14,
-        fontweight="bold",
-        y=1.08,
-    )
-
-    # Set up the axes
-    fig, axes = plt.subplots(
-        nrows=3,
-        ncols=4,
-        figsize=figsize,
-        sharex=True,
-        sharey=True,
-        layout="compressed",
-    )
-
-    # loop over the unique leads
-    for i, lead in enumerate(unique_leads):
-        # Subset the model data to the lead this
-        model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
-
-        # print the lead
-        print(f"Lead time: {lead}")
-
-        # print the first and last unique effective dec years in this df
-        print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
-        print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
-
-        # print the len of the unique effective dec years in this df
-        print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
-
-        # calculate the mean
-        model_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
-
-        # if the omodel mean is nan
-        if np.isnan(model_mean_this):
-            print(model_df_lead_this)
-
-        # include the mean in the title
-        title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
-
-        # Plot the data
-        ax = axes.flatten()[i]
-
-        # Plot the histograms using matplotlib
-        ax.hist(
-            model_df_lead_this[f"{model_var_name}_anomaly"], 
-            bins=30, 
-            color="red", 
-            edgecolor="black"
-        )
-
-        # include the title
-        ax.set_title(title)
-
-    # Add a suptitle including the min and max unique effective dec years
-    min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
-    max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
-
-    plt.suptitle(
-        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
-        fontsize=14,
-        fontweight="bold",
-        y=1.08,
-    )
-
-    # do the same but not for a constant period
-    # Set up the axes
-    fig, axes = plt.subplots(
-        nrows=3,
-        ncols=4,
-        figsize=figsize,
-        sharex=True,
-        sharey=True,
-        layout="compressed",
-    )
-
-    # loop over the unique leads
-    for i, lead in enumerate(unique_leads):
-        # Subset the model data to the lead this
-        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
-
-        # print the lead
-        # print(f"Lead time: {lead}")
-
-        # # print the first and last unique effective dec years in this df
-        # print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
-        # print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
-
-        # print the len of the unique effective dec years in this df
-        print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
-
-        # calculate the mean
-        model_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
-
-        # if the omodel mean is nan
-        if np.isnan(model_mean_this):
-            print(model_df_lead_this)
-
-        # include the mean in the title
-        title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
-
-        # Plot the data
-        ax = axes.flatten()[i]
-
-        # Plot the histograms using matplotlib
-        ax.hist(
-            model_df_lead_this[f"{model_var_name}_anomaly"], 
-            bins=30, 
-            color="red", 
-            edgecolor="black"
-        )
-
-        # include the title
-        ax.set_title(title)
-
-    # Add a suptitle including the min and max unique effective dec years
-    min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
-    max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
-    plt.suptitle(
-        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
-        fontsize=14,
-        fontweight="bold",
-        y=1.08,
-    )
-
-    # Set up another figure
-    fig, axes = plt.subplots(
-        nrows=1,
-        ncols=2,
-        figsize=figsize,
-        sharex=True,
-        sharey=True,
-        layout="compressed",
-    )
-
-    ax1 = axes[0]
-    ax2 = axes[1]
-
-    # Get the cmap
-    cmap = cm.get_cmap("Blues", len(unique_leads))
-
-    # Set up an array for means
-    raw_means = np.zeros([len(unique_leads)])
-    drift_bc_means = np.zeros([len(unique_leads)])
-
-    # Loop over the leads
-    for i, lead in enumerate(unique_leads):
-        # Subset the model data to the lead this
-        model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
-
-        # Plot the density distribution with kde
-        sns.kdeplot(
-            model_df_lead_this[f"{model_var_name}"],
-            ax=ax1,
-            color=cmap(i),
-        )
-
-        # Calculate the mean
-        raw_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
-
-        # Append the mean to the array
-        raw_means[i] = raw_mean_this
-
-        # Plot the density distribution with kde
-        sns.kdeplot(
-            model_df_lead_this[f"{model_var_name}_anomaly"],
-            ax=ax2,
-            label=f"Lead {lead}",
-            color=cmap(i),
-        )
-
-        # Calculate the mean
-        drift_bc_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
-
-        # Append the mean to the array
-        drift_bc_means[i] = drift_bc_mean_this
-
-    # Calculate pairwise mean differences for raw means
-    raw_mean_differences = [
-        abs(raw_means[i] - raw_means[j])
-        for i in range(len(raw_means))
-        for j in range(i + 1, len(raw_means))
-    ]
-    raw_mean_difference_avg = np.mean(raw_mean_differences)
-
-    # Calculate pairwise mean differences for drift corrected means
-    drift_bc_mean_differences = [
-        abs(drift_bc_means[i] - drift_bc_means[j])
-        for i in range(len(drift_bc_means))
-        for j in range(i + 1, len(drift_bc_means))
-    ]
-    drift_bc_mean_difference_avg = np.mean(drift_bc_mean_differences)
-
-    # Set the titles
-    ax1.set_title(f"Raw model data (mean diff = {raw_mean_difference_avg:.2f})")
-    ax2.set_title(f"Drift corrected anomalies (mean diff = {drift_bc_mean_difference_avg:.2f})")
-
-    # Include a legend in the top right of the right plot
-    ax2.legend(
-        loc="upper right",
-        fontsize=8,
-    )
-
-    # include a sup title
-    min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
-    max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
-    plt.suptitle(
-        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
-        fontsize=14,
-        fontweight="bold",
-        y=1.08,
-    )
+    # # Add a suptitle including the min and max unique effective dec years
+    # min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
+    # max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
+    # plt.suptitle(
+    #     f"Model raw block minima - {min_eff_dec_year} to {max_eff_dec_year}",
+    #     fontsize=14,
+    #     fontweight="bold",
+    #     y=1.08,
+    # )
 
     # # Set up the axes
-    fig, axes = plt.subplots(
-        nrows=1,
-        ncols=2,
-        figsize=figsize,
-        sharex=True,
-        sharey=True,
-        layout="compressed",
-    )
+    # fig, axes = plt.subplots(
+    #     nrows=3,
+    #     ncols=4,
+    #     figsize=figsize,
+    #     sharex=True,
+    #     sharey=True,
+    #     layout="compressed",
+    # )
 
-    ax1 = axes[0]
-    ax2 = axes[1]
+    # # loop over the unique leads
+    # for i, lead in enumerate(unique_leads):
+    #     # Subset the model data to the lead this
+    #     model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
 
-    # Get the cmap
-    cmap = cm.get_cmap("Blues", len(unique_leads))
+    #     # print the lead
+    #     print(f"Lead time: {lead}")
 
-    # Set up an array for means
-    raw_means = np.zeros([len(unique_leads)])
-    drift_bc_means = np.zeros([len(unique_leads)])
+    #     # print the first and last unique effective dec years in this df
+    #     print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+    #     print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
 
-    # loop over the unique leads
-    for i, lead in enumerate(unique_leads):
-        # Subset the model data to the lead this
-        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+    #     # print the len of the unique effective dec years in this df
+    #     print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
 
-        # Plot the density distribution with kde
-        sns.kdeplot(
-            model_df_lead_this[f"{model_var_name}"],
-            ax=ax1,
-            color=cmap(i),
-        )
+    #     # calculate the mean
+    #     model_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
 
-        # Calculate the mean
-        raw_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+    #     # if the omodel mean is nan
+    #     if np.isnan(model_mean_this):
+    #         print(model_df_lead_this)
 
-        # Append the mean to the array
-        raw_means[i] = raw_mean_this
+    #     # include the mean in the title
+    #     title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
 
-        # Plot the density distribution with kde
-        sns.kdeplot(
-            model_df_lead_this[f"{model_var_name}_anomaly"],
-            ax=ax2,
-            label=f"Lead {lead}",
-            color=cmap(i),
-        )
+    #     # Plot the data
+    #     ax = axes.flatten()[i]
 
-        # Calculate the mean
-        drift_bc_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+    #     # Plot the histograms using matplotlib
+    #     ax.hist(
+    #         model_df_lead_this[f"{model_var_name}_anomaly"], 
+    #         bins=30, 
+    #         color="red", 
+    #         edgecolor="black"
+    #     )
 
-        # Append the mean to the array
-        drift_bc_means[i] = drift_bc_mean_this
+    #     # include the title
+    #     ax.set_title(title)
 
-    # Calculate pairwise mean differences for raw means
-    raw_mean_differences = [
-        abs(raw_means[i] - raw_means[j])
-        for i in range(len(raw_means))
-        for j in range(i + 1, len(raw_means))
-    ]
-    raw_mean_difference_avg = np.mean(raw_mean_differences)
+    # # Add a suptitle including the min and max unique effective dec years
+    # min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
+    # max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
 
-    # Calculate pairwise mean differences for drift corrected means
-    drift_bc_mean_differences = [
-        abs(drift_bc_means[i] - drift_bc_means[j])
-        for i in range(len(drift_bc_means))
-        for j in range(i + 1, len(drift_bc_means))
-    ]
-    drift_bc_mean_difference_avg = np.mean(drift_bc_mean_differences)
+    # plt.suptitle(
+    #     f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+    #     fontsize=14,
+    #     fontweight="bold",
+    #     y=1.08,
+    # )
 
-    # Set the titles
-    ax1.set_title(f"Raw model data (mean diff = {raw_mean_difference_avg:.2f})")
-    ax2.set_title(f"Drift corrected anomalies (mean diff = {drift_bc_mean_difference_avg:.2f})")
+    # # do the same but not for a constant period
+    # # Set up the axes
+    # fig, axes = plt.subplots(
+    #     nrows=3,
+    #     ncols=4,
+    #     figsize=figsize,
+    #     sharex=True,
+    #     sharey=True,
+    #     layout="compressed",
+    # )
 
-    # Add a suptitle including the min and max unique effective dec years
-    min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
-    max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
-    plt.suptitle(
-        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
-        fontsize=14,
-        fontweight="bold",
-        y=1.08,
-    )
+    # # loop over the unique leads
+    # for i, lead in enumerate(unique_leads):
+    #     # Subset the model data to the lead this
+    #     model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+
+    #     # print the lead
+    #     # print(f"Lead time: {lead}")
+
+    #     # # print the first and last unique effective dec years in this df
+    #     # print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
+    #     # print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+
+    #     # print the len of the unique effective dec years in this df
+    #     print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+
+    #     # calculate the mean
+    #     model_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+
+    #     # if the omodel mean is nan
+    #     if np.isnan(model_mean_this):
+    #         print(model_df_lead_this)
+
+    #     # include the mean in the title
+    #     title = f"Lead {lead} - Model mean: {model_mean_this:.2f}"
+
+    #     # Plot the data
+    #     ax = axes.flatten()[i]
+
+    #     # Plot the histograms using matplotlib
+    #     ax.hist(
+    #         model_df_lead_this[f"{model_var_name}_anomaly"], 
+    #         bins=30, 
+    #         color="red", 
+    #         edgecolor="black"
+    #     )
+
+    #     # include the title
+    #     ax.set_title(title)
+
+    # # Add a suptitle including the min and max unique effective dec years
+    # min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
+    # max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
+    # plt.suptitle(
+    #     f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+    #     fontsize=14,
+    #     fontweight="bold",
+    #     y=1.08,
+    # )
+
+    # # Set up another figure
+    # fig, axes = plt.subplots(
+    #     nrows=1,
+    #     ncols=2,
+    #     figsize=figsize,
+    #     sharex=True,
+    #     sharey=True,
+    #     layout="compressed",
+    # )
+
+    # ax1 = axes[0]
+    # ax2 = axes[1]
+
+    # # Get the cmap
+    # cmap = cm.get_cmap("Blues", len(unique_leads))
+
+    # # Set up an array for means
+    # raw_means = np.zeros([len(unique_leads)])
+    # drift_bc_means = np.zeros([len(unique_leads)])
+
+    # # Loop over the leads
+    # for i, lead in enumerate(unique_leads):
+    #     # Subset the model data to the lead this
+    #     model_df_lead_this = model_df_copy_constant[model_df_copy_constant[lead_name] == lead]
+
+    #     # Plot the density distribution with kde
+    #     sns.kdeplot(
+    #         model_df_lead_this[f"{model_var_name}"],
+    #         ax=ax1,
+    #         color=cmap(i),
+    #     )
+
+    #     # Calculate the mean
+    #     raw_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+
+    #     # Append the mean to the array
+    #     raw_means[i] = raw_mean_this
+
+    #     # Plot the density distribution with kde
+    #     sns.kdeplot(
+    #         model_df_lead_this[f"{model_var_name}_anomaly"],
+    #         ax=ax2,
+    #         label=f"Lead {lead}",
+    #         color=cmap(i),
+    #     )
+
+    #     # Calculate the mean
+    #     drift_bc_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+
+    #     # Append the mean to the array
+    #     drift_bc_means[i] = drift_bc_mean_this
+
+    # # Calculate pairwise mean differences for raw means
+    # raw_mean_differences = [
+    #     abs(raw_means[i] - raw_means[j])
+    #     for i in range(len(raw_means))
+    #     for j in range(i + 1, len(raw_means))
+    # ]
+    # raw_mean_difference_avg = np.mean(raw_mean_differences)
+
+    # # Calculate pairwise mean differences for drift corrected means
+    # drift_bc_mean_differences = [
+    #     abs(drift_bc_means[i] - drift_bc_means[j])
+    #     for i in range(len(drift_bc_means))
+    #     for j in range(i + 1, len(drift_bc_means))
+    # ]
+    # drift_bc_mean_difference_avg = np.mean(drift_bc_mean_differences)
+
+    # # Set the titles
+    # ax1.set_title(f"Raw model data (mean diff = {raw_mean_difference_avg:.2f})")
+    # ax2.set_title(f"Drift corrected anomalies (mean diff = {drift_bc_mean_difference_avg:.2f})")
+
+    # # Include a legend in the top right of the right plot
+    # ax2.legend(
+    #     loc="upper right",
+    #     fontsize=8,
+    # )
+
+    # # include a sup title
+    # min_eff_dec_year = model_df_copy_constant[eff_dec_years_name].min()
+    # max_eff_dec_year = model_df_copy_constant[eff_dec_years_name].max()
+    # plt.suptitle(
+    #     f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+    #     fontsize=14,
+    #     fontweight="bold",
+    #     y=1.08,
+    # )
+
+    # # # Set up the axes
+    # fig, axes = plt.subplots(
+    #     nrows=1,
+    #     ncols=2,
+    #     figsize=figsize,
+    #     sharex=True,
+    #     sharey=True,
+    #     layout="compressed",
+    # )
+
+    # ax1 = axes[0]
+    # ax2 = axes[1]
+
+    # # Get the cmap
+    # cmap = cm.get_cmap("Blues", len(unique_leads))
+
+    # # Set up an array for means
+    # raw_means = np.zeros([len(unique_leads)])
+    # drift_bc_means = np.zeros([len(unique_leads)])
+
+    # # loop over the unique leads
+    # for i, lead in enumerate(unique_leads):
+    #     # Subset the model data to the lead this
+    #     model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+
+    #     # Plot the density distribution with kde
+    #     sns.kdeplot(
+    #         model_df_lead_this[f"{model_var_name}"],
+    #         ax=ax1,
+    #         color=cmap(i),
+    #     )
+
+    #     # Calculate the mean
+    #     raw_mean_this = model_df_lead_this[f"{model_var_name}"].mean()
+
+    #     # Append the mean to the array
+    #     raw_means[i] = raw_mean_this
+
+    #     # Plot the density distribution with kde
+    #     sns.kdeplot(
+    #         model_df_lead_this[f"{model_var_name}_anomaly"],
+    #         ax=ax2,
+    #         label=f"Lead {lead}",
+    #         color=cmap(i),
+    #     )
+
+    #     # Calculate the mean
+    #     drift_bc_mean_this = model_df_lead_this[f"{model_var_name}_anomaly"].mean()
+
+    #     # Append the mean to the array
+    #     drift_bc_means[i] = drift_bc_mean_this
+
+    # # Calculate pairwise mean differences for raw means
+    # raw_mean_differences = [
+    #     abs(raw_means[i] - raw_means[j])
+    #     for i in range(len(raw_means))
+    #     for j in range(i + 1, len(raw_means))
+    # ]
+    # raw_mean_difference_avg = np.mean(raw_mean_differences)
+
+    # # Calculate pairwise mean differences for drift corrected means
+    # drift_bc_mean_differences = [
+    #     abs(drift_bc_means[i] - drift_bc_means[j])
+    #     for i in range(len(drift_bc_means))
+    #     for j in range(i + 1, len(drift_bc_means))
+    # ]
+    # drift_bc_mean_difference_avg = np.mean(drift_bc_mean_differences)
+
+    # # Set the titles
+    # ax1.set_title(f"Raw model data (mean diff = {raw_mean_difference_avg:.2f})")
+    # ax2.set_title(f"Drift corrected anomalies (mean diff = {drift_bc_mean_difference_avg:.2f})")
+
+    # # Add a suptitle including the min and max unique effective dec years
+    # min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
+    # max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
+    # plt.suptitle(
+    #     f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+    #     fontsize=14,
+    #     fontweight="bold",
+    #     y=1.08,
+    # )
 
     # loop over the unique leads
     for i, lead in enumerate(unique_leads):
@@ -636,80 +1036,80 @@ def model_drift_corr_plot(
             + obs_mean_lead_this
         )
 
-    # Set up the axes
-    fig, axes = plt.subplots(
-        nrows=1,
-        ncols=2,
-        figsize=figsize,
-        sharex=True,
-        sharey=True,
-        layout="compressed",
-    )
+    # # Set up the axes
+    # fig, axes = plt.subplots(
+    #     nrows=1,
+    #     ncols=2,
+    #     figsize=figsize,
+    #     sharex=True,
+    #     sharey=True,
+    #     layout="compressed",
+    # )
 
-    ax1 = axes[0]
-    ax2 = axes[1]
+    # ax1 = axes[0]
+    # ax2 = axes[1]
 
-    # Get the cmap
-    cmap = cm.get_cmap("Blues", len(unique_leads))
+    # # Get the cmap
+    # cmap = cm.get_cmap("Blues", len(unique_leads))
 
-    # loop over the unique leads
-    for i, lead in enumerate(unique_leads):
-        # Subset the model data to the lead this
-        model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
+    # # loop over the unique leads
+    # for i, lead in enumerate(unique_leads):
+    #     # Subset the model data to the lead this
+    #     model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
 
-        # Plot the density distribution with kde
-        sns.kdeplot(
-            model_df_lead_this[f"{model_var_name}"],
-            ax=ax1,
-            color=cmap(i),
-        )
+    #     # Plot the density distribution with kde
+    #     sns.kdeplot(
+    #         model_df_lead_this[f"{model_var_name}"],
+    #         ax=ax1,
+    #         color=cmap(i),
+    #     )
 
-        # Plot the density distribution with kde
-        sns.kdeplot(
-            model_df_lead_this[f"{model_var_name}_drift_bc"],
-            ax=ax2,
-            label=f"Lead {lead}",
-            color=cmap(i),
-        )
+    #     # Plot the density distribution with kde
+    #     sns.kdeplot(
+    #         model_df_lead_this[f"{model_var_name}_drift_bc"],
+    #         ax=ax2,
+    #         label=f"Lead {lead}",
+    #         color=cmap(i),
+    #     )
 
-    # plot the observed disttibution
-    sns.kdeplot(
-        obs_df_copy[obs_var_name],
-        ax=ax1,
-        label="Observed",
-        color="black",
-        linestyle="--",
-    )
+    # # plot the observed disttibution
+    # sns.kdeplot(
+    #     obs_df_copy[obs_var_name],
+    #     ax=ax1,
+    #     label="Observed",
+    #     color="black",
+    #     linestyle="--",
+    # )
 
-    # plot the observed disttibution
-    sns.kdeplot(
-        obs_df_copy[obs_var_name],
-        ax=ax2,
-        label="Observed",
-        color="black",
-        linestyle="--",
-    )
+    # # plot the observed disttibution
+    # sns.kdeplot(
+    #     obs_df_copy[obs_var_name],
+    #     ax=ax2,
+    #     label="Observed",
+    #     color="black",
+    #     linestyle="--",
+    # )
 
-    # set up the titles
-    ax1.set_title(f"No drift or bias corr. (no detrend)")
-    ax2.set_title(f"Drift + bias corr. (no detrend)")
+    # # set up the titles
+    # ax1.set_title(f"No drift or bias corr. (no detrend)")
+    # ax2.set_title(f"Drift + bias corr. (no detrend)")
 
-    # Include the legend in the top right of the right plot
-    ax2.legend(
-        loc="upper right",
-        fontsize=8,
-    )
+    # # Include the legend in the top right of the right plot
+    # ax2.legend(
+    #     loc="upper right",
+    #     fontsize=8,
+    # )
 
-    # Add a suptitle including the min and max unique effective dec years
-    min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
-    max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
+    # # Add a suptitle including the min and max unique effective dec years
+    # min_eff_dec_year = model_df_copy[eff_dec_years_name].min()
+    # max_eff_dec_year = model_df_copy[eff_dec_years_name].max()
 
-    plt.suptitle(
-        f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
-        fontsize=14,
-        fontweight="bold",
-        y=1.08,
-    )
+    # plt.suptitle(
+    #     f"Model drift corrected anomalies - {min_eff_dec_year} to {max_eff_dec_year}",
+    #     fontsize=14,
+    #     fontweight="bold",
+    #     y=1.08,
+    # )
 
     return model_df_copy
 
@@ -1122,28 +1522,28 @@ def main():
     ] + (block_minima_model_wind["winter_year"] - 1)
 
     # Plot the lead pdfs
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_tas,
-        obs_df=block_minima_obs_tas,
-        model_var_name="data_tas_c_min",
-        obs_var_name="data_c_min",
-        lead_name="winter_year",
-        xlabel="Temperature (C)",
-        suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_tas,
+    #     obs_df=block_minima_obs_tas,
+    #     model_var_name="data_tas_c_min",
+    #     obs_var_name="data_c_min",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (C)",
+    #     suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+    #     figsize=(10, 5),
+    # )
 
-    # Plot the lead pdfs for wind speed pre drift/bc
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_wind,
-        obs_df=block_minima_obs_wind,
-        model_var_name="data_min",
-        obs_var_name="data_min",
-        lead_name="winter_year",
-        xlabel="Wind speed (m/s)",
-        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs for wind speed pre drift/bc
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_wind,
+    #     obs_df=block_minima_obs_wind,
+    #     model_var_name="data_min",
+    #     obs_var_name="data_min",
+    #     lead_name="winter_year",
+    #     xlabel="Wind speed (m/s)",
+    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+    #     figsize=(10, 5),
+    # )
 
     # Plot the lead time depedent drift for the model and the corrected model
     block_minima_model_tas_drift_corr = model_drift_corr_plot(
@@ -1170,30 +1570,30 @@ def main():
     )
 
     # PLOT THE LEAD pdfs post this
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_tas_drift_corr,
-        obs_df=block_minima_obs_tas,
-        model_var_name="data_tas_c_min_drift_bc",
-        obs_var_name="data_c_min",
-        lead_name="winter_year",
-        xlabel="Temperature (C)",
-        suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift corrected)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_tas_drift_corr,
+    #     obs_df=block_minima_obs_tas,
+    #     model_var_name="data_tas_c_min_drift_bc",
+    #     obs_var_name="data_c_min",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (C)",
+    #     suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift corrected)",
+    #     figsize=(10, 5),
+    # )
 
-    # Plot the lead pdfs for wind speed post drift/bc
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_wind_drift_corr,
-        obs_df=block_minima_obs_wind,
-        model_var_name="data_min_drift_bc",
-        obs_var_name="data_min",
-        lead_name="winter_year",
-        xlabel="Wind speed (m/s)",
-        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs for wind speed post drift/bc
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_wind_drift_corr,
+    #     obs_df=block_minima_obs_wind,
+    #     model_var_name="data_min_drift_bc",
+    #     obs_var_name="data_min",
+    #     lead_name="winter_year",
+    #     xlabel="Wind speed (m/s)",
+    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
+    #     figsize=(10, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # # Loop over the unique lead times in block minima model tas drift corr
     # for lead in block_minima_model_tas_drift_corr["winter_year"].unique():
@@ -1295,70 +1695,70 @@ def main():
     # )
 
     # Compare the trends with the full field data
-    gev_funcs.compare_trends(
-        model_df_full_field=df_model_tas_djf,
-        obs_df_full_field=df_obs_tas,
-        model_df_block=block_minima_model_tas_drift_corr_dt,
-        obs_df_block=block_minima_obs_tas_dt,
-        model_var_name_full_field="data_tas_c",
-        obs_var_name_full_field="data_c",
-        model_var_name_block="data_tas_c_min_drift_bc",
-        obs_var_name_block="data_c_min",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        ylabel="Temperature (C)",
-        suptitle="Temperature trends (block min detrended obs, model lead time detrended)",
-        figsize=(15, 5),
-        window_size=10,
-        centred_bool=True,
-        min_periods=1,
-    )
+    # gev_funcs.compare_trends(
+    #     model_df_full_field=df_model_tas_djf,
+    #     obs_df_full_field=df_obs_tas,
+    #     model_df_block=block_minima_model_tas_drift_corr_dt,
+    #     obs_df_block=block_minima_obs_tas_dt,
+    #     model_var_name_full_field="data_tas_c",
+    #     obs_var_name_full_field="data_c",
+    #     model_var_name_block="data_tas_c_min_drift_bc",
+    #     obs_var_name_block="data_c_min",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     ylabel="Temperature (C)",
+    #     suptitle="Temperature trends (block min detrended obs, model lead time detrended)",
+    #     figsize=(15, 5),
+    #     window_size=10,
+    #     centred_bool=True,
+    #     min_periods=1,
+    # )
 
-    # compare trends for the wind data
-    gev_funcs.compare_trends(
-        model_df_full_field=df_model_wind,
-        obs_df_full_field=df_obs_wind,
-        model_df_block=block_minima_model_wind_drift_corr_dt,
-        obs_df_block=block_minima_obs_wind_dt,
-        model_var_name_full_field="data",
-        obs_var_name_full_field="data",
-        model_var_name_block="data_min_drift_bc",
-        obs_var_name_block="data_min",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        ylabel="Wind speed (m/s)",
-        suptitle="Wind speed trends (block min detrended obs, model lead time detrended)",
-        figsize=(15, 5),
-        window_size=10,
-        centred_bool=True,
-        min_periods=1,
-    )
+    # # compare trends for the wind data
+    # gev_funcs.compare_trends(
+    #     model_df_full_field=df_model_wind,
+    #     obs_df_full_field=df_obs_wind,
+    #     model_df_block=block_minima_model_wind_drift_corr_dt,
+    #     obs_df_block=block_minima_obs_wind_dt,
+    #     model_var_name_full_field="data",
+    #     obs_var_name_full_field="data",
+    #     model_var_name_block="data_min_drift_bc",
+    #     obs_var_name_block="data_min",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     ylabel="Wind speed (m/s)",
+    #     suptitle="Wind speed trends (block min detrended obs, model lead time detrended)",
+    #     figsize=(15, 5),
+    #     window_size=10,
+    #     centred_bool=True,
+    #     min_periods=1,
+    # )
 
     # sys.exit()
 
-    # Now plot the lead time dependent biases for the trend corrected data
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_tas_drift_corr_dt,
-        obs_df=block_minima_obs_tas_dt,
-        model_var_name="data_tas_c_min_drift_bc_dt",
-        obs_var_name="data_c_min_dt",
-        lead_name="winter_year",
-        xlabel="Temperature (C)",
-        suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift + trend corrected)",
-        figsize=(10, 5),
-    )
+    # # Now plot the lead time dependent biases for the trend corrected data
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_var_name="data_tas_c_min_drift_bc_dt",
+    #     obs_var_name="data_c_min_dt",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (C)",
+    #     suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift + trend corrected)",
+    #     figsize=(10, 5),
+    # )
 
-    # Plot the lead pdfs for wind speed post drift/bc
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_wind_drift_corr_dt,
-        obs_df=block_minima_obs_wind_dt,
-        model_var_name="data_min_drift_bc_dt",
-        obs_var_name="data_min_dt",
-        lead_name="winter_year",
-        xlabel="Wind speed (m/s)",
-        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift + trend corrected)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs for wind speed post drift/bc
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     obs_df=block_minima_obs_wind_dt,
+    #     model_var_name="data_min_drift_bc_dt",
+    #     obs_var_name="data_min_dt",
+    #     lead_name="winter_year",
+    #     xlabel="Wind speed (m/s)",
+    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift + trend corrected)",
+    #     figsize=(10, 5),
+    # )
 
     # sys.exit()
 
@@ -1403,23 +1803,23 @@ def main():
     #     columns={"data_tas_c_min_dt_bc": "data_tas_c_min_bc_dt"}, inplace=True
     # )
 
-    # plot the plots
-    gev_funcs.plot_detrend_ts_subplots(
-        obs_df_left=block_minima_obs_tas_dt,
-        model_df_left=block_minima_model_tas_drift_corr_dt,
-        obs_df_right=block_minima_obs_wind_dt,
-        model_df_right=block_minima_model_wind_drift_corr_dt,
-        obs_var_name_left="data_c_min",
-        model_var_name_left="data_tas_c_min_drift_bc",
-        obs_var_name_right="data_min",
-        model_var_name_right="data_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel_left="Temperature (C)",
-        ylabel_right="Wind speed (m/s)",
-        detrend_suffix_left="_dt",
-        detrend_suffix_right="_dt",
-    )
+    # # plot the plots
+    # gev_funcs.plot_detrend_ts_subplots(
+    #     obs_df_left=block_minima_obs_tas_dt,
+    #     model_df_left=block_minima_model_tas_drift_corr_dt,
+    #     obs_df_right=block_minima_obs_wind_dt,
+    #     model_df_right=block_minima_model_wind_drift_corr_dt,
+    #     obs_var_name_left="data_c_min",
+    #     model_var_name_left="data_tas_c_min_drift_bc",
+    #     obs_var_name_right="data_min",
+    #     model_var_name_right="data_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel_left="Temperature (C)",
+    #     ylabel_right="Wind speed (m/s)",
+    #     detrend_suffix_left="_dt",
+    #     detrend_suffix_right="_dt",
+    # )
 
     # sys.exit()
 
@@ -1449,29 +1849,134 @@ def main():
     # Set this as the index in the obs wind data
     block_minima_obs_wind_dt.set_index("effective_dec_year", inplace=True)
 
-    # Now test plotting the dot plots for temp and wind speed
-    gev_funcs.dot_plot_subplots(
-        obs_df_left=block_minima_obs_tas_dt,
-        model_df_left=block_minima_model_tas_drift_corr_dt,
-        obs_df_right=block_minima_obs_wind_dt,
-        model_df_right=block_minima_model_wind_drift_corr_dt,
-        obs_val_name_left="data_c_min_dt",
-        model_val_name_left="data_tas_c_min_drift_bc_dt",
-        obs_val_name_right="data_min_dt",
-        model_val_name_right="data_min_drift_bc_dt",
+    # # Now test plotting the dot plots for temp and wind speed
+    # gev_funcs.dot_plot_subplots(
+    #     obs_df_left=block_minima_obs_tas_dt,
+    #     model_df_left=block_minima_model_tas_drift_corr_dt,
+    #     obs_df_right=block_minima_obs_wind_dt,
+    #     model_df_right=block_minima_model_wind_drift_corr_dt,
+    #     obs_val_name_left="data_c_min_dt",
+    #     model_val_name_left="data_tas_c_min_drift_bc_dt",
+    #     obs_val_name_right="data_min_dt",
+    #     model_val_name_right="data_min_drift_bc_dt",
+    #     model_time_name="effective_dec_year",
+    #     ylabel_left="Temperature (°C)",
+    #     ylabel_right="Wind speed (m/s)",
+    #     title_left="Block minima temperature (°C)",
+    #     title_right="Block minima wind speed (m/s)",
+    #     ylims_left=(-12, 8),
+    #     ylims_right=(0, 8),
+    #     dashed_quant=0.20,
+    #     solid_line=np.min,
+    #     figsize=(10, 5),
+    # )
+
+    # reset the index of the obs data
+    block_minima_obs_tas_dt.reset_index(inplace=True)
+    # reset the index of the obs data
+    block_minima_obs_wind_dt.reset_index(inplace=True)
+
+    # test the return period extremes function
+    # For temperature extremes first
+    # plot_rp_extremes(
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_val_name="data_c_min_dt",
+    #     model_val_name="data_tas_c_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylim=(-9, -2.5),
+    #     percentile=0.01,
+    #     n_samples=10000,
+    #     high_values_rare=False,
+    # )
+
+    # test the new function doing the same
+    # thing but using GEVs
+    plot_gev_rps(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
+        obs_val_name="data_c_min_dt",
+        model_val_name="data_tas_c_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
-        ylabel_left="Temperature (°C)",
-        ylabel_right="Wind speed (m/s)",
-        title_left="Block minima temperature (°C)",
-        title_right="Block minima wind speed (m/s)",
-        ylims_left=(-12, 8),
-        ylims_right=(0, 8),
-        dashed_quant=0.20,
-        solid_line=np.min,
-        figsize=(10, 5),
+        ylabel="Temperature (°C)",
+        nsamples=1000,
+        ylims=(-9, -2.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
     )
 
-    # sys.exit()
+    # test the funcion for doing the same thing
+    # plot_emp_rps(
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_val_name="data_c_min_dt",
+    #     model_val_name="data_tas_c_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Temperature (°C)",
+    #     nsamples=1000,
+    #     ylims=(-9, -2.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
+
+    # do thye same thing fo wind speed
+    plot_gev_rps(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_val_name="data_min_dt",
+        model_val_name="data_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Wind speed (m/s)",
+        nsamples=1000,
+        ylims=(2, 3.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
+
+    # print how long the script took
+    print(f"Script took {time.time() - start_time:.2f} seconds")
+    print("Script complete!")
+
+    sys.exit()
+
+    # test the same function for temperature
+    plot_emp_rps(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_val_name="data_min_dt",
+        model_val_name="data_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Wind speed (m/s)",
+        nsamples=10000,
+        ylims=(2, 3.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
+
+    # do the same for the wind speed extremes
+    plot_rp_extremes(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_val_name="data_min_dt",
+        model_val_name="data_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylim=(2, 3.5),
+        percentile=0.01,
+        n_samples=10000,
+        high_values_rare=False,
+    )
+
+
 
     # ---------------------------------------
     # Now process the GEV params for both temp and wind speed
@@ -1849,10 +2354,6 @@ def main():
     block_minima_model_tas_dt_bc["effective_dec_year"] = block_minima_model_tas_dt_bc[
         "effective_dec_year"
     ].dt.year.astype(int)
-
-    # print how long the script took
-    print(f"Script took {time.time() - start_time:.2f} seconds")
-    print("Script complete!")
 
 
 # If name is main

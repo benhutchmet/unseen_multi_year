@@ -104,7 +104,7 @@ def download_ERA5_to_jasmin(
     #print(str(MONTH))
     y = str(year)
 
-    target = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/ERA5_EU_85000_zg_T_U_V' + str(y) + '_' + str(m) + '.nc'
+    target = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/ERA5_EU_T_U10_V10_msl' + str(y) + '_' + str(m) + '.nc'
 
     # if the file already exists, skip
     if os.path.exists(target):
@@ -113,17 +113,31 @@ def download_ERA5_to_jasmin(
 
     client = cdsapi.Client()
 
-    dataset = 'reanalysis-era5-pressure-levels' # On pressure levels
+    dataset = "reanalysis-era5-single-levels"
     request = {
-        'product_type': ['reanalysis'],
-        'variable': ['geopotential','temperature','u_component_of_wind','v_component_of_wind'],
-        'year': [y],
-        'month': [m],
-        'day': days,
-        'area': [72,-40,34,35], # N/W/S/E
-        'time': ['00:00','01:00','02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'],
-        'pressure_level': ['850'],
-        'data_format': 'netcdf',
+        "product_type": ["reanalysis"],
+        "variable": [
+            "10m_u_component_of_wind",
+            "10m_v_component_of_wind",
+            "2m_temperature",
+            "mean_sea_level_pressure"
+        ],
+        "year": [y],
+        "month": [m],
+        "day": days,
+        "time": [
+            "00:00", "01:00", "02:00",
+            "03:00", "04:00", "05:00",
+            "06:00", "07:00", "08:00",
+            "09:00", "10:00", "11:00",
+            "12:00", "13:00", "14:00",
+            "15:00", "16:00", "17:00",
+            "18:00", "19:00", "20:00",
+            "21:00", "22:00", "23:00"
+        ],
+        "data_format": "netcdf",
+        "download_format": "unarchived",
+        "area": [72, -40, 34, 35]
     }
     
     client.retrieve(dataset, request, target)

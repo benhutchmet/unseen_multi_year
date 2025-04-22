@@ -25,10 +25,7 @@ module load jaspy
 source activate bens-conda-env2
 
 # Set up the months
-months=()
-for i in {1..12}; do
-  months+=("$i")
-done
+months=(1 2 12)
 
 # Set up the year
 year=$1
