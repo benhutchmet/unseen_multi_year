@@ -41,7 +41,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot
+# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -922,6 +922,66 @@ def main():
         dashed_quant=0.80,
         solid_line=np.max,
         figsize=(10, 5),
+    )
+
+    # reset the index of the obs data
+    block_max_obs_dnw.reset_index(inplace=True)
+    
+    # # plot the return period plots here
+    # # first the empirical return periods
+    # plot_emp_rps(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     obs_val_name="demand_net_wind_max",
+    #     model_val_name="demand_net_wind_bc_max_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Demand net wind (GW)",
+    #     nsamples=1000,
+    #     ylims=(43, 52),
+    #     blue_line=np.max,
+    #     high_values_rare=True,
+    #     figsize=(5, 5),
+    # )
+
+    # # plot the GEV fitted return periods
+    # plot_gev_rps(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     obs_val_name="demand_net_wind_max",
+    #     model_val_name="demand_net_wind_bc_max_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Demand net wind (GW)",
+    #     nsamples=1000,
+    #     ylims=(43, 52),
+    #     blue_line=np.max,
+    #     high_values_rare=True,
+    #     figsize=(5, 5),
+    # )
+
+    # ensure the effective dec year is a datetime and is just the year in the
+    # model
+    block_max_model_dnw["effective_dec_year"] = pd.to_datetime(
+        block_max_model_dnw["effective_dec_year"], format="%Y"
+    )
+
+    # convert this to an int
+    block_max_model_dnw["effective_dec_year"] = block_max_model_dnw[
+        "effective_dec_year"
+    ].dt.year.astype(int)
+
+    # plot the return periods over decades
+    gev_funcs.plot_return_periods_decades(
+        model_df=block_max_model_dnw,
+        model_var_name="demand_net_wind_bc_max_bc",
+        obs_df=block_max_obs_dnw,
+        obs_var_name="demand_net_wind_max",
+        decades=np.arange(1960, 2020, 10),
+        title="Block maxima demand net wind (GW) decadal RPs",
+        num_samples=1000,
+        figsize=(10, 5),
+        bad_min=False,
     )
 
     # set up a fname for the obs dnw df

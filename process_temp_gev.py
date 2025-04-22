@@ -1893,20 +1893,20 @@ def main():
 
     # test the new function doing the same
     # thing but using GEVs
-    plot_gev_rps(
-        obs_df=block_minima_obs_tas_dt,
-        model_df=block_minima_model_tas_drift_corr_dt,
-        obs_val_name="data_c_min_dt",
-        model_val_name="data_tas_c_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Temperature (°C)",
-        nsamples=1000,
-        ylims=(-9, -2.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
-    )
+    # plot_gev_rps(
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_val_name="data_c_min_dt",
+    #     model_val_name="data_tas_c_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Temperature (°C)",
+    #     nsamples=1000,
+    #     ylims=(-9, -2.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
 
     # test the funcion for doing the same thing
     # plot_emp_rps(
@@ -1924,25 +1924,72 @@ def main():
     #     figsize=(5, 5),
     # )
 
-    # do thye same thing fo wind speed
-    plot_gev_rps(
-        obs_df=block_minima_obs_wind_dt,
-        model_df=block_minima_model_wind_drift_corr_dt,
-        obs_val_name="data_min_dt",
-        model_val_name="data_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Wind speed (m/s)",
-        nsamples=1000,
-        ylims=(2, 3.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
+    # # do thye same thing fo wind speed
+    # plot_gev_rps(
+    #     obs_df=block_minima_obs_wind_dt,
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     obs_val_name="data_min_dt",
+    #     model_val_name="data_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Wind speed (m/s)",
+    #     nsamples=1000,
+    #     ylims=(2, 3.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
+
+    # make sure that effective dec year is a datetime year
+    block_minima_model_tas_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
+        block_minima_model_tas_drift_corr_dt["effective_dec_year"], format="%Y"
     )
+
+    # format effective dec year as an int
+    block_minima_model_tas_drift_corr_dt["effective_dec_year"] = block_minima_model_tas_drift_corr_dt[
+        "effective_dec_year"
+    ].dt.year.astype(int)
+
+    # do the same conversion for wind speed
+    block_minima_model_wind_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
+        block_minima_model_wind_drift_corr_dt["effective_dec_year"], format="%Y"
+    )
+
+    # format effective dec year as an int
+    block_minima_model_wind_drift_corr_dt["effective_dec_year"] = block_minima_model_wind_drift_corr_dt[
+        "effective_dec_year"
+    ].dt.year.astype(int)
+
+    # # plot the return periods by decade for wind speed
+    gev_funcs.plot_return_periods_decades(
+        model_df=block_minima_model_wind_drift_corr_dt,
+        model_var_name="data_min_drift_bc_dt",
+        obs_df=block_minima_obs_wind_dt,
+        obs_var_name="data_min_dt",
+        decades=np.arange(1960, 2020, 10),
+        title="Wind speed (m/s)",
+        num_samples=1000,
+        figsize=(10, 5),
+        bad_min=True,
+    )
+
+    # plot the return periods by decade for temperature
+    # gev_funcs.plot_return_periods_decades(
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     model_var_name="data_tas_c_min_drift_bc_dt",
+    #     obs_df=block_minima_obs_tas_dt,
+    #     obs_var_name="data_c_min_dt",
+    #     decades=np.arange(1960, 2020, 10),
+    #     title="Temperature (°C)",
+    #     num_samples=1000,
+    #     figsize=(10, 5),
+    #     bad_min=True,
+    # )
 
     # print how long the script took
     print(f"Script took {time.time() - start_time:.2f} seconds")
     print("Script complete!")
+
 
     sys.exit()
 
