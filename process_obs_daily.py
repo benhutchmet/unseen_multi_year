@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+#%%
 """
 process_daily_unseen.py
 =======================
@@ -34,6 +34,7 @@ import os
 import sys
 import time
 import argparse
+import iris.coord_categorisation
 
 # Third-party imports
 import numpy as np
@@ -43,9 +44,11 @@ import pandas as pd
 import shapely.geometry
 import cartopy.io.shapereader as shpreader
 import iris
+import cftime
 
 # Specific imports
 from tqdm import tqdm
+from iris.util import unify_time_units, equalise_attributes, describe_diff, equalise_cubes
 from datetime import datetime, timedelta
 
 # load the dictionaries
@@ -55,6 +58,7 @@ import dictionaries as dic
 sys.path.append("/home/users/benhutch/unseen_functions")
 from functions import create_masked_matrix
 from unseen_analogs_functions import regrid_obs_to_model
+from ncdata.iris_xarray import cubes_from_xarray, cubes_to_xarray
     
 # Define the main function
 def main():
@@ -73,8 +77,16 @@ def main():
     parser.add_argument("--variable", type=str, help="Variable name (e.g. tas, pr, psl)")
     parser.add_argument("--country", type=str, help="Country name (e.g. United Kingdom, France, Germany)")
 
-    # Parse the arguments
-    args = parser.parse_args()
+    # Check if running in IPython
+    if "ipykernel_launcher" in sys.argv[0]:
+        # Manually set arguments for IPython
+        args = parser.parse_args(["--variable", "sfcWind", "--country", "UK"])
+    else:
+        # Parse arguments normally
+        args = parser.parse_args()
+
+    # # Parse the arguments
+    # args = parser.parse_args()
 
     # if country contains a _
     # e.g. United_Kingdom
@@ -110,6 +122,83 @@ def main():
     # Set up the path to the observed data
     base_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/"
 
+    # Set up the remaining years
+    remaining_years = [str(year) for year in range(2021, 2025 + 1)]
+
+    # Set up the path to the observed data
+    remaining_files_dir = os.path.join(base_path, "year_month")
+
+    # Set up an empty cubelist
+    obs_cubelist_first = []
+    obs_cubelist_u10 = []
+    obs_cubelist_v10 = []
+
+    # Loop over the remaining years
+    for year in tqdm(remaining_years):
+        for month in ["01", "02", "12"]:
+            # if the year is 2025 and the month is 12, then skip
+            if year == "2025" and month == "12":
+                continue
+            
+            # Set up the fname this
+            fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}_daymean.nc"
+
+            # if the variable is tas
+            if args.variable == "tas":
+                # Set up the path to the observed data
+                obs_path_this = os.path.join(remaining_files_dir, fname_this)
+
+                # Load the observed data
+                obs_cube_this = iris.load_cube(obs_path_this, "t2m")
+
+                # Append to the cubelist
+                obs_cubelist_first.append(obs_cube_this)
+            elif args.variable == "sfcWind":
+                # Set up the path to the observed data
+                obs_path_this = os.path.join(remaining_files_dir, fname_this)
+
+                # Load the observed data
+                obs_cube_u10 = iris.load_cube(obs_path_this, "u10")
+                obs_cube_v10 = iris.load_cube(obs_path_this, "v10")
+
+                # Append to the cubelist
+                obs_cubelist_u10.append(obs_cube_u10)
+                obs_cubelist_v10.append(obs_cube_v10)
+
+    # convert the list to a cube list
+    obs_cubelist_first = iris.cube.CubeList(obs_cubelist_first)
+    obs_cubelist_u10 = iris.cube.CubeList(obs_cubelist_u10)
+    obs_cubelist_v10 = iris.cube.CubeList(obs_cubelist_v10)
+
+    # Concatenate the cubelist
+    if args.variable == "tas":
+        print("obs cubelist:", obs_cubelist_first)
+
+        removed_attrs = equalise_attributes(obs_cubelist_first)
+
+        obs_cube = obs_cubelist_first.concatenate_cube()
+    elif args.variable == "sfcWind":
+        # removed the attributes
+        removed_attrs_u10 = equalise_attributes(obs_cubelist_u10)
+        removed_attrs_v10 = equalise_attributes(obs_cubelist_v10)
+
+        obs_cube_u10 = obs_cubelist_u10.concatenate_cube()
+        obs_cube_v10 = obs_cubelist_v10.concatenate_cube()
+
+        # Calculate the wind speed from the data
+        # Calculate wind speed
+        windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
+        windspeed_10m.rename("si10")
+
+        # rename as obs cube
+        obs_cube = windspeed_10m
+
+    # print the obs cube
+    print(obs_cube)
+
+    # Re assign the variable
+    obs_cube_recent = obs_cube
+
     # if the variable is tas
     if args.variable == "tas":
         obs_path = os.path.join(base_path, "ERA5_t2m_daily_1950_2020.nc")
@@ -137,9 +226,9 @@ def main():
     # load the model cube test (for regridding)
     model_cube_test = iris.load_cube(test_file_path)
 
-    # constrain to the relevant years
+    # # constrain to the relevant years
     obs_cube_test = obs_cube_test.extract(
-        iris.Constraint(time=lambda cell: 1960 <= cell.point.year <= 2018)
+        iris.Constraint(time=lambda cell: 1960 <= cell.point.year)
     )
 
     # # perform the intersection
@@ -153,7 +242,7 @@ def main():
     # print(model_cube_test)
 
     # # Select the first member and time from the model cube
-    # model_cube_regrid = model_cube_test[0, :, :]
+    model_cube_regrid = model_cube_test[0, :, :]
 
     # ensure that hadgem is in -180 to 180
     model_cube_test = model_cube_test.intersection(longitude=(-180, 180), latitude=(0, 90))
@@ -172,6 +261,12 @@ def main():
         latitude=(eu_grid["lat1"], eu_grid["lat2"]),
     )
 
+    # subset the recent obs data to the EU grid
+    obs_cube_recent = obs_cube_recent.intersection(
+        longitude=(eu_grid["lon1"], eu_grid["lon2"]),
+        latitude=(eu_grid["lat1"], eu_grid["lat2"]),
+    )
+
     # subset the HadGEM data to the EU grid
     model_cube_test = model_cube_test.intersection(
         longitude=(eu_grid["lon1"], eu_grid["lon2"]),
@@ -182,14 +277,221 @@ def main():
     # print("Model cube regrid dimensions:")
     # print(model_cube_regrid)
 
-    # model_cube_regrid.coord("latitude").units = obs_cube_test[0].coord("latitude").units
-    # model_cube_regrid.coord("longitude").units = obs_cube_test[0].coord("longitude").units
+    model_cube_regrid.coord("latitude").units = obs_cube_test[0].coord("latitude").units
+    model_cube_regrid.coord("longitude").units = obs_cube_test[0].coord("longitude").units
 
-    # # and for the attributes
-    # model_cube_regrid.coord("latitude").attributes = obs_cube_test[0].coord("latitude").attributes
-    # model_cube_regrid.coord("longitude").attributes = obs_cube_test[0].coord("longitude").attributes
+    # and for the attributes
+    model_cube_regrid.coord("latitude").attributes = obs_cube_test[0].coord("latitude").attributes
+    model_cube_regrid.coord("longitude").attributes = obs_cube_test[0].coord("longitude").attributes
 
-    obs_cube_regrid = obs_cube_test.regrid(model_cube_test, iris.analysis.Linear())
+    # regrid the obs cube test
+    obs_cube_test_regrid = obs_cube_test.regrid(model_cube_test, iris.analysis.Linear())
+
+
+    # regrid the recent period obs cube to the model cube
+    obs_cube_recent_regrid = obs_cube_recent.regrid(model_cube_test, iris.analysis.Linear())
+
+    # print the obs cube regrid
+    print("Obs cube recent regrid dimensions:")
+    print(obs_cube_recent_regrid)
+
+    # print the obs cube test regrid
+    print("Obs cube test regrid dimensions:")
+    print(obs_cube_test_regrid)
+
+    # print the time units of obs cube test regrid
+    print("Obs cube test regrid time units:")
+    print(obs_cube_test_regrid.coord("time").units)
+
+    # print the time units of obs cube recent regrid
+    print("Obs cube recent regrid time units:")
+    print(obs_cube_recent_regrid.coord("time").units)
+
+    # create a cubelist
+    obs_cubelist = iris.cube.CubeList([obs_cube_test_regrid, obs_cube_recent_regrid])
+
+    # unify the time unites
+    unify_time_units(obs_cubelist)
+
+    # print the time units of obs cube test regrid
+    print("Obs cubelist time units:")
+    print(obs_cubelist[0].coord("time").units)
+
+    # print the obs cubelist time units [1]
+    print("Obs cubelist time units [1]:")
+    print(obs_cubelist[1].coord("time").units)
+
+    # print the first time value in the obs cubelist [0]
+    print("First time value in obs cubelist [0]:")
+    print(obs_cubelist[0].coord("time").points[0])
+
+    # print the final time value in the obs cubelist [0]
+    print("Final time value in obs cubelist [0]:")
+    print(obs_cubelist[0].coord("time").points[-1])
+
+    # print the first time value in the obs cubelist [1]
+    print("First time value in obs cubelist [1]:")
+    print(obs_cubelist[1].coord("time").points[0])
+
+    # print the final time value in the obs cubelist [1]
+    print("Final time value in obs cubelist [1]:")
+    print(obs_cubelist[1].coord("time").points[-1])
+
+    # extract the times from the first cube
+    times_long = obs_cubelist[0].coord("time").points
+    times_short = obs_cubelist[1].coord("time").points
+
+    # convert from days since 1952-01-01 00:00:00 to datetime
+    times_long_dt = cftime.num2date(times_long, obs_cubelist[0].coord("time").units.origin)
+    times_short_dt = cftime.num2date(times_short, obs_cubelist[1].coord("time").units.origin)
+
+    # print the first time value in the obs cubelist [0]
+    print("First time value in obs cubelist [0]:")
+    print(times_long_dt[0])
+    # print the final time value in the obs cubelist [0]
+    print("Final time value in obs cubelist [0]:")
+    print(times_long_dt[-1])
+
+    # print the first time value in the obs cubelist [1]
+    print("First time value in obs cubelist [1]:")
+    print(times_short_dt[0])
+    # print the final time value in the obs cubelist [1]
+    print("Final time value in obs cubelist [1]:")
+    print(times_short_dt[-1])
+
+    # print the obs cube list
+    print("Obs cubelist dimensions:")
+    print(obs_cubelist)
+
+    # print the first obs cube
+    print("First obs cube dimensions:")
+    print(obs_cubelist[0])
+
+    # print the second obs cube
+    print("Second obs cube dimensions:")
+    print(obs_cubelist[1])
+
+    # print the metadata for time for the first obs cube
+    print("Metadata for time for the first obs cube:"
+            f"\n{obs_cubelist[0].coord('time').units}")
+    # print the metadata for time for the second obs cube
+    print("Metadata for time for the second obs cube:"
+            f"\n{obs_cubelist[1].coord('time').units}")
+
+    # remove problematic attributes
+    removed_attrs = equalise_attributes(obs_cubelist)
+
+    # unify the time units
+    unify_time_units(obs_cubelist)
+
+    # loop over the cubes and print the units
+    for cube in obs_cubelist:
+        print("Cube units:")
+        print(cube.units)
+
+        # set the units as m.s-1
+        cube.units = "m.s-1"
+
+    # loop over the cubes and print the units
+    for cube in obs_cubelist:
+        print("Cube units:")
+        print(cube.units)
+
+    # loop over the cube and print the time attributes
+    for cube in obs_cubelist:
+        print("Cube time attributes:")
+        print(cube.coord("time").var_name)
+
+        # if var_name is not time, set it to time
+        if cube.coord("time").var_name != "time":
+            cube.coord("time").var_name = "time"
+
+    # Align the time coordinate points
+    for cube in obs_cubelist:
+        time_coord = cube.coord("time")
+        
+        # Convert time points to a consistent format (e.g., midnight)
+        new_time_points = np.floor(time_coord.points)  # Round down to the nearest day
+        time_coord.points = new_time_points
+
+        # Remove bounds to avoid mismatches
+        if time_coord.has_bounds():
+            time_coord.bounds = None
+
+    # loop over the cube
+    for cube in obs_cubelist:
+        # print the time attributes
+        print("Cube time attributes:")
+        print(cube.coord("time"))
+        # print(cube.coord("latitude"))
+        # print(cube.coord("longitude"))
+
+    # eqaulise the attributes
+    more_removed_attrs = equalise_attributes(obs_cubelist)
+
+    equalise_cubes(obs_cubelist, apply_all=True)
+
+    # describe the difference between the two cubes
+    describe_diff(obs_cubelist[0], obs_cubelist[1])
+
+    # loop over the cubes
+    for cube in obs_cubelist:
+        if cube.long_name != None:
+            # set the long name to the variable name
+            cube.long_name = None
+        elif cube.standard_name != None:
+            # set the standard name to the variable name
+            cube.standard_name = None
+        elif cube.var_name != None:
+            # set the variable name to the variable name
+            cube.var_name = None
+        else:
+            print("No long name, standard name or variable name found.")
+
+    # print the cube long name
+    print("Cube long name:")
+    print(obs_cubelist[0].long_name)
+    # print the cube standard name
+    print("Cube standard name:")
+    print(obs_cubelist[0].standard_name)
+    # print the cube variable name
+    print("Cube variable name:")
+    print(obs_cubelist[0].var_name)
+    # do the same for cube 1
+    print("Cube long name:")
+    print(obs_cubelist[1].long_name)
+    # print the cube standard name
+    print("Cube standard name:")
+    print(obs_cubelist[1].standard_name)
+    # print the cube variable name
+    print("Cube variable name:")
+    print(obs_cubelist[1].var_name)
+
+    # concatenate the cubelist
+    test = obs_cubelist.concatenate_cube()
+
+    # print the obs cube regrid
+    print("Obs cube regrid dimensions:")
+    print(test)
+
+    # print the time taken
+    print("Time taken to load the data: ", time.time() - start_time)
+
+    sys.exit()
+
+    # extract the times
+    times = obs_cube_regrid.coord("time").points
+
+    # convert to dt
+    times_dt = cftime.num2date(times, obs_cube_regrid.coord("time").units.origin)
+
+    # print the first time value in the obs cube regrid
+    print("First time value in obs cube regrid:")
+    print(times_dt[0])
+
+    # print the final time value in the obs cube regrid
+    print("Final time value in obs cube regrid:")
+    print(times_dt[-1])
 
     # longitude : -45 to 40.219 by 0.2812508 degrees_east
     #  latitude : 89.78487 to 29.92973 by -0.2810101 degrees_north
@@ -301,3 +603,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# %%
