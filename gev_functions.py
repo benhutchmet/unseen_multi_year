@@ -3447,11 +3447,20 @@ def plot_return_periods_decades(
             obs_df[obs_var_name].idxmax()
         ]
 
+        # # # bad year is the 95th percentile of the obs data
+        # # bad_year = np.percentile(
+        # #     obs_df[obs_var_name],
+        # #     95,
+        # # )
+
+        # bad_year = 47.2775813456939
+
+
     # Print the bad year
     print(f"Bad year: {bad_year}")
 
     # print the value on this bad year
-    print(f"Value: {bad_year[obs_var_name]}")
+    print(f"Value: {bad_year}")
 
     # Set up the params for the decade
     decade_params = np.zeros([

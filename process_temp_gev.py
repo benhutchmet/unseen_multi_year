@@ -39,7 +39,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-from process_dnw_gev import select_leads_wyears_DJF
+# from process_dnw_gev import select_leads_wyears_DJF
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -293,6 +293,11 @@ def plot_gev_rps(
     model_gev_params = []
     obs_gev_params = []
 
+    # Set up the model gev params first
+    model_gev_params_first = gev.fit(
+        model_df[model_val_name].values,
+    )
+
     # Loop over the samples
     for i in tqdm(
         range(nsamples)
@@ -357,6 +362,24 @@ def plot_gev_rps(
                 )
             )
         )
+
+    # generate the return levels from this
+    model_gev_rls_first = np.array(
+        gev.ppf(
+            years_ppf,
+            *model_gev_params_first,
+        )
+    )
+
+    # Calculate the probability for a 1-in-100-year return period
+    return_period = 100
+    probability = 1 - 1 / return_period if high_values_rare else 1 / return_period
+
+    # Calculate the value for the 1-in-100-year return period using the first model GEV parameters
+    value_1_in_100 = gev.ppf(probability, *model_gev_params_first)
+
+    # Print the value
+    print(f"The value corresponding to a 1-in-100-year return period is: {value_1_in_100}")
 
     # Convert the probs to return years
     return_years = 1 / (probs / 100)

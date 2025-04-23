@@ -41,7 +41,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -978,7 +978,7 @@ def main():
         obs_df=block_max_obs_dnw,
         obs_var_name="demand_net_wind_max",
         decades=np.arange(1960, 2020, 10),
-        title="Block maxima demand net wind (GW) decadal RPs",
+        title="Return period of 1 in 100-year event",
         num_samples=1000,
         figsize=(10, 5),
         bad_min=False,
