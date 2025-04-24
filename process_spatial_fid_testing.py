@@ -208,11 +208,18 @@ def main():
     else:
         raise ValueError("Region not recognised")
 
+    # set up the current time
+    current_time = datetime.now()
+
+    # format the current time
+    # as YYYYMMDD_HHMMSS
+    current_time = current_time.strftime("%Y%m%d_%H%M%S")
+
     # set up the array fnames
     obs_array_fname = (
-        f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day.npy"
+        f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_day_{current_time}.npy"
     )
-    model_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}.npy"
+    model_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_{current_time}.npy"
 
     # form the directory
     obs_dir = os.path.join(output_dir, "obs")
@@ -591,13 +598,15 @@ def main():
     # print the time coordinates of the obs cube full
     print(obs_cube_full.coord("time"))
 
-    # print the time taken
-    print("=================================")
-    print("Time taken to load the data:")
-    print(f"{time.time() - start_time} seconds")
-    print("=================================")
+    # # print the time taken
+    # print("=================================")
+    # print("Time taken to load the data:")
+    # print(f"{time.time() - start_time} seconds")
+    # print("=================================")
 
-    sys.exit()
+    # sys.exit()
+
+    obs_data = obs_cube_full
 
     # Constrain the obs to the winter
     # FIXME: hardcoded as DJF for now
@@ -613,7 +622,7 @@ def main():
     lats_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lats.npy"
     lons_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lons.npy"
     members = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_members.npy"
-    obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_times.npy"
+    obs_times = f"ERA5_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_times_{current_time}.npy"
 
     # Set up the paths for the lats and lons
     lats_array_path = os.path.join(meta_dir, lats_array_fname)
@@ -625,36 +634,36 @@ def main():
     # # Set up the path for the obs times
     obs_times_path = os.path.join(meta_dir, obs_times)
 
-    # # if the lats array already exists, exit with an error
-    # if os.path.exists(lats_array_path):
-    #     print(f"{lats_array_path} already exists")
-    # else:
-    #     # save the lats array
-    #     np.save(lats_array_path, model_cube_box.coord("latitude").points)
+    # if the lats array already exists, exit with an error
+    if os.path.exists(lats_array_path):
+        print(f"{lats_array_path} already exists")
+    else:
+        # save the lats array
+        np.save(lats_array_path, model_cube_box.coord("latitude").points)
 
-    # # if the lons array already exists, exit with an error
-    # if os.path.exists(lons_array_path):
-    #     print(f"{lons_array_path} already exists")
-    # else:
-    #     # save the lons array
-    #     np.save(lons_array_path, model_cube_box.coord("longitude").points)
+    # if the lons array already exists, exit with an error
+    if os.path.exists(lons_array_path):
+        print(f"{lons_array_path} already exists")
+    else:
+        # save the lons array
+        np.save(lons_array_path, model_cube_box.coord("longitude").points)
 
-    # # if the members array already exists, exit with an error
-    # if os.path.exists(members_path):
-    #     print(f"{members_path} already exists")
-    # else:
-    #     # save the members array
-    #     np.save(members_path, members_list)
+    # if the members array already exists, exit with an error
+    if os.path.exists(members_path):
+        print(f"{members_path} already exists")
+    else:
+        # save the members array
+        np.save(members_path, members_list)
 
     # # if the obs times array already exists, exit with an error
     if os.path.exists(obs_times_path):
         print(f"{obs_times_path} already exists")
     else:
         # save the obs times array
-        np.save(obs_times_path, obs_data_box_regrid.coord("time").points)
+        np.save(obs_times_path, obs_data.coord("time").points)
 
     # # Set up the obs data array
-    obs_data_array = obs_data_box_regrid.data
+    obs_data_array = obs_data.data
     obs_data_array = obs_data_array.filled(np.nan)
 
     # Set up the model data array

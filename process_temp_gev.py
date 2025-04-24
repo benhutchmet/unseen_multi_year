@@ -39,11 +39,11 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import select_leads_wyears_DJF
+from process_dnw_gev import select_leads_wyears_DJF
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
-from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_level
+# from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_level
 
 # Silence warnings
 warnings.filterwarnings("ignore")
@@ -1179,7 +1179,7 @@ def main():
 
     # Load the observed data
     df_obs_tas = pd.read_csv(
-        os.path.join(dfs_dir, "ERA5_tas_United_Kingdom_1960-2018_daily_2024-11-26.csv")
+        os.path.join(dfs_dir, "ERA5_tas_United_Kingdom_1960-2025_daily_2025-04-24.csv")
     )
 
     # # Ste up the path to the test data
@@ -1278,7 +1278,7 @@ def main():
     )
 
     # Set up the path to the obs data
-    obs_wind_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/ERA5_sfcWind_UK_wind_box_1960-2018_daily_2025-02-26.csv"
+    obs_wind_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-04-24.csv"
 
     # load the obs data
     df_obs_wind = pd.read_csv(obs_wind_path)
@@ -1354,7 +1354,7 @@ def main():
     # Set up the common winter years
     # NOTE: Exclude 1960 as only 10 members initialised in 1960
     # available for this year
-    common_wyears = np.arange(1961, 2017 + 1)
+    common_wyears = np.arange(1961, 2023 + 1)
 
     # Subset the model data to the common winter years
     df_model_tas_djf = df_model_tas_djf[
@@ -1418,7 +1418,7 @@ def main():
     print(block_minima_obs_tas.tail())
 
     # Set up a fname for the dataframe
-    fname = "block_minima_obs_tas_UK_1960-2017_DJF_2_April.csv"
+    fname = "block_minima_obs_tas_UK_1961-2024_DJF_2_April.csv"
 
     # Set up the dir to save to
     save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
@@ -1462,7 +1462,7 @@ def main():
     # print(block_minima_model_tas["init_year"].unique())
 
     # Set up a fname for the dataframe
-    fname = "block_minima_model_tas_UK_1960-2017_DJF.csv"
+    fname = "block_minima_model_tas_UK_1961-2024_DJF.csv"
 
     # Set up the dir to save to
     save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
@@ -1475,9 +1475,9 @@ def main():
     # sys.exit()
 
     # # Ensure effective dec year is in the block minima model tas
-    # block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
-    #     "init_year"
-    # ] + (block_minima_model_tas["winter_year"] - 1)
+    block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
+        "init_year"
+    ] + (block_minima_model_tas["winter_year"] - 1)
 
     # # print the model df for lead 2
     # print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
@@ -1490,7 +1490,7 @@ def main():
     # # print the unique efefctive dec years
     # print(block_minima_model_tas_winter_2["effective_dec_year"].unique())
 
-    # # Compare the trends
+    # Compare the trends
     # gev_funcs.compare_trends(
     #     model_df_full_field=df_model_tas_djf,
     #     obs_df_full_field=df_obs_tas,
@@ -1545,28 +1545,28 @@ def main():
     ] + (block_minima_model_wind["winter_year"] - 1)
 
     # Plot the lead pdfs
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=block_minima_model_tas,
-    #     obs_df=block_minima_obs_tas,
-    #     model_var_name="data_tas_c_min",
-    #     obs_var_name="data_c_min",
-    #     lead_name="winter_year",
-    #     xlabel="Temperature (C)",
-    #     suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
-    #     figsize=(10, 5),
-    # )
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_tas,
+        obs_df=block_minima_obs_tas,
+        model_var_name="data_tas_c_min",
+        obs_var_name="data_c_min",
+        lead_name="winter_year",
+        xlabel="Temperature (C)",
+        suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+        figsize=(10, 5),
+    )
 
-    # # Plot the lead pdfs for wind speed pre drift/bc
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=block_minima_model_wind,
-    #     obs_df=block_minima_obs_wind,
-    #     model_var_name="data_min",
-    #     obs_var_name="data_min",
-    #     lead_name="winter_year",
-    #     xlabel="Wind speed (m/s)",
-    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
-    #     figsize=(10, 5),
-    # )
+    # Plot the lead pdfs for wind speed pre drift/bc
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_wind,
+        obs_df=block_minima_obs_wind,
+        model_var_name="data_min",
+        obs_var_name="data_min",
+        lead_name="winter_year",
+        xlabel="Wind speed (m/s)",
+        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+        figsize=(10, 5),
+    )
 
     # Plot the lead time depedent drift for the model and the corrected model
     block_minima_model_tas_drift_corr = model_drift_corr_plot(
@@ -1593,28 +1593,28 @@ def main():
     )
 
     # PLOT THE LEAD pdfs post this
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=block_minima_model_tas_drift_corr,
-    #     obs_df=block_minima_obs_tas,
-    #     model_var_name="data_tas_c_min_drift_bc",
-    #     obs_var_name="data_c_min",
-    #     lead_name="winter_year",
-    #     xlabel="Temperature (C)",
-    #     suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift corrected)",
-    #     figsize=(10, 5),
-    # )
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_tas_drift_corr,
+        obs_df=block_minima_obs_tas,
+        model_var_name="data_tas_c_min_drift_bc",
+        obs_var_name="data_c_min",
+        lead_name="winter_year",
+        xlabel="Temperature (C)",
+        suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift corrected)",
+        figsize=(10, 5),
+    )
 
-    # # Plot the lead pdfs for wind speed post drift/bc
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=block_minima_model_wind_drift_corr,
-    #     obs_df=block_minima_obs_wind,
-    #     model_var_name="data_min_drift_bc",
-    #     obs_var_name="data_min",
-    #     lead_name="winter_year",
-    #     xlabel="Wind speed (m/s)",
-    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
-    #     figsize=(10, 5),
-    # )
+    # Plot the lead pdfs for wind speed post drift/bc
+    gev_funcs.plot_lead_pdfs(
+        model_df=block_minima_model_wind_drift_corr,
+        obs_df=block_minima_obs_wind,
+        model_var_name="data_min_drift_bc",
+        obs_var_name="data_min",
+        lead_name="winter_year",
+        xlabel="Wind speed (m/s)",
+        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
+        figsize=(10, 5),
+    )
 
     # sys.exit()
 
@@ -1718,44 +1718,44 @@ def main():
     # )
 
     # Compare the trends with the full field data
-    # gev_funcs.compare_trends(
-    #     model_df_full_field=df_model_tas_djf,
-    #     obs_df_full_field=df_obs_tas,
-    #     model_df_block=block_minima_model_tas_drift_corr_dt,
-    #     obs_df_block=block_minima_obs_tas_dt,
-    #     model_var_name_full_field="data_tas_c",
-    #     obs_var_name_full_field="data_c",
-    #     model_var_name_block="data_tas_c_min_drift_bc",
-    #     obs_var_name_block="data_c_min",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     ylabel="Temperature (C)",
-    #     suptitle="Temperature trends (block min detrended obs, model lead time detrended)",
-    #     figsize=(15, 5),
-    #     window_size=10,
-    #     centred_bool=True,
-    #     min_periods=1,
-    # )
+    gev_funcs.compare_trends(
+        model_df_full_field=df_model_tas_djf,
+        obs_df_full_field=df_obs_tas,
+        model_df_block=block_minima_model_tas_drift_corr_dt,
+        obs_df_block=block_minima_obs_tas_dt,
+        model_var_name_full_field="data_tas_c",
+        obs_var_name_full_field="data_c",
+        model_var_name_block="data_tas_c_min_drift_bc",
+        obs_var_name_block="data_c_min",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        ylabel="Temperature (C)",
+        suptitle="Temperature trends (block min detrended obs, model lead time detrended)",
+        figsize=(15, 5),
+        window_size=10,
+        centred_bool=True,
+        min_periods=1,
+    )
 
     # # compare trends for the wind data
-    # gev_funcs.compare_trends(
-    #     model_df_full_field=df_model_wind,
-    #     obs_df_full_field=df_obs_wind,
-    #     model_df_block=block_minima_model_wind_drift_corr_dt,
-    #     obs_df_block=block_minima_obs_wind_dt,
-    #     model_var_name_full_field="data",
-    #     obs_var_name_full_field="data",
-    #     model_var_name_block="data_min_drift_bc",
-    #     obs_var_name_block="data_min",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     ylabel="Wind speed (m/s)",
-    #     suptitle="Wind speed trends (block min detrended obs, model lead time detrended)",
-    #     figsize=(15, 5),
-    #     window_size=10,
-    #     centred_bool=True,
-    #     min_periods=1,
-    # )
+    gev_funcs.compare_trends(
+        model_df_full_field=df_model_wind,
+        obs_df_full_field=df_obs_wind,
+        model_df_block=block_minima_model_wind_drift_corr_dt,
+        obs_df_block=block_minima_obs_wind_dt,
+        model_var_name_full_field="data",
+        obs_var_name_full_field="data",
+        model_var_name_block="data_min_drift_bc",
+        obs_var_name_block="data_min",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        ylabel="Wind speed (m/s)",
+        suptitle="Wind speed trends (block min detrended obs, model lead time detrended)",
+        figsize=(15, 5),
+        window_size=10,
+        centred_bool=True,
+        min_periods=1,
+    )
 
     # sys.exit()
 
@@ -1827,22 +1827,22 @@ def main():
     # )
 
     # # plot the plots
-    # gev_funcs.plot_detrend_ts_subplots(
-    #     obs_df_left=block_minima_obs_tas_dt,
-    #     model_df_left=block_minima_model_tas_drift_corr_dt,
-    #     obs_df_right=block_minima_obs_wind_dt,
-    #     model_df_right=block_minima_model_wind_drift_corr_dt,
-    #     obs_var_name_left="data_c_min",
-    #     model_var_name_left="data_tas_c_min_drift_bc",
-    #     obs_var_name_right="data_min",
-    #     model_var_name_right="data_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel_left="Temperature (C)",
-    #     ylabel_right="Wind speed (m/s)",
-    #     detrend_suffix_left="_dt",
-    #     detrend_suffix_right="_dt",
-    # )
+    gev_funcs.plot_detrend_ts_subplots(
+        obs_df_left=block_minima_obs_tas_dt,
+        model_df_left=block_minima_model_tas_drift_corr_dt,
+        obs_df_right=block_minima_obs_wind_dt,
+        model_df_right=block_minima_model_wind_drift_corr_dt,
+        obs_var_name_left="data_c_min",
+        model_var_name_left="data_tas_c_min_drift_bc",
+        obs_var_name_right="data_min",
+        model_var_name_right="data_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel_left="Temperature (C)",
+        ylabel_right="Wind speed (m/s)",
+        detrend_suffix_left="_dt",
+        detrend_suffix_right="_dt",
+    )
 
     # sys.exit()
 
@@ -1871,6 +1871,10 @@ def main():
 
     # Set this as the index in the obs wind data
     block_minima_obs_wind_dt.set_index("effective_dec_year", inplace=True)
+    
+    # print the head and tail ofg block minima obs wind dt
+    print(block_minima_obs_wind_dt.head())
+    print(block_minima_obs_wind_dt.tail())
 
     # # Now test plotting the dot plots for temp and wind speed
     # gev_funcs.dot_plot_subplots(
@@ -1893,6 +1897,8 @@ def main():
     #     solid_line=np.min,
     #     figsize=(10, 5),
     # )
+
+    # sys.exit()
 
     # reset the index of the obs data
     block_minima_obs_tas_dt.reset_index(inplace=True)
@@ -1984,25 +1990,25 @@ def main():
     ].dt.year.astype(int)
 
     # # plot the return periods by decade for wind speed
-    gev_funcs.plot_return_periods_decades(
-        model_df=block_minima_model_wind_drift_corr_dt,
-        model_var_name="data_min_drift_bc_dt",
-        obs_df=block_minima_obs_wind_dt,
-        obs_var_name="data_min_dt",
-        decades=np.arange(1960, 2020, 10),
-        title="Wind speed (m/s)",
-        num_samples=1000,
-        figsize=(10, 5),
-        bad_min=True,
-    )
+    # gev_funcs.plot_return_periods_decades(
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     model_var_name="data_min_drift_bc_dt",
+    #     obs_df=block_minima_obs_wind_dt,
+    #     obs_var_name="data_min_dt",
+    #     decades=np.arange(1960, 2030, 10),
+    #     title="Wind speed (m/s)",
+    #     num_samples=1000,
+    #     figsize=(10, 5),
+    #     bad_min=True,
+    # )
 
-    # plot the return periods by decade for temperature
+    # # plot the return periods by decade for temperature
     # gev_funcs.plot_return_periods_decades(
     #     model_df=block_minima_model_tas_drift_corr_dt,
     #     model_var_name="data_tas_c_min_drift_bc_dt",
     #     obs_df=block_minima_obs_tas_dt,
     #     obs_var_name="data_c_min_dt",
-    #     decades=np.arange(1960, 2020, 10),
+    #     decades=np.arange(1960, 2030, 10),
     #     title="Temperature (°C)",
     #     num_samples=1000,
     #     figsize=(10, 5),
@@ -2013,38 +2019,37 @@ def main():
     print(f"Script took {time.time() - start_time:.2f} seconds")
     print("Script complete!")
 
-
-    sys.exit()
+    # sys.exit()
 
     # test the same function for temperature
-    plot_emp_rps(
-        obs_df=block_minima_obs_wind_dt,
-        model_df=block_minima_model_wind_drift_corr_dt,
-        obs_val_name="data_min_dt",
-        model_val_name="data_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Wind speed (m/s)",
-        nsamples=10000,
-        ylims=(2, 3.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
-    )
+    # plot_emp_rps(
+    #     obs_df=block_minima_obs_wind_dt,
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     obs_val_name="data_min_dt",
+    #     model_val_name="data_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Wind speed (m/s)",
+    #     nsamples=10000,
+    #     ylims=(2, 3.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
 
-    # do the same for the wind speed extremes
-    plot_rp_extremes(
-        obs_df=block_minima_obs_wind_dt,
-        model_df=block_minima_model_wind_drift_corr_dt,
-        obs_val_name="data_min_dt",
-        model_val_name="data_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylim=(2, 3.5),
-        percentile=0.01,
-        n_samples=10000,
-        high_values_rare=False,
-    )
+    # # do the same for the wind speed extremes
+    # plot_rp_extremes(
+    #     obs_df=block_minima_obs_wind_dt,
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     obs_val_name="data_min_dt",
+    #     model_val_name="data_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylim=(2, 3.5),
+    #     percentile=0.01,
+    #     n_samples=10000,
+    #     high_values_rare=False,
+    # )
 
 
 
@@ -2063,15 +2068,15 @@ def main():
     #     model_lead_name="winter_year",
     # )
 
-    # set efefctive dec year back as an int in the model data
-    block_minima_model_tas_drift_corr_dt["effective_dec_year"] = block_minima_model_tas_drift_corr_dt[
-        "effective_dec_year"
-    ].dt.year.astype(int)
+    # # set efefctive dec year back as an int in the model data
+    # block_minima_model_tas_drift_corr_dt["effective_dec_year"] = block_minima_model_tas_drift_corr_dt[
+    #     "effective_dec_year"
+    # ].dt.year.astype(int)
 
-    # set effective dec year back as an int in the obs data
-    block_minima_model_wind_drift_corr_dt["effective_dec_year"] = block_minima_model_wind_drift_corr_dt[
-        "effective_dec_year"
-    ].dt.year.astype(int)
+    # # set effective dec year back as an int in the obs data
+    # block_minima_model_wind_drift_corr_dt["effective_dec_year"] = block_minima_model_wind_drift_corr_dt[
+    #     "effective_dec_year"
+    # ].dt.year.astype(int)
 
     # reset the index of the obs
     block_minima_obs_tas_dt.reset_index(inplace=True)

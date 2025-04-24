@@ -9,7 +9,7 @@
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_fid_testing-%A_%a.err
 
 # Set up the usage messages
-usage="Usage: sbatch submit_process_canari.bash <variable> <region> <season> <winter_year> <year>"
+usage="Usage: sbatch /home/users/benhutch/unseen_multi_year/submit_process_fid_testing.bash <variable> <region> <season> <winter_year> <year>"
 
 # Check the number of CLI arguments
 if [ "$#" -ne 5 ]; then
