@@ -58,7 +58,6 @@ import dictionaries as dic
 sys.path.append("/home/users/benhutch/unseen_functions")
 from functions import create_masked_matrix
 from unseen_analogs_functions import regrid_obs_to_model
-from ncdata.iris_xarray import cubes_from_xarray, cubes_to_xarray
     
 # Define the main function
 def main():
@@ -80,7 +79,7 @@ def main():
     # Check if running in IPython
     if "ipykernel_launcher" in sys.argv[0]:
         # Manually set arguments for IPython
-        args = parser.parse_args(["--variable", "sfcWind", "--country", "UK"])
+        args = parser.parse_args(["--variable", "tas", "--country", "United_Kingdom"])
     else:
         # Parse arguments normally
         args = parser.parse_args()
@@ -108,7 +107,7 @@ def main():
     current_day = datetime.now().strftime("%Y-%m-%d")
 
     # Set up the name for the df
-    df_name = f"ERA5_{args.variable}_{country}_1960-2018_daily_{current_day}.csv"
+    df_name = f"ERA5_{args.variable}_{country}_1960-2025_daily_{current_day}.csv"
 
     # print the path to the df
     print(f"Output path: {os.path.join(output_dir_dfs, df_name)}")
@@ -389,8 +388,13 @@ def main():
         print("Cube units:")
         print(cube.units)
 
-        # set the units as m.s-1
-        cube.units = "m.s-1"
+        # if the variable is sfcWind
+        if args.variable == "sfcWind":
+            # set the units to m.s-1
+            cube.units = "m.s-1"
+        else:
+            # set the units to K
+            cube.units = "K"
 
     # loop over the cubes and print the units
     for cube in obs_cubelist:
@@ -425,6 +429,11 @@ def main():
         print(cube.coord("time"))
         # print(cube.coord("latitude"))
         # print(cube.coord("longitude"))
+
+    # Make sure the cell methods are empty
+    for cube in obs_cubelist:
+        if cube.cell_methods is not None:
+            cube.cell_methods = None
 
     # eqaulise the attributes
     more_removed_attrs = equalise_attributes(obs_cubelist)
@@ -468,22 +477,22 @@ def main():
     print(obs_cubelist[1].var_name)
 
     # concatenate the cubelist
-    test = obs_cubelist.concatenate_cube()
+    obs_cube_full = obs_cubelist.concatenate_cube()
 
     # print the obs cube regrid
     print("Obs cube regrid dimensions:")
-    print(test)
+    print(obs_cube_full)
 
     # print the time taken
     print("Time taken to load the data: ", time.time() - start_time)
 
-    sys.exit()
+    # sys.exit()
 
     # extract the times
-    times = obs_cube_regrid.coord("time").points
+    times = obs_cube_full.coord("time").points
 
     # convert to dt
-    times_dt = cftime.num2date(times, obs_cube_regrid.coord("time").units.origin)
+    times_dt = cftime.num2date(times, obs_cube_full.coord("time").units.origin)
 
     # print the first time value in the obs cube regrid
     print("First time value in obs cube regrid:")
@@ -502,10 +511,10 @@ def main():
         # Create the mask matrix for the UK
         MASK_MATRIX = create_masked_matrix(
             country=args.country,
-            cube=obs_cube_regrid,
+            cube=obs_cube_full,
         )
 
-        obs_data = obs_cube_regrid.data
+        obs_data = obs_cube_full.data
 
         # print the obs data
         print("Obs data:")
@@ -541,20 +550,20 @@ def main():
         gridbox = dic.north_sea_kay
 
         # Subset to the north sea region
-        obs_cube_regrid = obs_cube_regrid.intersection(
+        obs_cube_full = obs_cube_full.intersection(
             longitude=(gridbox["lon1"], gridbox["lon2"]),
             latitude=(gridbox["lat1"], gridbox["lat2"]),
         )
 
         # print the obs cube regrid
-        print(obs_cube_regrid)
+        print(obs_cube_full)
 
         # print the lats and lons of the obs cube regrid
-        print(obs_cube_regrid.coord("latitude").points)
-        print(obs_cube_regrid.coord("longitude").points)
+        print(obs_cube_full.coord("latitude").points)
+        print(obs_cube_full.coord("longitude").points)
 
         # Take the mean over lat and lon
-        obs_mean = obs_cube_regrid.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+        obs_mean = obs_cube_full.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
     elif args.country == "UK_wind_box":
         print("Taking gridbox average for the UK wind box")
 
@@ -562,13 +571,13 @@ def main():
         gridbox = dic.wind_gridbox
 
         # subset to the wind gridbox
-        obs_cube_regrid = obs_cube_regrid.intersection(
+        obs_cube_full = obs_cube_full.intersection(
             longitude=(gridbox["lon1"], gridbox["lon2"]),
             latitude=(gridbox["lat1"], gridbox["lat2"]),
         )
 
         # Take the mean over lat and lon
-        obs_mean = obs_cube_regrid.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+        obs_mean = obs_cube_full.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
     else:
         raise ValueError("Country not recognised.")
 
@@ -576,7 +585,7 @@ def main():
     print("Obs mean:")
     print(obs_mean)
 
-    dates = obs_cube_regrid.coord("time").points
+    dates = obs_cube_full.coord("time").points
 
     # Set up the dataframe
     obs_df = pd.DataFrame(
