@@ -39,11 +39,11 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-from process_dnw_gev import select_leads_wyears_DJF
+# from process_dnw_gev import select_leads_wyears_DJF
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
-# from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_level
+from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_level
 
 # Silence warnings
 warnings.filterwarnings("ignore")
@@ -63,6 +63,7 @@ def plot_emp_rps(
     blue_line: callable = np.min,
     high_values_rare: bool = False,
     figsize: tuple = (5, 5),
+    bonus_line: float = None,
 ) -> None:
     """
     Plot the empirical return periods for the model data.
@@ -218,6 +219,15 @@ def plot_emp_rps(
         label=f"{extreme_time}"
     )
 
+    # if bonus line is not none, then mark it on the plot
+    if bonus_line is not None:
+        # Plot the bonus line as a red horizontal dashed line
+        ax.axhline(
+            y=bonus_line,
+            color="red",
+            linestyle="--",
+        )
+
     # include a legend in the top right
     ax.legend(
         loc="upper right",
@@ -240,6 +250,7 @@ def plot_gev_rps(
     blue_line: callable = np.min,
     high_values_rare: bool = False,
     figsize: tuple = (5, 5),
+    bonus_line: float = None,
 ) -> None:
     """
     Plots the return periods for the model and obs using a GEV.
@@ -463,6 +474,15 @@ def plot_gev_rps(
         linestyle="--",
         label=f"{extreme_time}"
     )
+
+    # if bonus line is not none, then mark it on the plot
+    if bonus_line is not None:
+        # Plot the bonus line as a red horizontal dashed line
+        ax.axhline(
+            y=bonus_line,
+            color="red",
+            linestyle="--",
+        )
 
     # include a legend in the top right
     ax.legend(
@@ -1354,7 +1374,7 @@ def main():
     # Set up the common winter years
     # NOTE: Exclude 1960 as only 10 members initialised in 1960
     # available for this year
-    common_wyears = np.arange(1961, 2023 + 1)
+    common_wyears = np.arange(1961, 2024 + 1)
 
     # Subset the model data to the common winter years
     df_model_tas_djf = df_model_tas_djf[
@@ -1907,67 +1927,85 @@ def main():
 
     # test the return period extremes function
     # For temperature extremes first
-    # plot_rp_extremes(
-    #     obs_df=block_minima_obs_tas_dt,
-    #     model_df=block_minima_model_tas_drift_corr_dt,
-    #     obs_val_name="data_c_min_dt",
-    #     model_val_name="data_tas_c_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylim=(-9, -2.5),
-    #     percentile=0.01,
-    #     n_samples=10000,
-    #     high_values_rare=False,
-    # )
+    plot_rp_extremes(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
+        obs_val_name="data_c_min_dt",
+        model_val_name="data_tas_c_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylim=(-9, -2.5),
+        percentile=0.01,
+        n_samples=10000,
+        high_values_rare=False,
+    )
 
     # test the new function doing the same
     # thing but using GEVs
-    # plot_gev_rps(
-    #     obs_df=block_minima_obs_tas_dt,
-    #     model_df=block_minima_model_tas_drift_corr_dt,
-    #     obs_val_name="data_c_min_dt",
-    #     model_val_name="data_tas_c_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Temperature (°C)",
-    #     nsamples=1000,
-    #     ylims=(-9, -2.5),
-    #     blue_line=np.min,
-    #     high_values_rare=False,
-    #     figsize=(5, 5),
-    # )
+    plot_gev_rps(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
+        obs_val_name="data_c_min_dt",
+        model_val_name="data_tas_c_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Temperature (°C)",
+        nsamples=1000,
+        ylims=(-9, -2.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
 
     # test the funcion for doing the same thing
-    # plot_emp_rps(
-    #     obs_df=block_minima_obs_tas_dt,
-    #     model_df=block_minima_model_tas_drift_corr_dt,
-    #     obs_val_name="data_c_min_dt",
-    #     model_val_name="data_tas_c_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Temperature (°C)",
-    #     nsamples=1000,
-    #     ylims=(-9, -2.5),
-    #     blue_line=np.min,
-    #     high_values_rare=False,
-    #     figsize=(5, 5),
-    # )
+    plot_emp_rps(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
+        obs_val_name="data_c_min_dt",
+        model_val_name="data_tas_c_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Temperature (°C)",
+        nsamples=1000,
+        ylims=(-9, -2.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
 
-    # # do thye same thing fo wind speed
-    # plot_gev_rps(
-    #     obs_df=block_minima_obs_wind_dt,
-    #     model_df=block_minima_model_wind_drift_corr_dt,
-    #     obs_val_name="data_min_dt",
-    #     model_val_name="data_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Wind speed (m/s)",
-    #     nsamples=1000,
-    #     ylims=(2, 3.5),
-    #     blue_line=np.min,
-    #     high_values_rare=False,
-    #     figsize=(5, 5),
-    # )
+    # do thye same thing fo wind speed
+    plot_gev_rps(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_val_name="data_min_dt",
+        model_val_name="data_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Wind speed (m/s)",
+        nsamples=1000,
+        ylims=(2, 3.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
+
+    # plot empirical return periods for wind speed
+    plot_emp_rps(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_val_name="data_min_dt",
+        model_val_name="data_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Wind speed (m/s)",
+        nsamples=1000,
+        ylims=(2, 3.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
+
+    sys.exit()
 
     # make sure that effective dec year is a datetime year
     block_minima_model_tas_drift_corr_dt["effective_dec_year"] = pd.to_datetime(

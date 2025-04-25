@@ -34,7 +34,7 @@ from matplotlib import gridspec
 from datetime import datetime, timedelta
 
 from scipy.optimize import curve_fit
-from scipy.stats import linregress, percentileofscore, gaussian_kde
+from scipy.stats import linregress, percentileofscore, gaussian_kde, pearsonr
 from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
 from iris.util import equalise_attributes
@@ -176,9 +176,19 @@ def ws_to_wp_gen(
         min(ch_df["total_gen"]),
     ]
 
+    # Extract the first and last years (i.e., YYYY) from the date range
+    start_year = int(date_range[0].split("-")[0])
+    end_year = int(date_range[1].split("-")[0])
+
+    # set up the obs df copy subset
+    obs_df_copy_subset = obs_df_copy[
+        (obs_df_copy["effective_dec_year"] >= start_year)
+        & (obs_df_copy["effective_dec_year"] < end_year)
+    ]
+
     # Fit the sigmoid curve to the observed data
     popt, pcov = curve_fit(
-        sigmoid, obs_df_copy[obs_ws_col], ch_df["total_gen"], p0=p0, method="dogbox"
+        sigmoid, obs_df_copy_subset [obs_ws_col], ch_df["total_gen"], p0=p0, method="dogbox"
     )
 
     # Apply the sigmoid function to the observed data
@@ -309,6 +319,153 @@ def temp_to_demand(
 
     return obs_df_copy, model_df_copy
 
+# Define a function
+# to plot the subplots of variable against variable
+def plot_multi_var_scatter(
+    subset_obs_dfs: list[pd.DataFrame],
+    subset_model_dfs: list[pd.DataFrame],
+    x_var_name_obs: str,
+    y_var_name_obs: str,
+    x_var_name_model: str,
+    y_var_name_model: str,
+    xlabel: str,
+    ylabel: str,
+    subtitles: list[str],
+    colours: list[str] = ["grey", "orange", "red"],
+    figsize: tuple[int, int] = (10, 5),
+):
+    """
+    Plots scatter plots showing the relationship between variables.
+
+    Parameters
+    ==========
+
+        subset_obs_dfs : list[pd.DataFrame]
+            List of dataframes containing the observed data.
+        subset_model_dfs : list[pd.DataFrame]
+            List of dataframes containing the model data.
+        x_var_name_obs : str
+            Name of the x variable in the observed data.
+        y_var_name_obs : str
+            Name of the y variable in the observed data.
+        x_var_name_model : str
+            Name of the x variable in the model data.
+        y_var_name_model : str
+            Name of the y variable in the model data.
+        xlabel : str
+            Label for the x-axis.
+        ylabel : str
+            Label for the y-axis.
+        subtitles : list[str]
+            List of subtitles for each subplot.
+        figsize : tuple[int, int], optional
+            Size of the figure, by default (10, 5)
+
+    Returns
+    =======
+
+        None
+    
+    """
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        nrows=1,
+        ncols=3,
+        figsize=figsize,
+        layout="constrained",
+        sharey=True,
+        sharex=True,
+    )
+
+    # Loop through the dataframes
+    for i, (obs_df, model_df) in enumerate(zip(subset_obs_dfs, subset_model_dfs)):
+        # Set up the N_obs
+        N_obs = obs_df.shape[0]
+        N_model = model_df.shape[0]
+
+        # print the n model
+        print(f"N model: {N_model}")
+        print(f"N obs: {N_obs}")
+
+        # if the len of obs is greater than one
+        if N_obs > 1:
+            # Calculate the correlation for the obs
+            r_obs, _ = pearsonr(
+                obs_df[x_var_name_obs], obs_df[y_var_name_obs]
+            )
+        else:
+            r_obs = np.nan
+
+        # Calculate the correlation for the model
+        r_model, _ = pearsonr(
+            model_df[x_var_name_model], model_df[y_var_name_model]
+        )
+
+        # Plot the model data
+        axs[i].scatter(
+            model_df[x_var_name_model],
+            model_df[y_var_name_model],
+            color=colours[i],
+            alpha=0.5,
+            label=f"Model (r={r_model:.2f}, N={N_model})",
+        )
+
+        # Plot the observed data
+        axs[i].scatter(
+            obs_df[x_var_name_obs],
+            obs_df[y_var_name_obs],
+            color="black",
+            marker="x",
+            label=f"Obs (r={r_obs:.2f}, N={N_obs})",
+        )
+
+        # include a vertical line for the mean of the x var name
+        # in the mode
+        # in the correct colour
+        axs[i].axvline(
+            model_df[x_var_name_model].mean(),
+            color=colours[i],
+            linestyle="--",
+        )
+
+        # DO the same for a horizontal line for the mean of the y var name
+        axs[i].axhline(
+            model_df[y_var_name_model].mean(),
+            color=colours[i],
+            linestyle="--",
+        )
+
+        # do a vertical dot dashed line in black for the mean of the obs x var
+        axs[i].axvline(
+            obs_df[x_var_name_obs].mean(),
+            color="black",
+            linestyle="-.",
+        )
+
+        # do the same for the y var
+        axs[i].axhline(
+            obs_df[y_var_name_obs].mean(),
+            color="black",
+            linestyle="-.",
+        )
+
+        # Set the labels and title
+        axs[i].set_xlabel(xlabel)
+        
+        if i == 0:
+            axs[i].set_ylabel(ylabel)
+        
+        # Set up the titles
+        axs[i].set_title(subtitles[i])
+
+        # include a legend in the top right
+        axs[i].legend(
+            loc="upper right",
+            fontsize=10,
+        )
+
+    return None
 
 # Define the main function
 def main():
@@ -354,7 +511,7 @@ def main():
 
     # Load the observed data
     df_obs_tas = pd.read_csv(
-        os.path.join(dfs_dir, "ERA5_tas_United_Kingdom_1960-2018_daily_2024-11-26.csv")
+        os.path.join(dfs_dir, "ERA5_tas_United_Kingdom_1960-2025_daily_2025-04-24.csv")
     )
 
     # Convert the 'time' column to datetime, assuming it represents days since "1950-01-01 00:00:00"
@@ -370,7 +527,7 @@ def main():
 
     # Load the obs wind data
     df_obs_sfcWind = pd.read_csv(
-        os.path.join(dfs_dir, "ERA5_sfcWind_UK_wind_box_1960-2018_daily_2025-02-26.csv")
+        os.path.join(dfs_dir, "ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-04-24.csv")
     )
 
     # Convert the 'time' column to datetime, assuming it represents days since "1950-01-01 00:00:00"
@@ -400,7 +557,7 @@ def main():
     )
 
     # Limit the obs data to the same years as the model data
-    common_wyears = np.arange(1961, 2017 + 1)
+    common_wyears = np.arange(1961, 2024 + 1) # test full period first
 
     # Subset the obs data to the common_wyears
     df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
@@ -654,7 +811,7 @@ def main():
         obs_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
         lead_name="winter_year",
         xlabel="Wind Power Generation (GW)",
-        suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2017 (detrended, no BC wind)",
+        suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2024 (detrended, no BC wind)",
         figsize=(10, 5),
     )
 
@@ -666,7 +823,7 @@ def main():
         obs_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
         lead_name="winter_year",
         xlabel="Wind Power Generation (GW)",
-        suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2017 (detrended, BC wind)",
+        suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2024 (detrended, BC wind)",
         figsize=(10, 5),
     )
 
@@ -697,7 +854,7 @@ def main():
         obs_var_name="data_c_dt_UK_demand",
         lead_name="winter_year",
         xlabel="Demand (GW)",
-        suptitle="Lead dependent demand PDFs, DJF all days, 1961-2017 (detrended, no BC T)",
+        suptitle="Lead dependent demand PDFs, DJF all days, 1961-2024 (detrended, no BC T)",
         figsize=(10, 5),
     )
 
@@ -710,7 +867,7 @@ def main():
         obs_var_name="data_c_dt_UK_demand",
         lead_name="winter_year",
         xlabel="Demand (GW)",
-        suptitle="Lead dependent demand PDFs, DJF all days, 1961-2017 (detrended, BC T)",
+        suptitle="Lead dependent demand PDFs, DJF all days, 1961-2024 (detrended, BC T)",
         figsize=(10, 5),
     )
 
@@ -800,6 +957,67 @@ def main():
         figsize=(15, 5),
     )
 
+    # Ensure the 'time' column is in datetime format
+    df_obs["time"] = pd.to_datetime(df_obs["time"])
+
+    # Print the row in df_obs where time = 2025-01-08
+    print(df_obs[df_obs["time"] == "2025-01-08"])
+
+    # Save this row
+    jan_8_2025 = df_obs[df_obs["time"] == "2025-01-08"]
+
+    # Print the row
+    print(jan_8_2025)
+
+    # Extract all of the data for January 2025
+    jan_2025 = df_obs[(df_obs["time"].dt.month == 1) & (df_obs["time"].dt.year == 2025)]
+
+    feb_2006 = df_obs[
+        (df_obs["time"].dt.month == 2) & (df_obs["time"].dt.year == 2006)
+    ]
+
+    eff_dec_year_24 = df_obs[
+        (df_obs["effective_dec_year"] == 2024)
+    ]
+
+    # # create a new column for rank_dnw
+    # rank dnw from highest to lowest
+    # for eff_dec_year_24
+    eff_dec_year_24["rank_dnw"] = (
+        eff_dec_year_24["demand_net_wind"].rank(ascending=False)
+    )
+
+    # Print the January 2025 data
+    print(jan_2025)
+
+    # set us
+    save_dir_jan = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # set up the fname
+    fname_jan = os.path.join(save_dir_jan, "jan_2025.csv")
+
+    fname_feb = os.path.join(save_dir_jan, "feb_2006.csv")
+
+    # save the data
+    # if the file does not already exist
+    if not os.path.exists(fname_jan):
+        jan_2025.to_csv(fname_jan, index=False)
+        print(f"Saved {fname_jan}")
+
+    # if the file does not already exist
+    if not os.path.exists(fname_feb):
+        feb_2006.to_csv(fname_feb, index=False)
+        print(f"Saved {fname_feb}")
+
+    # if the file does not already exist
+    if not os.path.exists(os.path.join(save_dir_jan, "eff_dec_year_24.csv")):
+        eff_dec_year_24.to_csv(
+            os.path.join(save_dir_jan, "eff_dec_year_24.csv"), index=False
+        )
+        print(f"Saved {os.path.join(save_dir_jan, 'eff_dec_year_24.csv')}")
+
+    # sys.exit()
+
     # now quantify the seasonal block maxima for demand net wind
     # first for the observations
     block_max_obs_dnw = gev_funcs.obs_block_min_max(
@@ -810,6 +1028,8 @@ def main():
             "data_sfcWind_dt_sigmoid_total_wind_gen",
             "data_c_dt_UK_demand",
             "time",
+            "data_c_dt",
+            "data_sfcWind_dt",
         ],
         process_min=False,
     )
@@ -824,6 +1044,8 @@ def main():
             "data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
             "data_tas_c_drift_bc_dt_UK_demand",
             "lead",
+            "data_tas_c_drift_bc_dt",
+            "data_sfcWind_drift_bc_dt",
         ],
         winter_year="winter_year",
         process_min=False,
@@ -842,7 +1064,7 @@ def main():
         obs_var_name="demand_net_wind_max",
         lead_name="winter_year",
         xlabel="Demand net wind (GW)",
-        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2017 (detrended, BC T + sfcWind)",
+        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind)",
         figsize=(10, 5),
     )
 
@@ -860,6 +1082,16 @@ def main():
         block_max_model_dnw["demand_net_wind_bc_max"] - bias
     )
 
+    # apply a uniform bias correct to the jan 8 df
+    jan_8_2025["demand_net_wind_bc"] = (
+        jan_8_2025["demand_net_wind"] - bias
+    )
+
+    # print the row
+    print(jan_8_2025)
+
+    # sys.exit()
+
     # Plot the biases in these
     gev_funcs.plot_lead_pdfs(
         model_df=block_max_model_dnw,
@@ -868,7 +1100,7 @@ def main():
         obs_var_name="demand_net_wind_max",
         lead_name="winter_year",
         xlabel="Demand net wind (GW)",
-        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2017 (detrended, BC T + sfcWind + BC)",
+        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind + BC)",
         figsize=(10, 5),
     )
 
@@ -885,7 +1117,7 @@ def main():
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
         ylabel="Demand net wind (GW)",
-        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2017 (detrended, BC T + sfcWind + BC)",
+        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind + BC)",
         figsize=(15, 5),
     )
 
@@ -924,41 +1156,143 @@ def main():
         figsize=(10, 5),
     )
 
+    # print the head and tail of the obs
+    print("Block maxima obs data")
+    print(block_max_obs_dnw.head())
+    print(block_max_obs_dnw.tail())
+
+    # Find the 80th percentile of the obs data
+    obs_80th = block_max_obs_dnw["demand_net_wind_max"].quantile(0.80)
+
+    # Subset the obs and model dfs to values below the 80th percentile
+    block_max_obs_dnw_grey_dots = block_max_obs_dnw[
+        block_max_obs_dnw["demand_net_wind_max"] < obs_80th
+    ]
+    block_max_model_dnw_grey_dots = block_max_model_dnw[
+        block_max_model_dnw["demand_net_wind_bc_max_bc"] < obs_80th
+    ]
+
+    # Find the maximum value in the obs data
+    obs_max = block_max_obs_dnw["demand_net_wind_max"].max()
+
+    # Subset the obs and model dfs to values above the 80th percentile
+    # but below the max
+    block_max_obs_dnw_yellow_dots = block_max_obs_dnw[
+        (block_max_obs_dnw["demand_net_wind_max"] >= obs_80th)
+        & (block_max_obs_dnw["demand_net_wind_max"] < obs_max)
+    ]
+    block_max_model_dnw_yellow_dots = block_max_model_dnw[
+        (block_max_model_dnw["demand_net_wind_bc_max_bc"] >= obs_80th)
+        & (block_max_model_dnw["demand_net_wind_bc_max_bc"] < obs_max)
+    ]
+
+    # Subset the obs data to the max value
+    block_max_obs_dnw_red_dots = block_max_obs_dnw[
+        block_max_obs_dnw["demand_net_wind_max"] == obs_max
+    ]
+
+    # Subset the model data to values above the max value
+    block_max_model_dnw_red_dots = block_max_model_dnw[
+        block_max_model_dnw["demand_net_wind_bc_max_bc"] >= obs_max
+    ]
+
+    # Set up the subtitles
+    subplot_titles = [
+        "Grey dots",
+        "Yellow dots",
+        "Red dots",
+    ]
+
+    # print the columns in the obs data
+    print(block_max_obs_dnw.columns)
+    print(block_max_model_dnw.columns)
+
+    # plot the multi var scatter
+    plot_multi_var_scatter(
+        subset_obs_dfs=[
+            block_max_obs_dnw_grey_dots,
+            block_max_obs_dnw_yellow_dots,
+            block_max_obs_dnw_red_dots,
+        ],
+        subset_model_dfs=[
+            block_max_model_dnw_grey_dots,
+            block_max_model_dnw_yellow_dots,
+            block_max_model_dnw_red_dots,
+        ],
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature (°C)",
+        ylabel="10m Wind Speed (m/s)",
+        subtitles=subplot_titles,
+        figsize=(10, 5),
+    )
+
+    # do the same thing, but for different variables
+    plot_multi_var_scatter(
+        subset_obs_dfs=[
+            block_max_obs_dnw_grey_dots,
+            block_max_obs_dnw_yellow_dots,
+            block_max_obs_dnw_red_dots,
+        ],
+        subset_model_dfs=[
+            block_max_model_dnw_grey_dots,
+            block_max_model_dnw_yellow_dots,
+            block_max_model_dnw_red_dots,
+        ],
+        x_var_name_obs="data_c_dt_UK_demand",
+        y_var_name_obs="data_sfcWind_dt_sigmoid_total_wind_gen",
+        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand",
+        y_var_name_model="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+        xlabel="Demand (GW)",
+        ylabel="Wind Power Generation (GW)",
+        subtitles=subplot_titles,
+        figsize=(10, 5),
+    )
+
+    sys.exit()
+
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
     
     # # plot the return period plots here
     # # first the empirical return periods
-    # plot_emp_rps(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     obs_val_name="demand_net_wind_max",
-    #     model_val_name="demand_net_wind_bc_max_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Demand net wind (GW)",
-    #     nsamples=1000,
-    #     ylims=(43, 52),
-    #     blue_line=np.max,
-    #     high_values_rare=True,
-    #     figsize=(5, 5),
-    # )
+    plot_emp_rps(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_bc_max_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Demand net wind (GW)",
+        nsamples=1000,
+        ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
+        blue_line=np.max,
+        high_values_rare=True,
+        figsize=(5, 5),
+        bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
+    )
 
-    # # plot the GEV fitted return periods
-    # plot_gev_rps(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     obs_val_name="demand_net_wind_max",
-    #     model_val_name="demand_net_wind_bc_max_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Demand net wind (GW)",
-    #     nsamples=1000,
-    #     ylims=(43, 52),
-    #     blue_line=np.max,
-    #     high_values_rare=True,
-    #     figsize=(5, 5),
-    # )
+    # plot the GEV fitted return periods
+    plot_gev_rps(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_bc_max_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Demand net wind (GW)",
+        nsamples=1000,
+        ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
+        blue_line=np.max,
+        high_values_rare=True,
+        figsize=(5, 5),
+        bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
+    )
+
+
+    sys.exit()
 
     # ensure the effective dec year is a datetime and is just the year in the
     # model
