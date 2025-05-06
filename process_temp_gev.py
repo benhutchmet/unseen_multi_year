@@ -296,6 +296,35 @@ def plot_gev_rps(
     if not isinstance(model_df[model_time_name].values[0], np.datetime64):
         model_df[model_time_name] = pd.to_datetime(model_df[model_time_name])
 
+    # Set up the empirical return levels
+    model_df_central_rps = empirical_return_level(
+        data=model_df[model_val_name].values,
+        high_values_rare=high_values_rare,
+    )
+
+    # set up the empirical bootstrap
+    model_df_bootstrap_rps = np.zeros([nsamples, len(model_df_central_rps["sorted"])])
+
+    # Loop over the samples
+    for i in tqdm(
+        range(nsamples)
+    ):
+        # Resample the model data
+        model_vals_this = np.random.choice(
+            model_df[model_val_name].values,
+            size=len(model_df_central_rps["sorted"]),
+            replace=True,
+        )
+
+        # Calculate the empirical return levels
+        model_df_rls_this = empirical_return_level(
+            data=model_vals_this,
+            high_values_rare=high_values_rare,
+        )
+
+        # Append the return levels to the array
+        model_df_bootstrap_rps[i, :] = model_df_rls_this["sorted"]
+
     # Set up the probabilities and years
     probs = 1 / np.arange(1.1, 1000, 0.1) * 100
     years = np.arange(1.1, 1000, 0.1)
@@ -402,6 +431,33 @@ def plot_gev_rps(
     # Set up the figure
     fig, ax = plt.subplots(figsize=figsize)
 
+    # plot the empirical points as black dots
+    ax.plot(
+        model_df_central_rps["period"],
+        model_df_central_rps["sorted"],
+        "o",
+        color="black",
+        label="Empirical",
+        linestyle="None",
+        markersize=3,
+    )
+
+    # Plot the 0.025 and 0.975 quantiles of the empirical return levels
+    # as dashed red lines
+    _ = ax.plot(
+        model_df_central_rps["period"],
+        np.quantile(model_df_bootstrap_rps, 0.025, axis=0),
+        color="red",
+        linestyle="--",
+        label="Empirical uncertainty",
+    )
+    _ = ax.plot(
+        model_df_central_rps["period"],
+        np.quantile(model_df_bootstrap_rps, 0.975, axis=0),
+        color="red",
+        linestyle="--",
+    )
+
     # Plot the observed return levels
     _ = ax.fill_between(
         return_years,
@@ -422,7 +478,15 @@ def plot_gev_rps(
         label="DePreSys",
     )
 
-        # Set up a logarithmic x-axis
+    # Plot the model gev return levels first
+    # as a solid red line
+    _ = ax.plot(
+        return_years,
+        model_gev_rls_first,
+        color="red",
+    )
+
+    # Set up a logarithmic x-axis
     ax.set_xscale("log")
 
     # Limit to between 10 and 1000 years
@@ -488,6 +552,225 @@ def plot_gev_rps(
     ax.legend(
         loc="upper right",
         fontsize=12,
+    )
+
+    # set up another figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot a histogram showing the distribution of points
+    ax.hist(
+        model_df[model_val_name].values,
+        bins=40,
+        color="red",
+        alpha=0.5,
+        label="Model distribution",
+        density=True,
+    )
+
+    # PLot the GEV fit to this
+    x = np.linspace(
+        model_df[model_val_name].min(),
+        model_df[model_val_name].max(),
+        100,
+    )
+
+    # Calculate the GEV fit
+    y = gev.pdf(
+        x,
+        *model_gev_params_first,
+    )
+
+    # Plot the GEV fit
+    ax.plot(
+        x,
+        y,
+        color="red",
+        label="Model GEV fit",
+        linestyle="--",
+    )
+
+    # include a legend in the top right
+    ax.legend(
+        loc="upper right",
+        fontsize=12,
+    )
+
+    # Set the x label
+    ax.set_xlabel(
+        ylabel, fontsize=12,
+    )
+
+    # remove the y label
+    ax.set_ylabel(
+        "",
+    )
+
+    # remove the y ticks
+    ax.set_yticks([])
+
+    # calculate the 10th percentile of tthe variable
+    model_10th_percentile = np.percentile(
+        model_df[model_val_name].values,
+        10,
+    )
+
+    # Set up a new figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot a histogram showing the distribution of points
+    ax.hist(
+        model_df[model_val_name].values,
+        bins=40,
+        color="red",
+        alpha=0.5,
+        label="Model distribution",
+        density=True,
+    )
+
+    # Plot the GEV fit to this
+    x = np.linspace(
+        model_df[model_val_name].min(),
+        model_df[model_val_name].max(),
+        100,
+    )
+
+    # Calculate the GEV fit
+    y = gev.pdf(
+        x,
+        *model_gev_params_first,
+    )
+
+    # Plot the GEV fit
+    ax.plot(
+        x,
+        y,
+        color="red",
+        label="Model GEV fit",
+        linestyle="--",
+    )
+
+    # Set the xlims between min and 10th percentile
+    ax.set_xlim(
+        model_df[model_val_name].min(),
+        model_10th_percentile,
+    )
+
+    # Set the x label
+    ax.set_xlabel(
+        ylabel, fontsize=12,
+    )
+
+    # remove the y label
+    ax.set_ylabel(
+        "",
+    )
+
+    # remove the y ticks
+    ax.set_yticks([])
+
+    # Set up the legend
+    ax.legend(
+        loc="upper right",
+        fontsize=12,
+    )
+
+    # Set up a new figure for the Q-Q plot
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Sort the model data (empirical quantiles)
+    sorted_model_data = np.sort(model_df[model_val_name].values)
+
+    # Calculate the theoretical quantiles using the GEV CDF
+    theoretical_quantiles = gev.ppf(
+        np.linspace(0, 1, len(sorted_model_data)),
+        *model_gev_params_first,
+    )
+
+    # Plot the Q-Q plot
+    ax.scatter(
+        sorted_model_data,
+        theoretical_quantiles,
+        color="red",
+        alpha=0.7,
+        label="Q-Q Plot",
+        marker="o",
+        s=5,
+    )
+
+    # Add a 1:1 reference line
+    # Filter out NaN and inf values from sorted_model_data and theoretical_quantiles
+    valid_model_data = sorted_model_data[np.isfinite(sorted_model_data)]
+    valid_theoretical_quantiles = theoretical_quantiles[np.isfinite(theoretical_quantiles)]
+
+    # Calculate min and max values ignoring NaN and inf
+    min_val = min(np.nanmin(valid_model_data), np.nanmin(valid_theoretical_quantiles))
+    max_val = max(np.nanmax(valid_model_data), np.nanmax(valid_theoretical_quantiles))
+    ax.plot(
+        [min_val, max_val],
+        [min_val, max_val],
+        color="blue",
+        linestyle="--",
+        label="1:1 Line",
+        linewidth=2,
+    )
+
+    # Set labels and legend
+    ax.set_xlabel("Empirical Quantiles (Model Data)", fontsize=12)
+    ax.set_ylabel("Theoretical Quantiles (GEV Fit)", fontsize=12)
+    ax.legend(loc="upper left", fontsize=12)
+
+    # # Show the plot
+    # plt.show()
+
+    # Set up a new figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot the Q-Q plot
+    ax.scatter(
+        sorted_model_data,
+        theoretical_quantiles,
+        color="red",
+        alpha=0.7,
+        label="Q-Q Plot",
+        marker="o",
+        s=5,
+    )
+
+    # Add a 1:1 reference line
+    # Filter out NaN and inf values from sorted_model_data and theoretical_quantiles
+    valid_model_data = sorted_model_data[np.isfinite(sorted_model_data)]
+    valid_theoretical_quantiles = theoretical_quantiles[np.isfinite(theoretical_quantiles)]
+
+    # Calculate min and max values ignoring NaN and inf
+    min_val = min(np.nanmin(valid_model_data), np.nanmin(valid_theoretical_quantiles))
+    max_val = max(np.nanmax(valid_model_data), np.nanmax(valid_theoretical_quantiles))
+    print(f"min_val: {min_val}")
+    print(f"max_val: {max_val}")
+    ax.plot(
+        [min_val, max_val],
+        [min_val, max_val],
+        color="blue",
+        linestyle="--",
+        label="1:1 Line",
+        linewidth=2,
+    )
+
+    # Set labels and legend
+    ax.set_xlabel("Empirical Quantiles (Model Data)", fontsize=12)
+    ax.set_ylabel("Theoretical Quantiles (GEV Fit)", fontsize=12)
+    ax.legend(loc="upper left", fontsize=12)
+    ax.set_title("Q-Q Plot of Model Data vs. GEV Fit", fontsize=14)
+
+    # Set the xlims between min and 10th percentile
+    ax.set_xlim(
+        model_df[model_val_name].min(),
+        model_10th_percentile,
+    )
+
+    # Set the ylims between min and 10th percentile
+    ax.set_ylim(
+        model_df[model_val_name].min(),
+        model_10th_percentile,
     )
 
     return None
@@ -1374,7 +1657,7 @@ def main():
     # Set up the common winter years
     # NOTE: Exclude 1960 as only 10 members initialised in 1960
     # available for this year
-    common_wyears = np.arange(1961, 2024 + 1)
+    common_wyears = np.arange(1961, 2023 + 1)
 
     # Subset the model data to the common winter years
     df_model_tas_djf = df_model_tas_djf[
@@ -1725,6 +2008,48 @@ def main():
         y_axis_name="data_min",
     )
 
+    # Set up a name for the block min obs
+    fname_tas = "block_minima_obs_tas_UK_1961-2024_DJF_detrended.csv"
+    fname_wind = "block_minima_obs_wind_UK_1961-2024_DJF_detrended.csv"
+
+    # Do the same for the model data
+    fname_tas_model = "block_minima_model_tas_UK_1961-2024_DJF_detrended.csv"
+    fname_wind_model = "block_minima_model_wind_UK_1961-2024_DJF_detrended.csv"
+
+    # Set up the directory to save to
+    save_dir_dfs = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # Set up thne current date in dd-mm-yyyy format
+    current_date = datetime.now().strftime("%d-%m-%Y")
+
+    # Set up the full path for the obs
+    obs_path_tas = os.path.join(save_dir_dfs, f"{fname_tas}_{current_date}")
+    obs_path_wind = os.path.join(save_dir_dfs, f"{fname_wind}_{current_date}")
+    model_path_tas = os.path.join(save_dir_dfs, f"{fname_tas_model}_{current_date}")
+    model_path_wind = os.path.join(save_dir_dfs, f"{fname_wind_model}_{current_date}")
+
+    # if the file does not exist
+    if not os.path.exists(obs_path_tas):
+        print(f"Saving {fname_tas} to {save_dir_dfs}")
+        block_minima_obs_tas_dt.to_csv(obs_path_tas)
+
+    # if the file does not exist
+    if not os.path.exists(obs_path_wind):
+        print(f"Saving {fname_wind} to {save_dir_dfs}")
+        block_minima_obs_wind_dt.to_csv(obs_path_wind)
+
+    # if the file does not exist
+    if not os.path.exists(model_path_tas):
+        print(f"Saving {fname_tas_model} to {save_dir_dfs}")
+        block_minima_model_tas_drift_corr_dt.to_csv(model_path_tas)
+
+    # if the file does not exist
+    if not os.path.exists(model_path_wind):
+        print(f"Saving {fname_wind_model} to {save_dir_dfs}")
+        block_minima_model_wind_drift_corr_dt.to_csv(model_path_wind)
+
+    sys.exit()
+
     # # Compare the lead time corrected trends
     # gev_funcs.lead_time_trends(
     #     model_df=block_minima_model_tas_drift_corr_dt,
@@ -1927,18 +2252,18 @@ def main():
 
     # test the return period extremes function
     # For temperature extremes first
-    plot_rp_extremes(
-        obs_df=block_minima_obs_tas_dt,
-        model_df=block_minima_model_tas_drift_corr_dt,
-        obs_val_name="data_c_min_dt",
-        model_val_name="data_tas_c_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylim=(-9, -2.5),
-        percentile=0.01,
-        n_samples=10000,
-        high_values_rare=False,
-    )
+    # plot_rp_extremes(
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_val_name="data_c_min_dt",
+    #     model_val_name="data_tas_c_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylim=(-9, -2.5),
+    #     percentile=0.01,
+    #     n_samples=10000,
+    #     high_values_rare=False,
+    # )
 
     # test the new function doing the same
     # thing but using GEVs
@@ -1950,7 +2275,7 @@ def main():
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel="Temperature (°C)",
-        nsamples=1000,
+        nsamples=100,
         ylims=(-9, -2.5),
         blue_line=np.min,
         high_values_rare=False,
@@ -1966,7 +2291,7 @@ def main():
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel="Temperature (°C)",
-        nsamples=1000,
+        nsamples=100,
         ylims=(-9, -2.5),
         blue_line=np.min,
         high_values_rare=False,
@@ -1982,7 +2307,7 @@ def main():
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel="Wind speed (m/s)",
-        nsamples=1000,
+        nsamples=100,
         ylims=(2, 3.5),
         blue_line=np.min,
         high_values_rare=False,
@@ -1998,7 +2323,7 @@ def main():
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel="Wind speed (m/s)",
-        nsamples=1000,
+        nsamples=100,
         ylims=(2, 3.5),
         blue_line=np.min,
         high_values_rare=False,

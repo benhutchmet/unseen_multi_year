@@ -16,6 +16,12 @@ data/*.npy
 logs/*.out
 logs/*.err
 
+# alld of the dfs
+dfs/*.out
+dfs/*.err
+dfs/*.csv
+dfs/*.csv*
+
 # random files
 wget*.sh
 *.csv

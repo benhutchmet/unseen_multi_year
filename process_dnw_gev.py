@@ -50,6 +50,239 @@ from functions import sigmoid, dot_plot
 # Silence warnings
 warnings.filterwarnings("ignore")
 
+# Set up a function for plotting the distributions
+def plot_distributions_extremes(
+    model_df_full_field: pd.DataFrame,
+    obs_df_full_field: pd.DataFrame,
+    model_df_block: pd.DataFrame,
+    obs_df_block: pd.DataFrame,
+    model_var_name_full_field: str,
+    obs_var_name_full_field: str,
+    model_var_name_block: str,
+    obs_var_name_block: str,
+    xlabels: tuple[str, str],
+    percentile: float = 0.05,
+    figsize: tuple[int, int] = (10, 5),
+) -> None:
+    """
+    Plots two distributions of the model and obs data
+    for the full field and the block min/max, along with 
+    the 5th percentile of the full distribution.
+    
+    Parameters
+    ==========
+    
+    model_df_full_field : pd.DataFrame
+        The dataframe containing the model data for the full field.
+    obs_df_full_field : pd.DataFrame
+        The dataframe containing the observed data for the full field.
+    model_df_block : pd.DataFrame
+        The dataframe containing the model data for the block.
+    obs_df_block : pd.DataFrame
+        The dataframe containing the observed data for the block.
+    model_var_name_full_field : str
+        The name of the model variable for the full field.
+    obs_var_name_full_field : str
+        The name of the observed variable for the full field.
+    model_var_name_block : str
+        The name of the model variable for the block.
+    obs_var_name_block : str
+        The name of the observed variable for the block.
+    xlabels : tuple[str, str]
+        The labels for the x-axis of the plots.
+    percentile : float
+        The percentile to plot the full field distribution.
+    figsize : tuple[int, int]
+        The size of the figure.
+        
+    Returns
+    =======
+    
+    None
+    """
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        nrows=1,
+        ncols=2,
+        figsize=figsize,
+        sharey=True,
+        layout="constrained",
+    )
+
+    # Set up the axes
+    ax1 = axs[0]
+    ax2 = axs[1]
+
+    # Plot the full field data distribution for the model in red
+    ax1.hist(
+        model_df_full_field[model_var_name_full_field],
+        bins=50,
+        color="red",
+        alpha=0.5,
+        label="Model full field",
+        density=True,
+    )
+
+    # Plot the block data distribution for the model in orange
+    ax1.hist(
+        model_df_block[model_var_name_block],
+        bins=50,
+        color="orange",
+        alpha=0.5,
+        label="Model block",
+        density=True,
+    )
+
+    # plot the 5th percentile of the full distribution as a red dashed line
+    full_field_5th_percentile = np.percentile(
+        model_df_full_field[model_var_name_full_field], percentile * 100
+    )
+    full_field_1th_percentile = np.percentile(
+        model_df_full_field[model_var_name_full_field], 0.01 * 100
+    )
+
+    # plot the 5th percentile of the full distribution as a red dashed line
+    ax1.axvline(
+        full_field_5th_percentile,
+        color="red",
+        linestyle="--",
+        label=f"Full field {percentile * 100:.0f}th percentile",
+    )
+
+    # plot the 1th percentile of the full distribution as a red dot dahsed line
+    ax1.axvline(
+        full_field_1th_percentile,
+        color="red",
+        linestyle="-.",
+        label=f"Full field 1th percentile",
+    )
+
+    # Count the number of the block values which exceed the 5th percentile
+    block_exceedances_5 = np.sum(
+        model_df_block[model_var_name_block] > full_field_5th_percentile
+    )
+    block_exceedances_1 = np.sum(
+        model_df_block[model_var_name_block] > full_field_1th_percentile
+    )
+
+    # Print the number of exceedances
+    print(
+        f"Number of model block exceedances for {percentile * 100:.0f}th percentile: {block_exceedances_5}"
+    )
+    print(
+        f"Number of model block exceedances for 1th percentile: {block_exceedances_1}"
+    )
+
+    # Include the exceedences in a textbox in the top left
+    ax1.text(
+        0.05,
+        0.95,
+        f"Model block exceedances:\n{percentile * 100:.0f}th percentile: {block_exceedances_5}\n1th percentile: {block_exceedances_1}",
+        transform=ax1.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.5),
+    )
+
+    # Plot the full field data distribution for the obs in blue
+    ax2.hist(
+        obs_df_full_field[obs_var_name_full_field],
+        bins=50,
+        color="grey",
+        alpha=0.5,
+        label="Obs full field",
+        density=True,
+    )
+
+    # Plot the block data distribution for the obs in blue
+    ax2.hist(
+        obs_df_block[obs_var_name_block],
+        bins=50,
+        color="blue",
+        alpha=0.5,
+        label="Obs block",
+        density=True,
+    )
+
+    # plot the 5th percentile of the full distribution as a blue dashed line
+    obs_full_field_5th_percentile = np.percentile(
+        obs_df_full_field[obs_var_name_full_field], percentile * 100
+    )
+    obs_full_field_1th_percentile = np.percentile(
+        obs_df_full_field[obs_var_name_full_field], 0.01 * 100
+    )
+
+    # plot the 5th percentile of the full distribution as a blue dashed line
+    ax2.axvline(
+        obs_full_field_5th_percentile,
+        color="blue",
+        linestyle="--",
+        label=f"Full field {percentile * 100:.0f}th percentile",
+    )
+
+    # plot the 1th percentile of the full distribution as a blue dot dahsed line
+    ax2.axvline(
+        obs_full_field_1th_percentile,
+        color="blue",
+        linestyle="-.",
+        label=f"Full field 1th percentile",
+    )
+
+    # Count the number of the block values which exceed the 5th percentile
+    obs_block_exceedances_5 = np.sum(
+        obs_df_block[obs_var_name_block] > obs_full_field_5th_percentile
+    )
+    obs_block_exceedances_1 = np.sum(
+        obs_df_block[obs_var_name_block] > obs_full_field_1th_percentile
+    )
+
+    # Print the number of exceedances
+    print(
+        f"Number of obs block exceedances for {percentile * 100:.0f}th percentile: {obs_block_exceedances_5}"
+    )
+    print(
+        f"Number of obs block exceedances for 1th percentile: {obs_block_exceedances_1}"
+    )
+
+    # Include the exceedences in a textbox in the top left
+    ax2.text(
+        0.05,
+        0.95,
+        f"Obs block exceedances:\n{percentile * 100:.0f}th percentile: {obs_block_exceedances_5}\n1th percentile: {obs_block_exceedances_1}",
+        transform=ax2.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.5),
+    )
+
+    # Include legends in the top right
+    ax1.legend(
+        loc="upper right",
+        fontsize=10,
+    )
+    ax2.legend(
+        loc="upper right",
+        fontsize=10,
+    )
+
+    # Set the xlabels
+    ax1.set_xlabel(xlabels[0])
+    ax2.set_xlabel(xlabels[1])
+
+    # Set the titles
+    ax1.set_title("DePreSys")
+    ax2.set_title("ERA5")
+
+    # Remove the y labels
+    ax1.set_ylabel("")
+    ax2.set_ylabel("")
+
+    # remove the yticks
+    ax1.set_yticks([])
+    ax2.set_yticks([])
+
+    return None
 
 # Define a function to set up the winter years
 def select_leads_wyears_DJF(
@@ -472,6 +705,18 @@ def main():
     # Start the timer
     start = time.time()
 
+    # Hardcode the paths
+    obs_tas_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_obs_tas_UK_1961-2024_DJF_detrended.csv_06-05-2025"
+    obs_wind_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_obs_wind_UK_1961-2024_DJF_detrended.csv_06-05-2025"
+    model_tas_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_model_tas_UK_1961-2024_DJF_detrended.csv_06-05-2025"
+    model_wind_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_model_wind_UK_1961-2024_DJF_detrended.csv_06-05-2025"
+
+    # load the dfs
+    df_obs_tas_block_min = pd.read_csv(obs_tas_block_min_path)
+    df_obs_wind_block_min = pd.read_csv(obs_wind_block_min_path)
+    df_model_tas_block_min = pd.read_csv(model_tas_block_min_path)
+    df_model_wind_block_min = pd.read_csv(model_wind_block_min_path)
+
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
 
@@ -781,7 +1026,37 @@ def main():
         figsize=(10, 5),
     )
 
-    # sys.exit()
+    # Plot teh block min distribution
+    # relative to the full distribution
+    # For termpatrue first
+    plot_distributions_extremes(
+        model_df_full_field=df_model_djf,
+        obs_df_full_field=df_obs,
+        model_df_block=df_model_tas_block_min,
+        obs_df_block=df_obs_tas_block_min,
+        model_var_name_full_field="data_tas_c_drift_bc_dt",
+        obs_var_name_full_field="data_c_dt",
+        model_var_name_block="data_tas_c_min_drift_bc_dt",
+        obs_var_name_block="data_c_min_dt",
+        xlabels=["Temperature (°C)", "Temperature (°C)"],
+        percentile=0.05,
+    )
+
+    # DO the same for wind speed
+    plot_distributions_extremes(
+        model_df_full_field=df_model_djf,
+        obs_df_full_field=df_obs,
+        model_df_block=df_model_wind_block_min,
+        obs_df_block=df_obs_wind_block_min,
+        model_var_name_full_field="data_sfcWind_drift_bc_dt",
+        obs_var_name_full_field="data_sfcWind_dt",
+        model_var_name_block="data_min_drift_bc_dt",
+        obs_var_name_block="data_min_dt",
+        xlabels=["10m Wind Speed (m/s)", "10m Wind Speed (m/s)"],
+        percentile=0.05,
+    )
+
+    sys.exit()
 
     # apply the ws to wp gen function to the bias corrected wind
     # data
