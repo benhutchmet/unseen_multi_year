@@ -39,7 +39,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import select_leads_wyears_DJF
+from process_dnw_gev import select_leads_wyears_DJF, plot_distributions_extremes
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -47,6 +47,122 @@ from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_leve
 
 # Silence warnings
 warnings.filterwarnings("ignore")
+
+# Define a function to subset extremes
+# based on the full field data
+def subset_extremes(
+    model_df_full_field: pd.DataFrame,
+    obs_df_full_field: pd.DataFrame,
+    model_df_block: pd.DataFrame,
+    obs_df_block: pd.DataFrame,
+    model_var_name_full_field: str,
+    obs_var_name_full_field: str,
+    model_var_name_block: str,
+    obs_var_name_block: str,
+    percentile: float = 0.05,
+) -> tuple:
+    """
+    Compares the block minima values to a percentile threshold
+    of the full field values. If the block minima values exceed these
+    thresholds, then the block minima values are removed.
+
+    Parameters
+    ==========
+
+        model_df_full_field : pd.DataFrame
+            DataFrame of model data.
+        obs_df_full_field : pd.DataFrame
+            DataFrame of observed data.
+        model_df_block : pd.DataFrame
+            DataFrame of model data.
+        obs_df_block : pd.DataFrame
+            DataFrame of observed data.
+        model_var_name_full_field : str
+            Name of the column to use in the model DataFrame.
+        obs_var_name_full_field : str
+            Name of the column to use in the observed DataFrame.
+        model_var_name_block : str
+            Name of the column to use in the model DataFrame.
+        obs_var_name_block : str
+            Name of the column to use in the observed DataFrame.
+        percentile : float, optional
+            Percentile threshold, by default 0.05.
+
+    Returns
+    =======
+
+        tuple
+            Tuple of DataFrames containing the extremes for model and obs data.
+
+    """
+
+    # Create copies of the DataFrames
+    model_df_full_field_copy = model_df_full_field.copy()
+    obs_df_full_field_copy = obs_df_full_field.copy()
+    model_df_block_copy = model_df_block.copy()
+    obs_df_block_copy = obs_df_block.copy()
+
+    # reset the index of the DataFrames
+    model_df_full_field_copy = model_df_full_field_copy.reset_index(drop=True)
+    obs_df_full_field_copy = obs_df_full_field_copy.reset_index(drop=True)
+    model_df_block_copy = model_df_block_copy.reset_index(drop=True)
+    obs_df_block_copy = obs_df_block_copy.reset_index(drop=True)
+
+    # Find the percentile threshold for the model df
+    model_df_full_field_threshold = np.percentile(
+        model_df_full_field_copy[model_var_name_full_field].values,
+        percentile * 100,
+    )
+    obs_df_full_field_threshold = np.percentile(
+        obs_df_full_field_copy[obs_var_name_full_field].values,
+        percentile * 100,
+    )
+
+    # Count the number of block values which exceed this threshold
+    model_df_block_exceed = np.sum(
+        model_df_block_copy[model_var_name_block].values
+        > model_df_full_field_threshold
+    )
+    obs_df_block_exceed = np.sum(
+        obs_df_block_copy[obs_var_name_block].values
+        > obs_df_full_field_threshold
+    )
+
+    # Print the number of block values which exceed this threshold
+    print(
+        f"Model block values exceeding threshold: {model_df_block_exceed}"
+    )
+    print(
+        f"Obs block values exceeding threshold: {obs_df_block_exceed}"
+    )
+
+    # Find the indices of rows where the model block values exceed the threshold
+    model_df_block_exceed_indices = model_df_block_copy[
+        model_df_block_copy[model_var_name_block]
+        > model_df_full_field_threshold
+    ].index
+
+    # Drop these rows
+    model_df_block_copy = model_df_block_copy.drop(
+        model_df_block_exceed_indices
+    )
+
+    # Find the indices of rows where the obs block values exceed the threshold
+    obs_df_block_exceed_indices = obs_df_block_copy[
+        obs_df_block_copy[obs_var_name_block]
+        > obs_df_full_field_threshold
+    ].index
+
+    # Drop these rows
+    obs_df_block_copy = obs_df_block_copy.drop(
+        obs_df_block_exceed_indices
+    )
+
+    # Return the DataFrames as a tuple
+    return (
+        model_df_block_copy,
+        obs_df_block_copy,
+    )
 
 # Define a function for plotting the return periods
 # empirical
@@ -2028,26 +2144,92 @@ def main():
     model_path_tas = os.path.join(save_dir_dfs, f"{fname_tas_model}_{current_date}")
     model_path_wind = os.path.join(save_dir_dfs, f"{fname_wind_model}_{current_date}")
 
-    # if the file does not exist
-    if not os.path.exists(obs_path_tas):
-        print(f"Saving {fname_tas} to {save_dir_dfs}")
-        block_minima_obs_tas_dt.to_csv(obs_path_tas)
+    # # if the file does not exist
+    # if not os.path.exists(obs_path_tas):
+    #     print(f"Saving {fname_tas} to {save_dir_dfs}")
+    #     block_minima_obs_tas_dt.to_csv(obs_path_tas)
 
-    # if the file does not exist
-    if not os.path.exists(obs_path_wind):
-        print(f"Saving {fname_wind} to {save_dir_dfs}")
-        block_minima_obs_wind_dt.to_csv(obs_path_wind)
+    # # if the file does not exist
+    # if not os.path.exists(obs_path_wind):
+    #     print(f"Saving {fname_wind} to {save_dir_dfs}")
+    #     block_minima_obs_wind_dt.to_csv(obs_path_wind)
 
-    # if the file does not exist
-    if not os.path.exists(model_path_tas):
-        print(f"Saving {fname_tas_model} to {save_dir_dfs}")
-        block_minima_model_tas_drift_corr_dt.to_csv(model_path_tas)
+    # # if the file does not exist
+    # if not os.path.exists(model_path_tas):
+    #     print(f"Saving {fname_tas_model} to {save_dir_dfs}")
+    #     block_minima_model_tas_drift_corr_dt.to_csv(model_path_tas)
 
-    # if the file does not exist
-    if not os.path.exists(model_path_wind):
-        print(f"Saving {fname_wind_model} to {save_dir_dfs}")
-        block_minima_model_wind_drift_corr_dt.to_csv(model_path_wind)
+    # # if the file does not exist
+    # if not os.path.exists(model_path_wind):
+    #     print(f"Saving {fname_wind_model} to {save_dir_dfs}")
+    #     block_minima_model_wind_drift_corr_dt.to_csv(model_path_wind)
 
+    # Set up the paths to the full field model data
+    model_full_field_path = os.path.join(
+        save_dir_dfs, "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
+    )
+    obs_full_field_path = os.path.join(
+        save_dir_dfs, "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
+    )
+
+    # Load these dataframes
+    df_model_full_field = pd.read_csv(model_full_field_path)
+    df_obs_full_field = pd.read_csv(obs_full_field_path)
+
+    plot_distributions_extremes(
+        model_df_full_field=df_model_full_field,
+        obs_df_full_field=df_obs_full_field,
+        model_df_block=block_minima_model_tas_drift_corr_dt,
+        obs_df_block=block_minima_obs_tas_dt,
+        model_var_name_full_field="data_tas_c_drift_bc_dt",
+        obs_var_name_full_field="data_c_dt",
+        model_var_name_block="data_tas_c_min_drift_bc_dt",
+        obs_var_name_block="data_c_min_dt",
+        xlabels=["Temperature (°C)", "Temperature (°C)"],
+        percentile=0.05,
+    )
+
+    # DO the same for wind speed
+    plot_distributions_extremes(
+        model_df_full_field=df_model_full_field,
+        obs_df_full_field=df_obs_full_field,
+        model_df_block=block_minima_model_wind_drift_corr_dt,
+        obs_df_block=block_minima_obs_wind_dt,
+        model_var_name_full_field="data_sfcWind_drift_bc_dt",
+        obs_var_name_full_field="data_sfcWind_dt",
+        model_var_name_block="data_min_drift_bc_dt",
+        obs_var_name_block="data_min_dt",
+        xlabels=["10m Wind Speed (m/s)", "10m Wind Speed (m/s)"],
+        percentile=0.05,
+    )
+
+    # print the len of block minima model tas drift corr dt
+    print(f"len of block minima model tas drift corr dt pre subset: {len(block_minima_model_tas_drift_corr_dt)}")
+
+    # print the len of block minima obs tas dt pre subset
+    print(f"len of block minima obs tas dt pre subset: {len(block_minima_obs_tas_dt)}")
+
+    # Test the new function for trimming the distribution
+    # Subset the extremes for temperature
+    block_min_model_tas_extremes, block_min_obs_tas_extremes = subset_extremes(
+        model_df_full_field=df_model_full_field,
+        obs_df_full_field=df_obs_full_field,
+        model_df_block=block_minima_model_tas_drift_corr_dt,
+        obs_df_block=block_minima_obs_tas_dt,
+        model_var_name_full_field="data_tas_c_drift_bc_dt",
+        obs_var_name_full_field="data_c_dt",
+        model_var_name_block="data_tas_c_min_drift_bc_dt",
+        obs_var_name_block="data_c_min_dt",
+        percentile=0.05,
+    )
+
+    # print the len of block minima model tas drift corr dt
+    print(f"len of block minima model tas drift corr dt post subset: {len(block_min_model_tas_extremes)}")
+
+    # print the len of block minima obs tas dt post subset
+    print(f"len of block minima obs tas dt post subset: {len(block_min_obs_tas_extremes)}")
+
+    # Do the same but for wind speed
     sys.exit()
 
     # # Compare the lead time corrected trends
