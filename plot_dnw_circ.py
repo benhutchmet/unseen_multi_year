@@ -3960,6 +3960,240 @@ def plot_wind_composites(
 
     return None
 
+# Define a function to plot a single column variable
+def plot_var_composites_model(
+    subset_dfs_model: List[pd.DataFrame],
+    subset_arrs_model: List[np.ndarray],
+    clim_arrs_model: List[np.ndarray],
+    model_index_dicts: List[Dict[str, np.ndarray]],
+    lats_path: str,
+    lons_path: str,
+    var_name: str,
+    figsize: Tuple[int, int] = (8, 9),
+):
+    """
+    Plots the subset composites for a single model variable.
+
+    Args:
+    =====
+
+        subset_dfs_model (List[pd.DataFrame]): The list of subset dataframes for the model.
+        subset_arrs_model (List[np.ndarray]): The list of subset arrays for the model.
+        clim_arrs_model (List[np.ndarray]): The list of climatology arrays for the model.
+        model_index_dicts (List[Dict[str, np.ndarray]]): The list of model index dictionaries.
+        lats_path (str): The path to the latitude file.
+        lons_path (str): The path to the longitude file.
+        var_name (str): The name of the variable to plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+    
+    """
+
+    # if the variable is tas
+    if var_name == "tas":
+        cmap = "bwr"
+        levels = np.array(
+            [
+                -10,
+                -8,
+                -6,
+                -4,
+                -2,
+                2,
+                4,
+                6,
+                8,
+                10,
+            ]
+        )
+    elif var_name == "sfcWind":
+        cmap = "PRGn"
+        levels = np.array(
+            [
+                -5,
+                -4,
+                -3,
+                -2,
+                -1,
+                1,
+                2,
+                3,
+                4,
+                5,
+            ]
+        )
+    elif var_name in ["uas", "vas"]:
+        cmap = "PRGn"
+        levels = np.array(
+            [
+                -4,
+                -3.5,
+                -3,
+                -2.5,
+                -2,
+                -1.5,
+                -1,
+                -0.5,
+                0.5,
+                1,
+                1.5,
+                2,
+                2.5,
+                3,
+                3.5,
+                4,
+            ]
+        )
+    else:
+        raise ValueError(f"Variable {var_name} not supported.")
+    
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        ncols=1,
+        nrows=3,
+        figsize=figsize,
+        layout="constrained",
+        subplot_kw={"projection": ccrs.PlateCarree()},
+    )
+
+    # Set up the names
+    names_list = [
+        "Block max days",
+        "Extreme days",
+        "Unseen days",
+    ]
+
+    # Flatten the axes
+    axs = axs.flatten()
+
+    # Loop over the axes
+    for i, ax_this in enumerate(axs):
+        # Set up the subset arr this model
+        subset_arr_this_model = subset_arrs_model[i]
+
+        # Set up the subset arr this model full
+        subset_arr_this_model_full = np.zeros(
+            (len(subset_dfs_model[i]), len(lats), len(lons))
+        )
+
+        # Set up the N for model this
+        N_model_this = np.shape(subset_arr_this_model_full)[0]
+
+        # Extract the index dict for the model this
+        model_index_dict_this = model_index_dicts[i]
+
+        # do the same for wind speed
+        init_year_array_this = np.array(model_index_dict_this["init_year"])
+        member_array_this = np.array(model_index_dict_this["member"])
+        lead_array_this = np.array(model_index_dict_this["lead"])
+
+        # Zero the missing days her
+        missing_days = 0
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_dfs_model[i].iterrows())):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition_this = (
+                (init_year_array_this == init_year_df)
+                & (member_array_this == member_df)
+                & (lead_array_this == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this = np.where(condition_this)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found"
+                )
+                missing_days += 1
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_index_this = subset_arr_this_model[index_this, :, :]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_full[j, :, :] = (
+                subset_arr_this_model_index_this
+            )
+
+        # Print the row index
+        print(f"Row index: {i}")
+        print(f"Number of missing days: {missing_days}")
+        print(f"Model overall N: {N_model_this}")
+
+        # Take the mean over this
+        subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+        # Calculate the model anoms
+        anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
+
+        # Plot the model data on the right
+        im_model = ax_this.contourf(
+            lons,
+            lats,
+            anoms_this_model,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # add coastlines to all of these
+        ax_this.coastlines()
+
+        # Include a textbox in the rop right for N
+        ax_this.text(
+            0.95,
+            0.95,
+            f"N = {N_model_this}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=ax_this.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # if i == 2
+        if i == 2:
+            # add the colorbar for wind
+            cbar = fig.colorbar(
+                im_model,
+                ax=ax_this,
+                orientation="horizontal",
+                pad=0.0,
+                shrink=0.8,
+            )
+            cbar.set_ticks(levels)
+
+        # if i == 0
+        if i == 0:
+            # Set the title for ax0 and ax1 in bold
+            ax_this.set_title("Model (DePreSys)", fontsize=12, fontweight="bold")
+        # Set up a textbox in the bottom right
+        ax_this.text(
+            0.95,
+            0.05,
+            names_list[i],
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=ax_this.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+    return None
 
 # Define the main function
 def main():
@@ -4307,6 +4541,60 @@ def main():
     with open(os.path.join(subset_model_dir, model_temp_subset_json_fname), "r") as f:
         model_temp_subset_index_list = json.load(f)
 
+    # Set up the fnames for the vas data
+    model_vas_subset_fname = (
+        f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
+    )
+    model_vas_subset_json_fname = (
+        f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
+    )
+
+    # if the model subset file does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_vas_subset_fname)} does not exist."
+        )
+    
+    # load the model vas subset
+    model_vas_subset = np.load(os.path.join(subset_model_dir, model_vas_subset_fname))
+
+    # If the json does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_vas_subset_json_fname)} does not exist."
+        )
+    
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_vas_subset_json_fname), "r") as f:
+        model_vas_subset_index_list = json.load(f)
+
+    # Set up the fnames for the uas data
+    model_uas_subset_fname = (
+        f"HadGEM3-GC31-MM_uas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
+    )
+    model_uas_subset_json_fname = (
+        f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
+    )
+
+    # if the model subset file does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_uas_subset_fname)} does not exist."
+        )
+    
+    # load the model uas subset
+    model_uas_subset = np.load(os.path.join(subset_model_dir, model_uas_subset_fname))
+
+    # If the json does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_uas_subset_json_fname)} does not exist."
+        )
+    
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
+        model_uas_subset_index_list = json.load(f)
+
     # # print the length of the model temperature subset index list
     # # Print the length of the model temperature subset index list
     # print(f"Length of model temperature subset index list: {np.shape(model_temp_subset_index_list['init_year'])}")
@@ -4323,6 +4611,8 @@ def main():
         f"climatology_HadGEM3-GC31-MM_sfcWind_DJF_Europe_1960_2018_day.npy"
     )
     tas_clim_fname = f"climatology_HadGEM3-GC31-MM_tas_DJF_Europe_1960_2018_day.npy"
+    vas_clim_fname = "climatology_HadGEM3-GC31-MM_vas_DJF_Europe_1960_2018_day.npy"
+    uas_clim_fname = "climatology_HadGEM3-GC31-MM_uas_DJF_Europe_1960_2018_day.npy"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(model_clim_dir, psl_clim_fname)):
@@ -4340,15 +4630,29 @@ def main():
             f"File {os.path.join(model_clim_dir, tas_clim_fname)} does not exist."
         )
 
+    if not os.path.exists(os.path.join(model_clim_dir, vas_clim_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(model_clim_dir, vas_clim_fname)} does not exist."
+        )
+
+    if not os.path.exists(os.path.join(model_clim_dir, uas_clim_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(model_clim_dir, uas_clim_fname)} does not exist."
+        )
+
     # load the climatology data
     model_psl_clim = np.load(os.path.join(model_clim_dir, psl_clim_fname))
     model_wind_clim = np.load(os.path.join(model_clim_dir, sfcWind_clim_fname))
     model_tas_clim = np.load(os.path.join(model_clim_dir, tas_clim_fname))
+    model_vas_clim = np.load(os.path.join(model_clim_dir, vas_clim_fname))
+    model_uas_clim = np.load(os.path.join(model_clim_dir, uas_clim_fname))
 
     # print the shape of the climatology data
     print(f"Shape of obs psl climatology data: {model_psl_clim.shape}")
     print(f"Shape of obs wind climatology data: {model_wind_clim.shape}")
     print(f"Shape of obs tas climatology data: {model_tas_clim.shape}")
+    print(f"Shape of obs vas climatology data: {model_vas_clim.shape}")
+    print(f"Shape of obs uas climatology data: {model_uas_clim.shape}")
 
     # # print the values of the climatology data
     # print(f"Obs psl climatology data: {obs_psl_clim}")
@@ -4551,6 +4855,20 @@ def main():
         model_wind_subset,
     ]
 
+    # Set up the subset arrs model vas
+    subset_arrs_model_vas = [
+        model_vas_subset,
+        model_vas_subset,
+        model_vas_subset,
+    ]
+
+    # Set up the subset arrs model uas
+    subset_arrs_model_uas = [
+        model_uas_subset,
+        model_uas_subset,
+        model_uas_subset,
+    ]
+
     # Set up the clim arrs obs
     clim_arrs_obs = [
         obs_psl_clim,
@@ -4591,6 +4909,20 @@ def main():
         model_wind_clim,
         model_wind_clim,
         model_wind_clim,
+    ]
+
+    # Set up the clim arrs model vas
+    clim_arrs_model_vas = [
+        model_vas_clim,
+        model_vas_clim,
+        model_vas_clim,
+    ]
+
+    # Set up the clim arrs model uas
+    clim_arrs_model_uas = [
+        model_uas_clim,
+        model_uas_clim,
+        model_uas_clim,
     ]
 
     # Set up the dates lists obs
@@ -4635,11 +4967,25 @@ def main():
         model_wind_subset_index_list,
     ]
 
+    # Set up the model index dicts vas
+    model_index_dicts_vas = [
+        model_vas_subset_index_list,
+        model_vas_subset_index_list,
+        model_vas_subset_index_list,
+    ]
+
+    # Set up the model index dicts uas
+    model_index_dicts_uas = [
+        model_uas_subset_index_list,
+        model_uas_subset_index_list,
+        model_uas_subset_index_list,
+    ]
+
     # Set up the lats path
     lats_paths = [
         os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
         os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
-        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+            os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
     ]
 
     # Set up the lons path
@@ -4654,6 +5000,22 @@ def main():
     )
     lons_europe = os.path.join(
         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    )
+
+    # Set up the lons europe vas
+    lons_europe_vas = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy"
+    )
+    lats_europe_vas = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lats.npy"
+    )
+
+    # Set up the lons europe uas
+    lons_europe_uas = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lons.npy"
+    )
+    lats_europe_uas = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lats.npy"
     )
 
     # Set up the suptitle
@@ -4680,21 +5042,47 @@ def main():
     #     figsize=(8, 9),
     # )
 
-    # plot the wind composites
-    plot_wind_composites(
-        subset_dfs_obs=subset_dfs_obs,
+    # # plot the wind composites
+    # plot_wind_composites(
+    #     subset_dfs_obs=subset_dfs_obs,
+    #     subset_dfs_model=subset_dfs_model,
+    #     subset_arrs_obs_wind=subset_arrs_obs_wind,
+    #     subset_arrs_model_wind=subset_arrs_model_vas,
+    #     clim_arrs_obs_wind=clim_arrs_obs_wind,
+    #     clim_arrs_model_wind=clim_arrs_model_vas,
+    #     dates_lists_obs_wind=dates_lists_obs_wind,
+    #     model_index_dicts_wind=model_index_dicts_vas,
+    #     lats_path=lats_europe_vas,
+    #     lons_path=lons_europe_vas,
+    #     suptitle=suptitle,
+    #     figsize=(10, 10),
+    # )
+
+    # test the new function
+    plot_var_composites_model(
         subset_dfs_model=subset_dfs_model,
-        subset_arrs_obs_wind=subset_arrs_obs_wind,
-        subset_arrs_model_wind=subset_arrs_model_wind,
-        clim_arrs_obs_wind=clim_arrs_obs_wind,
-        clim_arrs_model_wind=clim_arrs_model_wind,
-        dates_lists_obs_wind=dates_lists_obs_wind,
-        model_index_dicts_wind=model_index_dicts_wind,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        suptitle=suptitle,
+        subset_arrs_model=subset_arrs_model_vas,
+        clim_arrs_model=clim_arrs_model_vas,
+        model_index_dicts=model_index_dicts_vas,
+        lats_path=lats_europe_vas,
+        lons_path=lons_europe_vas,
+        var_name="vas",
         figsize=(10, 10),
     )
+
+    # test the new function
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model_uas,
+        clim_arrs_model=clim_arrs_model_uas,
+        model_index_dicts=model_index_dicts_uas,
+        lats_path=lats_europe_uas,
+        lons_path=lons_europe_uas,
+        var_name="uas",
+        figsize=(10, 10),
+    )
+
+    sys.exit()
 
     # test the function for just plotting the tas composites
     plot_tas_composites(

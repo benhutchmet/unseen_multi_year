@@ -42,6 +42,7 @@ Returns:
 # Local imports
 import os
 import sys
+import glob
 import time
 import argparse
 
@@ -119,11 +120,18 @@ def main():
     # to check whether files exist
     for year in tqdm(years, desc="Checking files", unit="year"):
         # Set up the file name
-        file_name = f"{model}_{args.variable}_{args.region}_{year}_{args.season}_{temp_res}.npy"
-        # Check if the file exists
-        if not os.path.isfile(f"{arrs_dir}{file_name}"):
+        file_name = f"{model}_{args.variable}_{args.region}_{year}_{args.season}_{temp_res}_*.npy"
+
+        # glob the file name
+        file_path = os.path.join(arrs_dir, file_name)
+
+        # glob the file path
+        file_paths = glob.glob(file_path)
+
+        if len(file_paths) == 0:
             print(f"File {file_name} does not exist")
             missing_files.append(file_name)
+            continue
 
     print("Missing files:")
     print(missing_files)
@@ -131,12 +139,26 @@ def main():
     # Set up the test array to load
     test_file_path = os.path.join(
         arrs_dir,
-        f"{model}_{args.variable}_{args.region}_{years[0]}_{args.season}_{temp_res}.npy",
+        f"{model}_{args.variable}_{args.region}_{years[0]}_{args.season}_{temp_res}_*.npy"
     )
 
+    # glob the test file path
+    test_file_paths = glob.glob(test_file_path)
+
     # if the test file does not exist
-    if not os.path.exists(test_file_path):
-        raise FileNotFoundError(f"Test file does not exist: {test_file_path}")
+    if len(test_file_paths) == 0:
+        print(f"Test file {test_file_path} does not exist")
+        raise FileNotFoundError(
+            f"Test file {test_file_path} does not exist"
+        )
+    elif len(test_file_paths) > 1:
+        print(f"Test file {test_file_path} does not exist")
+        raise FileExistsError(
+            f"Test file {test_file_path} does not exist"
+        )
+    
+    # Set up the test file path
+    test_file_path = test_file_paths[0]
     
     # Load the test file as an array
     test_arr = np.load(test_file_path)
@@ -171,15 +193,21 @@ def main():
     # Loop over the years
     for i, year in tqdm(enumerate(years), desc="Loading files", unit="year"):
         # Form the file path
-        file_path = os.path.join(arrs_dir, f"{model}_{args.variable}_{args.region}_{year}_{args.season}_{temp_res}.npy")
+        file_path = os.path.join(arrs_dir, f"{model}_{args.variable}_{args.region}_{year}_{args.season}_{temp_res}_*.npy")
 
-        # if the file does not exist then print an error message
-        if not os.path.isfile(file_path):
+        # glob the file path
+        file_paths = glob.glob(file_path)
+
+        # if the file path is empty then print an error message
+        if len(file_paths) == 0:
             print(f"File {file_path} does not exist")
+            sys.exit()
+        elif len(file_paths) > 1:
+            print(f"File {file_path} greater than 1")
             sys.exit()
 
         # load the array
-        arr_this_year = np.load(file_path)
+        arr_this_year = np.load(file_paths[0])
 
         # if the 2th dimension does not have shape 3750
         # then print an error message

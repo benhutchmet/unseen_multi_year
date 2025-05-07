@@ -1083,7 +1083,7 @@ def main():
         percentile=0.05,
     )
 
-    sys.exit()
+    # sys.exit()
 
     # apply the ws to wp gen function to the bias corrected wind
     # data
@@ -1553,48 +1553,48 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
     
     # # plot the return period plots here
     # # first the empirical return periods
-    plot_emp_rps(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        obs_val_name="demand_net_wind_max",
-        model_val_name="demand_net_wind_bc_max_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Demand net wind (GW)",
-        nsamples=1000,
-        ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
-        blue_line=np.max,
-        high_values_rare=True,
-        figsize=(5, 5),
-        bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
-    )
+    # plot_emp_rps(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     obs_val_name="demand_net_wind_max",
+    #     model_val_name="demand_net_wind_bc_max_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Demand net wind (GW)",
+    #     nsamples=1000,
+    #     ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
+    #     blue_line=np.max,
+    #     high_values_rare=True,
+    #     figsize=(5, 5),
+    #     bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
+    # )
 
-    # plot the GEV fitted return periods
-    plot_gev_rps(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        obs_val_name="demand_net_wind_max",
-        model_val_name="demand_net_wind_bc_max_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Demand net wind (GW)",
-        nsamples=1000,
-        ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
-        blue_line=np.max,
-        high_values_rare=True,
-        figsize=(5, 5),
-        bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
-    )
+    # # plot the GEV fitted return periods
+    # plot_gev_rps(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     obs_val_name="demand_net_wind_max",
+    #     model_val_name="demand_net_wind_bc_max_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Demand net wind (GW)",
+    #     nsamples=1000,
+    #     ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
+    #     blue_line=np.max,
+    #     high_values_rare=True,
+    #     figsize=(5, 5),
+    #     bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
+    # )
 
 
-    sys.exit()
+    # sys.exit()
 
     # ensure the effective dec year is a datetime and is just the year in the
     # model
@@ -1607,23 +1607,23 @@ def main():
         "effective_dec_year"
     ].dt.year.astype(int)
 
-    # plot the return periods over decades
-    gev_funcs.plot_return_periods_decades(
-        model_df=block_max_model_dnw,
-        model_var_name="demand_net_wind_bc_max_bc",
-        obs_df=block_max_obs_dnw,
-        obs_var_name="demand_net_wind_max",
-        decades=np.arange(1960, 2020, 10),
-        title="Return period of 1 in 100-year event",
-        num_samples=1000,
-        figsize=(10, 5),
-        bad_min=False,
-    )
+    # # plot the return periods over decades
+    # gev_funcs.plot_return_periods_decades(
+    #     model_df=block_max_model_dnw,
+    #     model_var_name="demand_net_wind_bc_max_bc",
+    #     obs_df=block_max_obs_dnw,
+    #     obs_var_name="demand_net_wind_max",
+    #     decades=np.arange(1960, 2020, 10),
+    #     title="Return period of 1 in 100-year event",
+    #     num_samples=1000,
+    #     figsize=(10, 5),
+    #     bad_min=False,
+    # )
 
     # set up a fname for the obs dnw df
-    obs_dnw_fpath = os.path.join(dfs_dir, "block_maxima_obs_demand_net_wind.csv")
+    obs_dnw_fpath = os.path.join(dfs_dir, "block_maxima_obs_demand_net_wind_07-05-2025.csv")
     # set up a fname for the model dnw df
-    model_dnw_fpath = os.path.join(dfs_dir, "block_maxima_model_demand_net_wind.csv")
+    model_dnw_fpath = os.path.join(dfs_dir, "block_maxima_model_demand_net_wind_07-05-2025.csv")
 
     # if the fpath does not exist, svae the dtaa
     if not os.path.exists(obs_dnw_fpath):

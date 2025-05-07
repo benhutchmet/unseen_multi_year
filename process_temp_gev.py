@@ -1561,18 +1561,18 @@ def main():
     start_time = time.time()
 
     # # Set up the test path
-    # arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
-    # test_fname = "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_20250507_120041.npy"
+    arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
+    test_fname = "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_20250507_124217.npy"
 
-    # # if the path exists load the data
-    # if os.path.exists(os.path.join(arrs_dir, test_fname)):
-    #     # Load the data
-    #     model_arr = np.load(os.path.join(arrs_dir, test_fname))
+    # if the path exists load the data
+    if os.path.exists(os.path.join(arrs_dir, test_fname)):
+        # Load the data
+        model_arr = np.load(os.path.join(arrs_dir, test_fname))
 
-    #     # Print the shape of the model arr
-    #     print(f"Shape of model arr: {model_arr.shape}")
+        # Print the shape of the model arr
+        print(f"Shape of model arr: {model_arr.shape}")
 
-    # sys.exit()
+    sys.exit()
 
     # # Set up the years
     # years_test = np.arange(1960, 2018 + 1, 1)

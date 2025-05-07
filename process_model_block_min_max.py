@@ -33,6 +33,7 @@ Returns:
 # Local imports
 import os
 import sys
+import glob
 import time
 import json
 import argparse
@@ -54,7 +55,7 @@ def main():
     start_time = time.time()
 
     # Set up the hard coded variables
-    maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind.csv"
+    maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind_07-05-2025.csv"
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     subset_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
     model = "HadGEM3-GC31-MM"
@@ -136,15 +137,24 @@ def main():
     # Set up the test file path
     test_file_path = os.path.join(
         arrs_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day_*.npy",
     )
 
-    # if the file does not exist, raise an error
-    if not os.path.exists(test_file_path):
-        raise FileNotFoundError(f"File {test_file_path} does not exist.")
+    # Glob the test file path
+    test_file_paths = glob.glob(test_file_path)
+
+    # if the test file path is empty, raise an error
+    if len(test_file_paths) == 0:
+        raise FileNotFoundError(
+            f"Test file {test_file_path} does not exist. Please check the path."
+        )
+    elif len(test_file_paths) > 1:
+        raise FileExistsError(
+            f"Test file {test_file_path} does not exist. Please check the path."
+        )
 
     # Load the test file
-    test_file = np.load(test_file_path)
+    test_file = np.load(test_file_paths[0])
 
     # print the shape of the test file
     print("Shape of the test file: ", test_file.shape)
@@ -204,11 +214,24 @@ def main():
         # set up the file to extract
         model_data_path = os.path.join(
             arrs_dir,
-            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}.npy",
+            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}_*.npy",
         )
 
-        # load the data 
-        model_data = np.load(model_data_path)
+        # glob the model data path
+        model_data_paths = glob.glob(model_data_path)
+
+        # if the model data path is empty, raise an error
+        if len(model_data_paths) == 0:
+            raise FileNotFoundError(
+                f"Model data file {model_data_path} does not exist. Please check the path."
+            )
+        elif len(model_data_paths) > 1:
+            raise FileExistsError(
+                f"Model data file {model_data_path} does not exist. Please check the path."
+            )
+
+        # load the data
+        model_data = np.load(model_data_paths[0])
 
         # find the index of the member
         member_index = np.where(members_list == member)[0][0]
