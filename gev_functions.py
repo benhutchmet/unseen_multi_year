@@ -4506,11 +4506,11 @@ def dot_plot_subplots(
         # )
 
         # calculate the model trend in the very bad events
-        model_trend_very_bad = np.polyfit(
-            very_bad_events[model_time_name].dt.year,
-            very_bad_events[model_val_name],
-            1,
-        )
+        # model_trend_very_bad = np.polyfit(
+        #     very_bad_events[model_time_name].dt.year,
+        #     very_bad_events[model_val_name],
+        #     1,
+        # )
 
         # # plot the model trend for very bad events in a dashed red line
         # ax_big.plot(

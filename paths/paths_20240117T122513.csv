@@ -41,3 +41,5 @@ tos,Omon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3
 zg,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/
 vas,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/
 uas,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/
+uas,day,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast
+vas,day,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast

@@ -135,7 +135,7 @@ def main():
     # Check if running in IPython
     if "ipykernel_launcher" in sys.argv[0]:
         # Manually set arguments for IPython
-        args = parser.parse_args(["--variable", "psl", "--region", "NA", "--init_year", "2020", "--season", "DJF", "--winter", "1", "--frequency", "day"])
+        args = parser.parse_args(["--variable", "uas", "--region", "Europe", "--init_year", "1960", "--season", "DJF", "--winter", "1", "--frequency", "day"])
     else:
         # Parse arguments normally
         args = parser.parse_args()
@@ -274,6 +274,8 @@ def main():
 
         # Load the data
         obs_data = iris.load_cube(obs_path, "msl")
+    elif args.variable in ["uas", "vas"]:
+        print("Loading U10 and V10 data for model only")
     else:
         raise ValueError("Variable not recognised")
 
@@ -289,78 +291,78 @@ def main():
     obs_cubelist_v10 = []
 
     # Loop over the remaining years
-    for year in tqdm(remaining_years):
-        for month in ["01", "02", "12"]:
-            # if the year is 2025 and the month is 12, then skip
-            if year == "2025" and month == "12":
-                continue
+    # for year in tqdm(remaining_years):
+    #     for month in ["01", "02", "12"]:
+    #         # if the year is 2025 and the month is 12, then skip
+    #         if year == "2025" and month == "12":
+    #             continue
             
-            # Set up the fname this
-            fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}_daymean.nc"
+    #         # Set up the fname this
+    #         fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}_daymean.nc"
 
-            # if the variable is tas
-            if args.variable == "tas":
-                # Set up the path to the observed data
-                obs_path_this = os.path.join(remaining_files_dir, fname_this)
+    #         # if the variable is tas
+    #         if args.variable == "tas":
+    #             # Set up the path to the observed data
+    #             obs_path_this = os.path.join(remaining_files_dir, fname_this)
 
-                # Load the observed data
-                obs_cube_this = iris.load_cube(obs_path_this, "t2m")
+    #             # Load the observed data
+    #             obs_cube_this = iris.load_cube(obs_path_this, "t2m")
 
-                # Append to the cubelist
-                obs_cubelist_first.append(obs_cube_this)
-            elif args.variable == "sfcWind":
-                # Set up the path to the observed data
-                obs_path_this = os.path.join(remaining_files_dir, fname_this)
+    #             # Append to the cubelist
+    #             obs_cubelist_first.append(obs_cube_this)
+    #         elif args.variable == "sfcWind":
+    #             # Set up the path to the observed data
+    #             obs_path_this = os.path.join(remaining_files_dir, fname_this)
 
-                # Load the observed data
-                obs_cube_u10 = iris.load_cube(obs_path_this, "u10")
-                obs_cube_v10 = iris.load_cube(obs_path_this, "v10")
+    #             # Load the observed data
+    #             obs_cube_u10 = iris.load_cube(obs_path_this, "u10")
+    #             obs_cube_v10 = iris.load_cube(obs_path_this, "v10")
 
-                # Append to the cubelist
-                obs_cubelist_u10.append(obs_cube_u10)
-                obs_cubelist_v10.append(obs_cube_v10)
-            elif args.variable == "psl":
-                # Set up the path to the observed data
-                obs_path_this = os.path.join(remaining_files_dir, fname_this)
+    #             # Append to the cubelist
+    #             obs_cubelist_u10.append(obs_cube_u10)
+    #             obs_cubelist_v10.append(obs_cube_v10)
+    #         elif args.variable == "psl":
+    #             # Set up the path to the observed data
+    #             obs_path_this = os.path.join(remaining_files_dir, fname_this)
 
-                # Load the observed data
-                obs_cube_this = iris.load_cube(obs_path_this, "msl")
+    #             # Load the observed data
+    #             obs_cube_this = iris.load_cube(obs_path_this, "msl")
 
-                # Append to the cubelist
-                obs_cubelist_first.append(obs_cube_this)
-            else:
-                raise ValueError("Variable not recognised")
+    #             # Append to the cubelist
+    #             obs_cubelist_first.append(obs_cube_this)
+    #         else:
+    #             raise ValueError("Variable not recognised")
 
     # convert the list to a cube list
-    obs_cubelist_first = iris.cube.CubeList(obs_cubelist_first)
-    obs_cubelist_u10 = iris.cube.CubeList(obs_cubelist_u10)
-    obs_cubelist_v10 = iris.cube.CubeList(obs_cubelist_v10)
+    # obs_cubelist_first = iris.cube.CubeList(obs_cubelist_first)
+    # obs_cubelist_u10 = iris.cube.CubeList(obs_cubelist_u10)
+    # obs_cubelist_v10 = iris.cube.CubeList(obs_cubelist_v10)
 
-    # Concatenate the cubelist
-    if args.variable in ["tas", "psl"]:
-        print("obs cubelist:", obs_cubelist_first)
+    # # Concatenate the cubelist
+    # if args.variable in ["tas", "psl"]:
+    #     print("obs cubelist:", obs_cubelist_first)
 
-        removed_attrs = equalise_attributes(obs_cubelist_first)
+    #     removed_attrs = equalise_attributes(obs_cubelist_first)
 
-        obs_cube = obs_cubelist_first.concatenate_cube()
-    elif args.variable == "sfcWind":
-        # removed the attributes
-        removed_attrs_u10 = equalise_attributes(obs_cubelist_u10)
-        removed_attrs_v10 = equalise_attributes(obs_cubelist_v10)
+    #     obs_cube = obs_cubelist_first.concatenate_cube()
+    # elif args.variable == "sfcWind":
+    #     # removed the attributes
+    #     removed_attrs_u10 = equalise_attributes(obs_cubelist_u10)
+    #     removed_attrs_v10 = equalise_attributes(obs_cubelist_v10)
 
-        obs_cube_u10 = obs_cubelist_u10.concatenate_cube()
-        obs_cube_v10 = obs_cubelist_v10.concatenate_cube()
+    #     obs_cube_u10 = obs_cubelist_u10.concatenate_cube()
+    #     obs_cube_v10 = obs_cubelist_v10.concatenate_cube()
 
-        # Calculate the wind speed from the data
-        # Calculate wind speed
-        windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
-        windspeed_10m.rename("si10")
+    #     # Calculate the wind speed from the data
+    #     # Calculate wind speed
+    #     windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
+    #     windspeed_10m.rename("si10")
 
-        # rename as obs cube
-        obs_cube = windspeed_10m
+    #     # rename as obs cube
+    #     obs_cube = windspeed_10m
 
-    # print the obs cube
-    print(obs_cube)
+    # # print the obs cube
+    # print(obs_cube)
 
     # Loop over the members list
     # Set up an empty list to store the data
@@ -369,9 +371,9 @@ def main():
     # loop over the members
     print("=================================")
     print("Looping over the members")
-    print("TESTING: Using only one member")
+    # print("TESTING: Using only one member")
     print("=================================")
-    for m, member_this in tqdm(enumerate(members_list_test)):
+    for m, member_this in tqdm(enumerate(members_list)):
 
         # print member this
         print(member_this)
@@ -424,37 +426,31 @@ def main():
     # print the model cube
     print(model_cube)
 
-    # # print the obs data
-    print(obs_data)
+    # # Set up the leads to extract from the model data
+    # leads_djf_model = np.arange(
+    #     31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
+    # )
 
-    # print the obs data
-    print(obs_data)
+    # # print the min lead we are extracting
+    # print("=================================")
+    # print(f"Min lead: {leads_djf_model[0]}")
+    # print(f"Max lead: {leads_djf_model[-1]}")
+    # print("=================================")
 
-    # Set up the leads to extract from the model data
-    leads_djf_model = np.arange(
-        31 + ((args.winter - 1) * 360), 31 + 90 + ((args.winter - 1) * 360)
-    )
+    # # # Extract the relevant leads
+    # model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
 
-    # print the min lead we are extracting
-    print("=================================")
-    print(f"Min lead: {leads_djf_model[0]}")
-    print(f"Max lead: {leads_djf_model[-1]}")
-    print("=================================")
+    # # Extract the data for the gridbox
+    # obs_data_box = obs_data.intersection(
+    #     longitude=(gridbox["lon1"], gridbox["lon2"]),
+    #     latitude=(gridbox["lat1"], gridbox["lat2"]),
+    # )
 
-    # # Extract the relevant leads
-    model_cube = model_cube.extract(iris.Constraint(lead=leads_djf_model))
-
-    # Extract the data for the gridbox
-    obs_data_box = obs_data.intersection(
-        longitude=(gridbox["lon1"], gridbox["lon2"]),
-        latitude=(gridbox["lat1"], gridbox["lat2"]),
-    )
-
-    # do the same for the obs cube
-    obs_cube_box = obs_cube.intersection(
-        longitude=(gridbox["lon1"], gridbox["lon2"]),
-        latitude=(gridbox["lat1"], gridbox["lat2"]),
-    )
+    # # do the same for the obs cube
+    # obs_cube_box = obs_cube.intersection(
+    #     longitude=(gridbox["lon1"], gridbox["lon2"]),
+    #     latitude=(gridbox["lat1"], gridbox["lat2"]),
+    # )
 
     if args.region == "global":
         model_cube_box = model_cube
@@ -465,158 +461,158 @@ def main():
             latitude=(gridbox["lat1"], gridbox["lat2"]),
         )
 
-    # Regrid the obs data to the model data
-    obs_data_box_regrid = obs_data_box.regrid(model_cube_box, iris.analysis.Linear())
+    # # Regrid the obs data to the model data
+    # obs_data_box_regrid = obs_data_box.regrid(model_cube_box, iris.analysis.Linear())
 
-    # regrid the obs cube box
-    obs_cube_box_regrid = obs_cube_box.regrid(
-        model_cube_box, iris.analysis.Linear()
-    )
+    # # regrid the obs cube box
+    # obs_cube_box_regrid = obs_cube_box.regrid(
+    #     model_cube_box, iris.analysis.Linear()
+    # )
 
-    # Set up a cube list for the obs cubes
-    obs_cubelist = iris.cube.CubeList([obs_data_box_regrid, obs_cube_box_regrid])
+    # # Set up a cube list for the obs cubes
+    # obs_cubelist = iris.cube.CubeList([obs_data_box_regrid, obs_cube_box_regrid])
 
     # loop over the cube and set the units
-    for cube in obs_cubelist:
-        if args.variable == "sfcWind":
-            cube.units = "m/s"
-        elif args.variable == "tas":
-            cube.units = "K"
-        elif args.variable == "psl":
-            cube.units = "Pa"
-        else:
-            raise ValueError("Variable not recognised")
+    # for cube in obs_cubelist:
+    #     if args.variable == "sfcWind":
+    #         cube.units = "m/s"
+    #     elif args.variable == "tas":
+    #         cube.units = "K"
+    #     elif args.variable == "psl":
+    #         cube.units = "Pa"
+    #     else:
+    #         raise ValueError("Variable not recognised")
         
-        if cube.coord("time").var_name != "time":
-            cube.coord("time").var_name = "time"
+    #     if cube.coord("time").var_name != "time":
+    #         cube.coord("time").var_name = "time"
 
-        if cube.cell_methods is not None:
-                    cube.cell_methods = None
-        if cube.attributes is not None:
-            cube.attributes = None
+    #     if cube.cell_methods is not None:
+    #                 cube.cell_methods = None
+    #     if cube.attributes is not None:
+    #         cube.attributes = None
 
-        if cube.long_name != None:
-            # set the long name to the variable name
-            cube.long_name = None
-        elif cube.standard_name != None:
-            # set the standard name to the variable name
-            cube.standard_name = None
-        elif cube.var_name != None:
-            # set the variable name to the variable name
-            cube.var_name = None
-        else:
-            print("No long name, standard name or variable name found.")
+    #     if cube.long_name != None:
+    #         # set the long name to the variable name
+    #         cube.long_name = None
+    #     elif cube.standard_name != None:
+    #         # set the standard name to the variable name
+    #         cube.standard_name = None
+    #     elif cube.var_name != None:
+    #         # set the variable name to the variable name
+    #         cube.var_name = None
+    #     else:
+    #         print("No long name, standard name or variable name found.")
 
-        time_coord = cube.coord("time")
+    #     time_coord = cube.coord("time")
         
-        # Convert time points to a consistent format (e.g., midnight)
-        new_time_points = np.floor(time_coord.points)  # Round down to the nearest day
-        time_coord.points = new_time_points
+    #     # Convert time points to a consistent format (e.g., midnight)
+    #     new_time_points = np.floor(time_coord.points)  # Round down to the nearest day
+    #     time_coord.points = new_time_points
 
-        # Remove bounds to avoid mismatches
-        if time_coord.has_bounds():
-            time_coord.bounds = None
+    #     # Remove bounds to avoid mismatches
+    #     if time_coord.has_bounds():
+    #         time_coord.bounds = None
 
-    # remove the attributes
-    removed_attrs = equalise_attributes(obs_cubelist)
+    # # remove the attributes
+    # removed_attrs = equalise_attributes(obs_cubelist)
 
-    # equalise the attributes
-    equalise_cubes(obs_cubelist, apply_all=True)
+    # # equalise the attributes
+    # equalise_cubes(obs_cubelist, apply_all=True)
 
-    # unify the time coordinate
-    unify_time_units(obs_cubelist)
+    # # unify the time coordinate
+    # unify_time_units(obs_cubelist)
 
-    # Describe the difference between the two cubes
-    describe_diff(obs_cubelist[0], obs_cubelist[1])
+    # # Describe the difference between the two cubes
+    # describe_diff(obs_cubelist[0], obs_cubelist[1])
 
-    # if the variable is psl, then fix the time coordinate
-    if args.variable == "psl":
-        time_coord_first = obs_cubelist[0].coord("time")
+    # # if the variable is psl, then fix the time coordinate
+    # if args.variable == "psl":
+    #     time_coord_first = obs_cubelist[0].coord("time")
 
-        # extract the units for this
-        time_units_first = time_coord_first.units
+    #     # extract the units for this
+    #     time_units_first = time_coord_first.units
 
-        # print the time units
-        print("=================================")
-        print("Time units:")
-        print(time_units_first)
-        print("=================================")
+    #     # print the time units
+    #     print("=================================")
+    #     print("Time units:")
+    #     print(time_units_first)
+    #     print("=================================")
 
-        # print the time coord
-        print("=================================")
-        print("Time coord:")
-        print(time_coord_first)
-        print("=================================")
+    #     # print the time coord
+    #     print("=================================")
+    #     print("Time coord:")
+    #     print(time_coord_first)
+    #     print("=================================")
 
-        new_time_unit = cf_units.Unit(time_units_first, calendar=cf_units.CALENDAR_STANDARD)
+    #     new_time_unit = cf_units.Unit(time_units_first, calendar=cf_units.CALENDAR_STANDARD)
 
-        # print the new time unit
-        print("=================================")
-        print("New time unit:")
-        print(new_time_unit)
-        print("=================================")
+    #     # print the new time unit
+    #     print("=================================")
+    #     print("New time unit:")
+    #     print(new_time_unit)
+    #     print("=================================")
 
-        # loop over the cubes
-        for cube in obs_cubelist:
-            # set the time coord to the new time unit
-            tcoord = cube.coord("time")
-            tcoord.units = cf_units.Unit(tcoord.units.origin, calendar='standard')
+    #     # loop over the cubes
+    #     for cube in obs_cubelist:
+    #         # set the time coord to the new time unit
+    #         tcoord = cube.coord("time")
+    #         tcoord.units = cf_units.Unit(tcoord.units.origin, calendar='standard')
 
-        # sys.exit()
+    #     # sys.exit()
 
 
 
-        # # Define a common time unit and calendar
-        # common_time_unit = obs_cubelist[0].coord("time").units
+    #     # # Define a common time unit and calendar
+    #     # common_time_unit = obs_cubelist[0].coord("time").units
 
-        # common_calendar = obs_cubelist[0].coord("time").calendar
+    #     # common_calendar = obs_cubelist[0].coord("time").calendar
 
-        # # Convert the time coordinates to the common unit and calendar
-        # for cube in obs_cubelist:
-        #     cube.coord("time").convert_units(common_time_unit)
-        #     cube.coord("time").calendar = common_calendar
+    #     # # Convert the time coordinates to the common unit and calendar
+    #     # for cube in obs_cubelist:
+    #     #     cube.coord("time").convert_units(common_time_unit)
+    #     #     cube.coord("time").calendar = common_calendar
 
-    # unify the time coordinates
-    unify_time_units(obs_cubelist)
+    # # unify the time coordinates
+    # unify_time_units(obs_cubelist)
 
-    # loop over and print the cubes
-    for cube in obs_cubelist:
-        print(cube)
-        print(cube.attributes)
-        print(cube.cell_methods)
-        print(cube.long_name)
-        print(cube.standard_name)
-        print(cube.var_name)
-        print(cube.coord("time"))
+    # # loop over and print the cubes
+    # for cube in obs_cubelist:
+    #     print(cube)
+    #     print(cube.attributes)
+    #     print(cube.cell_methods)
+    #     print(cube.long_name)
+    #     print(cube.standard_name)
+    #     print(cube.var_name)
+    #     print(cube.coord("time"))
 
-    # concatenate the cubes
-    obs_cube_full = obs_cubelist.concatenate_cube()
+    # # concatenate the cubes
+    # obs_cube_full = obs_cubelist.concatenate_cube()
 
-    # print the obs cube
-    print(obs_cube_full)
+    # # print the obs cube
+    # print(obs_cube_full)
 
-    # print the time coordinates of the obs cube full
-    print(obs_cube_full.coord("time"))
+    # # print the time coordinates of the obs cube full
+    # print(obs_cube_full.coord("time"))
 
-    # # print the time taken
-    # print("=================================")
-    # print("Time taken to load the data:")
-    # print(f"{time.time() - start_time} seconds")
-    # print("=================================")
+    # # # print the time taken
+    # # print("=================================")
+    # # print("Time taken to load the data:")
+    # # print(f"{time.time() - start_time} seconds")
+    # # print("=================================")
 
-    # sys.exit()
+    # # sys.exit()
 
-    obs_data = obs_cube_full
+    # obs_data = obs_cube_full
 
-    # Constrain the obs to the winter
-    # FIXME: hardcoded as DJF for now
-    obs_data = obs_data.extract(
-        iris.Constraint(
-            time=lambda cell: datetime(int(args.init_year), 12, 1)
-            <= cell.point
-            < datetime(int(args.init_year) + 1, 3, 1)
-        )
-    )
+    # # Constrain the obs to the winter
+    # # FIXME: hardcoded as DJF for now
+    # obs_data = obs_data.extract(
+    #     iris.Constraint(
+    #         time=lambda cell: datetime(int(args.init_year), 12, 1)
+    #         <= cell.point
+    #         < datetime(int(args.init_year) + 1, 3, 1)
+    #     )
+    # )
 
     # Set up the name for the lats array
     lats_array_fname = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_{args.init_year}_{args.season}_{args.frequency}_lats.npy"
@@ -656,19 +652,19 @@ def main():
         np.save(members_path, members_list)
 
     # # if the obs times array already exists, exit with an error
-    if os.path.exists(obs_times_path):
-        print(f"{obs_times_path} already exists")
-    else:
-        # save the obs times array
-        np.save(obs_times_path, obs_data.coord("time").points)
+    # if os.path.exists(obs_times_path):
+    #     print(f"{obs_times_path} already exists")
+    # else:
+    #     # save the obs times array
+    #     np.save(obs_times_path, obs_data.coord("time").points)
 
     # # Set up the obs data array
-    obs_data_array = obs_data.data
-    obs_data_array = obs_data_array.filled(np.nan)
+    # obs_data_array = obs_data.data
+    # obs_data_array = obs_data_array.filled(np.nan)
 
     # Set up the model data array
-    # model_data_array = model_cube_box.data
-    # model_data_array = model_data_array.filled(np.nan)
+    model_data_array = model_cube_box.data
+    model_data_array = model_data_array.filled(np.nan)
 
     # # print the shape of the data
     # print("=================================")
@@ -683,11 +679,11 @@ def main():
     # print(model_data_array)
     # print("=================================")
 
-    # # Save the obs data array
-    np.save(obs_array_path, obs_data_array)
+    # # # Save the obs data array
+    # np.save(obs_array_path, obs_data_array)
 
     # Save the model data array
-    # np.save(model_array_path, model_data_array)
+    np.save(model_array_path, model_data_array)
 
     # Set up the end time
     end_time = time.time()
