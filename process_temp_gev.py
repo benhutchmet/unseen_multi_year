@@ -39,7 +39,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-from process_dnw_gev import select_leads_wyears_DJF, plot_distributions_extremes
+# from process_dnw_gev import select_leads_wyears_DJF, plot_distributions_extremes
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -57,6 +57,7 @@ def pivot_emp_rps(
     model_val_name: str,
     obs_time_name: str,
     model_time_name: str,
+    var_name: str,
     nsamples: int = 10000,
     figsize: tuple = (5, 5),
 ) -> None:
@@ -79,6 +80,8 @@ def pivot_emp_rps(
             Name of the column to use as the time axis in the observed DataFrame.
         model_time_name : str
             Name of the column to use as the time axis in the model DataFrame.
+        var_name : str
+            Name of the variable to use in the DataFrames.
         nsamples : int, optional
             Number of samples to use for the empirical return periods, by default 10000.
         figsize : tuple, optional
@@ -97,12 +100,12 @@ def pivot_emp_rps(
     model_df_copy = model_df.copy()
 
     # if the time column is not datetime
-    if not isinstance(obs_df_copy[obs_time_name].values[0], np.datetime64):
-        obs_df_copy[obs_time_name] = pd.to_datetime(obs_df_copy[obs_time_name])
+    if not isinstance(obs_df_copy[obs_time_name].values[0], int):
+        obs_df_copy[obs_time_name].astype(int)
 
     # if the time column is not datetime
-    if not isinstance(model_df_copy[model_time_name].values[0], np.datetime64):
-        model_df_copy[model_time_name] = pd.to_datetime(model_df_copy[model_time_name])
+    if not isinstance(model_df_copy[model_time_name].values[0], int):
+        model_df_copy[model_time_name].astype(int)
 
     # Extract the unique time points from the models
     unique_model_times = model_df_copy[model_time_name].unique()
@@ -131,6 +134,37 @@ def pivot_emp_rps(
         )
     )
 
+    # if the variable is tas
+    if var_name == "tas":
+        # Worst observed extreme is min
+        obs_extreme_value = np.min(obs_df_copy[obs_val_name].values)
+    elif var_name == "sfcWind":
+        print("Identifying second worst observed extreme")
+        # Rank the observed values from low to high
+        obs_df_copy["rank"] = obs_df_copy[obs_val_name].rank(
+            method="first", ascending=True
+        )
+
+        # Find the second worst observed extreme
+        obs_extreme_value = obs_df_copy.loc[
+            obs_df_copy["rank"] == 2, obs_val_name
+        ].values[0]
+    else:
+        raise ValueError(
+            "Variable not recognised. Please use tas or sfcWind."
+        )
+
+    # find the time in which this occurs
+    obs_extreme_time = obs_df_copy.loc[
+        obs_df_copy[obs_val_name] == obs_extreme_value, obs_time_name
+    ].values[0]
+
+    # print the worst observed extreme
+    print(f"Worst observed extreme: {obs_extreme_value}")
+
+    # print the time in which this occurs
+    print(f"Worst observed extreme time (year): {obs_extreme_time}")
+
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
 
@@ -147,7 +181,7 @@ def pivot_emp_rps(
         )
 
         # Adjust the detrended data for this year
-        model_adjusted_this = (
+        model_adjusted_this = np.array(
             model_df_copy[f"{model_val_name}_dt"] + trend_val_this
         )
 
@@ -188,8 +222,164 @@ def pivot_emp_rps(
         # Now to find the rp for the worst obs event
         # using the central estimate
         # as well as the 0025 and 0975 quantiles
+        # Find the index of the row, where "sorted" is closest to the observed
+        # extreme value
+        obs_extreme_index_central = np.abs(
+            model_df_central_rps_this["sorted"] - obs_extreme_value
+        ).argmin()
 
+        # Print this row
+        # in the dataframe
+        # Corrected code using single quotes for column names
+        # print(
+        #     f"Row in the dataframe closest to obs extreme value: {model_df_central_rps_this.iloc[obs_extreme_index_central]['sorted']}"
+        # )
+        # print(
+        #     f"Row in the dataframe closest to obs extreme value: {model_df_central_rps_this.iloc[obs_extreme_index_central]['period']}"
+        # )
 
+        # Set up the 0025 and 0975 quantiles
+        model_df_central_rps_this["025"] = np.quantile(
+            model_df_bootstrap_rps_this, 0.025, axis=0
+        )
+        model_df_central_rps_this["975"] = np.quantile(
+            model_df_bootstrap_rps_this, 0.975, axis=0
+        )
+
+        # Find the index of the row, where "sorted" is closest to the observed
+        # extreme value
+        obs_extreme_index_025 = np.abs(
+            model_df_central_rps_this["025"] - obs_extreme_value
+        ).argmin()
+
+        # Print this row
+        # in the dataframe
+        # print(
+        #     f"Row in the dataframe closest to obs extreme value: {model_df_central_rps_this.iloc[obs_extreme_index_025]['025']}"
+        # )
+        # print(
+        #     f"Row in the dataframe closest to obs extreme value: {model_df_central_rps_this.iloc[obs_extreme_index_025]['period']}"
+        # )
+
+        # Find the index of the row, where "sorted" is closest to the observed
+        # extreme value
+        obs_extreme_index_975 = np.abs(
+            model_df_central_rps_this["975"] - obs_extreme_value
+        ).argmin()
+
+        # Print this row
+        # in the dataframe
+        # print(
+        #     f"Row in the dataframe closest to obs extreme value: {model_df_central_rps_this.iloc[obs_extreme_index_975]['975']}"
+        # )
+        # print(
+        #     f"Row in the dataframe closest to obs extreme value: {model_df_central_rps_this.iloc[obs_extreme_index_975]['period']}"
+        # )
+
+        # Set up a new dataframe with the values
+        model_df_this = pd.DataFrame(
+            {
+                "model_time": [model_time],  # Wrap scalar in a list
+                "central_rp": [model_df_central_rps_this.iloc[obs_extreme_index_central]["period"]],
+                "025_rp": [model_df_central_rps_this.iloc[obs_extreme_index_025]["period"]],
+                "975_rp": [model_df_central_rps_this.iloc[obs_extreme_index_975]["period"]],
+            }
+        )
+
+        # Append this to the dataframe
+        model_df_plume = pd.concat(
+            [model_df_plume, model_df_this],
+            ignore_index=True,
+        )
+
+        # # print the head of model_df_plume
+        # print(model_df_plume.head())
+
+    # translate these return periods in years into percentages
+    model_df_plume["central_rp_%"] = 1 / (model_df_plume["central_rp"] / 100)
+    model_df_plume["025_rp_%"] = 1 / (model_df_plume["025_rp"] / 100)
+    model_df_plume["975_rp_%"] = 1 / (model_df_plume["975_rp"] / 100)
+
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot the central return levels as a red line
+    ax.plot(
+        model_df_plume["model_time"],
+        model_df_plume["central_rp_%"],
+        color="red",
+        label="Central return period",
+    )
+
+    # Plot the 0.025 and 0.975 quantiles as dashed red lines
+    # Shade the area between the 0.025 and 0.975 quantiles
+    ax.fill_between(
+        model_df_plume["model_time"],
+        model_df_plume["025_rp_%"],
+        model_df_plume["975_rp_%"],
+        color="red",
+        alpha=0.3,  # Adjust transparency
+        label="Return period range (0.025 - 0.975)",
+    )
+
+    # Limit the y-axis to between 0 and 4
+    ax.set_ylim(0, 4)
+
+    # Set up the ticks for the first y-axis using the ax object
+    ax.set_yticks([0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5])  # Tick positions
+    ax.set_yticklabels(["0%", "0.5%", "1.0%", "1.5%", "2.0%", "2.5%", "3.0%", "3.5%"])  # Tick labels
+
+    # Set up yticks for the second y-axis
+    ax2 = ax.twinx()
+
+    # Synchronize the tick positions of the second y-axis with the first y-axis
+    ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
+
+    # Set tick labels for the second y-axis
+    ax2.set_yticklabels(["", "200", "100", "67", "50", "40", "33", "29"])  # Custom labels
+
+    # Set the y-axis limits for both axes to ensure alignment
+    ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
+
+    # Set the y axis labels
+    ax2.set_ylabel(
+        "Return period (years)", fontsize=12,
+    )
+
+    # Set up the xlabel
+    ax.set_xlabel(
+        "Year", fontsize=12,
+    )
+
+    # Set up the ylabel
+    ax.set_ylabel(
+        "Chance of event", fontsize=12,
+    )
+
+    # Set the xlims as the min and max of the model time
+    ax.set_xlim(
+        model_df_plume["model_time"].min(),
+        model_df_plume["model_time"].max(),
+    )
+
+    #Set up the title
+    ax.set_title(
+        f"Chance of <{obs_extreme_time} by year",
+        fontsize=12,
+    )
+
+    # include faint gridlines
+    ax.grid(
+        color="gray",
+        linestyle="-",
+        linewidth=0.5,
+        alpha=0.5,
+    )
+
+    # Show the plot
+    plt.show()
+
+    return None
 
 # Define a function to subset extremes
 # based on the full field data
@@ -450,10 +640,21 @@ def plot_emp_rps(
         "Return period (years)", fontsize=12,
     )
 
-    # Find the extreme value
-    extreme_value = blue_line(
-        obs_df[obs_val_name].values
-    )
+    # if ylabel includes "wind" or "Wind"
+    if "wind" in ylabel or "Wind" in ylabel:
+        # Rank the obs values from low to high
+        obs_df["rank"] = obs_df[obs_val_name].rank(
+            method="first", ascending=True
+        )
+        # Find the second worst observed extreme
+        extreme_value = obs_df.loc[
+            obs_df["rank"] == 2, obs_val_name
+        ].values[0]
+    else:
+        # Find the extreme value
+        extreme_value = blue_line(
+            obs_df[obs_val_name].values
+        )
 
     # find the time in which this occurs
     extreme_time = obs_df.loc[
@@ -2260,6 +2461,34 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
+    # # Test the new function
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_tas,
+    #     model_df=block_minima_model_tas_drift_corr,
+    #     obs_val_name="data_c_min",
+    #     model_val_name="data_tas_c_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="tas",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
+
+    # # DO the same for wind speed
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind_drift_corr,
+    #     obs_val_name="data_min",
+    #     model_val_name="data_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="sfcWind",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
+
+    # sys.exit()
+
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
         model_df=block_minima_model_tas_drift_corr,
@@ -2349,95 +2578,95 @@ def main():
     #     print(f"Saving {fname_wind_model} to {save_dir_dfs}")
     #     block_minima_model_wind_drift_corr_dt.to_csv(model_path_wind)
 
-    # Set up the paths to the full field model data
-    model_full_field_path = os.path.join(
-        save_dir_dfs, "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
-    )
-    obs_full_field_path = os.path.join(
-        save_dir_dfs, "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
-    )
+    # # Set up the paths to the full field model data
+    # model_full_field_path = os.path.join(
+    #     save_dir_dfs, "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
+    # )
+    # obs_full_field_path = os.path.join(
+    #     save_dir_dfs, "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
+    # )
 
-    # Load these dataframes
-    df_model_full_field = pd.read_csv(model_full_field_path)
-    df_obs_full_field = pd.read_csv(obs_full_field_path)
+    # # Load these dataframes
+    # df_model_full_field = pd.read_csv(model_full_field_path)
+    # df_obs_full_field = pd.read_csv(obs_full_field_path)
 
-    plot_distributions_extremes(
-        model_df_full_field=df_model_full_field,
-        obs_df_full_field=df_obs_full_field,
-        model_df_block=block_minima_model_tas_drift_corr_dt,
-        obs_df_block=block_minima_obs_tas_dt,
-        model_var_name_full_field="data_tas_c_drift_bc_dt",
-        obs_var_name_full_field="data_c_dt",
-        model_var_name_block="data_tas_c_min_drift_bc_dt",
-        obs_var_name_block="data_c_min_dt",
-        xlabels=["Temperature (°C)", "Temperature (°C)"],
-        percentile=0.05,
-    )
+    # plot_distributions_extremes(
+    #     model_df_full_field=df_model_full_field,
+    #     obs_df_full_field=df_obs_full_field,
+    #     model_df_block=block_minima_model_tas_drift_corr_dt,
+    #     obs_df_block=block_minima_obs_tas_dt,
+    #     model_var_name_full_field="data_tas_c_drift_bc_dt",
+    #     obs_var_name_full_field="data_c_dt",
+    #     model_var_name_block="data_tas_c_min_drift_bc_dt",
+    #     obs_var_name_block="data_c_min_dt",
+    #     xlabels=["Temperature (°C)", "Temperature (°C)"],
+    #     percentile=0.05,
+    # )
 
-    # DO the same for wind speed
-    plot_distributions_extremes(
-        model_df_full_field=df_model_full_field,
-        obs_df_full_field=df_obs_full_field,
-        model_df_block=block_minima_model_wind_drift_corr_dt,
-        obs_df_block=block_minima_obs_wind_dt,
-        model_var_name_full_field="data_sfcWind_drift_bc_dt",
-        obs_var_name_full_field="data_sfcWind_dt",
-        model_var_name_block="data_min_drift_bc_dt",
-        obs_var_name_block="data_min_dt",
-        xlabels=["10m Wind Speed (m/s)", "10m Wind Speed (m/s)"],
-        percentile=0.05,
-    )
+    # # DO the same for wind speed
+    # plot_distributions_extremes(
+    #     model_df_full_field=df_model_full_field,
+    #     obs_df_full_field=df_obs_full_field,
+    #     model_df_block=block_minima_model_wind_drift_corr_dt,
+    #     obs_df_block=block_minima_obs_wind_dt,
+    #     model_var_name_full_field="data_sfcWind_drift_bc_dt",
+    #     obs_var_name_full_field="data_sfcWind_dt",
+    #     model_var_name_block="data_min_drift_bc_dt",
+    #     obs_var_name_block="data_min_dt",
+    #     xlabels=["10m Wind Speed (m/s)", "10m Wind Speed (m/s)"],
+    #     percentile=0.05,
+    # )
 
-    # print the len of block minima model tas drift corr dt
-    print(f"len of block minima model tas drift corr dt pre subset: {len(block_minima_model_tas_drift_corr_dt)}")
+    # # print the len of block minima model tas drift corr dt
+    # print(f"len of block minima model tas drift corr dt pre subset: {len(block_minima_model_tas_drift_corr_dt)}")
 
-    # print the len of block minima obs tas dt pre subset
-    print(f"len of block minima obs tas dt pre subset: {len(block_minima_obs_tas_dt)}")
+    # # print the len of block minima obs tas dt pre subset
+    # print(f"len of block minima obs tas dt pre subset: {len(block_minima_obs_tas_dt)}")
 
-    # Test the new function for trimming the distribution
-    # Subset the extremes for temperature
-    block_min_model_tas_extremes, block_min_obs_tas_extremes = subset_extremes(
-        model_df_full_field=df_model_full_field,
-        obs_df_full_field=df_obs_full_field,
-        model_df_block=block_minima_model_tas_drift_corr_dt,
-        obs_df_block=block_minima_obs_tas_dt,
-        model_var_name_full_field="data_tas_c_drift_bc_dt",
-        obs_var_name_full_field="data_c_dt",
-        model_var_name_block="data_tas_c_min_drift_bc_dt",
-        obs_var_name_block="data_c_min_dt",
-        percentile=0.05,
-    )
+    # # Test the new function for trimming the distribution
+    # # Subset the extremes for temperature
+    # block_min_model_tas_extremes, block_min_obs_tas_extremes = subset_extremes(
+    #     model_df_full_field=df_model_full_field,
+    #     obs_df_full_field=df_obs_full_field,
+    #     model_df_block=block_minima_model_tas_drift_corr_dt,
+    #     obs_df_block=block_minima_obs_tas_dt,
+    #     model_var_name_full_field="data_tas_c_drift_bc_dt",
+    #     obs_var_name_full_field="data_c_dt",
+    #     model_var_name_block="data_tas_c_min_drift_bc_dt",
+    #     obs_var_name_block="data_c_min_dt",
+    #     percentile=0.05,
+    # )
 
-    # print the len of block minima model tas drift corr dt
-    print(f"len of block minima model tas drift corr dt post subset: {len(block_min_model_tas_extremes)}")
+    # # print the len of block minima model tas drift corr dt
+    # print(f"len of block minima model tas drift corr dt post subset: {len(block_min_model_tas_extremes)}")
 
-    # print the len of block minima obs tas dt post subset
-    print(f"len of block minima obs tas dt post subset: {len(block_min_obs_tas_extremes)}")
+    # # print the len of block minima obs tas dt post subset
+    # print(f"len of block minima obs tas dt post subset: {len(block_min_obs_tas_extremes)}")
 
-    # print the len of block minima model wind drift corr dt
-    print(f"len of block minima model wind drift corr dt pre subset: {len(block_minima_model_wind_drift_corr_dt)}")
+    # # print the len of block minima model wind drift corr dt
+    # print(f"len of block minima model wind drift corr dt pre subset: {len(block_minima_model_wind_drift_corr_dt)}")
 
-    # print the len of block minima obs wind dt pre subset
-    print(f"len of block minima obs wind dt pre subset: {len(block_minima_obs_wind_dt)}")
+    # # print the len of block minima obs wind dt pre subset
+    # print(f"len of block minima obs wind dt pre subset: {len(block_minima_obs_wind_dt)}")
 
-    # Do the same but for wind speed
-    block_min_model_wind_extremes, block_min_obs_wind_extremes = subset_extremes(
-        model_df_full_field=df_model_full_field,
-        obs_df_full_field=df_obs_full_field,
-        model_df_block=block_minima_model_wind_drift_corr_dt,
-        obs_df_block=block_minima_obs_wind_dt,
-        model_var_name_full_field="data_sfcWind_drift_bc_dt",
-        obs_var_name_full_field="data_sfcWind_dt",
-        model_var_name_block="data_min_drift_bc_dt",
-        obs_var_name_block="data_min_dt",
-        percentile=0.05,
-    )
+    # # Do the same but for wind speed
+    # block_min_model_wind_extremes, block_min_obs_wind_extremes = subset_extremes(
+    #     model_df_full_field=df_model_full_field,
+    #     obs_df_full_field=df_obs_full_field,
+    #     model_df_block=block_minima_model_wind_drift_corr_dt,
+    #     obs_df_block=block_minima_obs_wind_dt,
+    #     model_var_name_full_field="data_sfcWind_drift_bc_dt",
+    #     obs_var_name_full_field="data_sfcWind_dt",
+    #     model_var_name_block="data_min_drift_bc_dt",
+    #     obs_var_name_block="data_min_dt",
+    #     percentile=0.05,
+    # )
 
-    # print the len of block minima model wind drift corr dt
-    print(f"len of block minima model wind drift corr dt post subset: {len(block_min_model_wind_extremes)}")
+    # # print the len of block minima model wind drift corr dt
+    # print(f"len of block minima model wind drift corr dt post subset: {len(block_min_model_wind_extremes)}")
 
-    # print the len of block minima obs wind dt post subset
-    print(f"len of block minima obs wind dt post subset: {len(block_min_obs_wind_extremes)}")
+    # # print the len of block minima obs wind dt post subset
+    # print(f"len of block minima obs wind dt post subset: {len(block_min_obs_wind_extremes)}")
 
     # sys.exit()
 
@@ -2582,11 +2811,11 @@ def main():
 
     # sys.exit()
 
-    # Set up the names of the new dataframes
-    block_minima_model_tas_drift_corr_dt = block_min_model_tas_extremes
-    block_minima_model_wind_drift_corr_dt = block_min_model_wind_extremes
-    block_minima_obs_tas_dt = block_min_obs_tas_extremes
-    block_minima_obs_wind_dt = block_min_obs_wind_extremes
+    # # Set up the names of the new dataframes
+    # block_minima_model_tas_drift_corr_dt = block_min_model_tas_extremes
+    # block_minima_model_wind_drift_corr_dt = block_min_model_wind_extremes
+    # block_minima_obs_tas_dt = block_min_obs_tas_extremes
+    # block_minima_obs_wind_dt = block_min_obs_wind_extremes
 
     # Make sure effective dec year is a datetime in the model tas data
     block_minima_model_tas_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
@@ -2664,20 +2893,20 @@ def main():
 
     # # test the new function doing the same
     # # thing but using GEVs
-    plot_gev_rps(
-        obs_df=block_minima_obs_tas_dt,
-        model_df=block_minima_model_tas_drift_corr_dt,
-        obs_val_name="data_c_min_dt",
-        model_val_name="data_tas_c_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Temperature (°C)",
-        nsamples=1000,
-        ylims=(-9, -2.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
-    )
+    # plot_gev_rps(
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_val_name="data_c_min_dt",
+    #     model_val_name="data_tas_c_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Temperature (°C)",
+    #     nsamples=1000,
+    #     ylims=(-9, -2.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
 
     # test the funcion for doing the same thing
     plot_emp_rps(
@@ -2695,21 +2924,21 @@ def main():
         figsize=(5, 5),
     )
 
-    # do thye same thing fo wind speed
-    plot_gev_rps(
-        obs_df=block_minima_obs_wind_dt,
-        model_df=block_minima_model_wind_drift_corr_dt,
-        obs_val_name="data_min_dt",
-        model_val_name="data_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Wind speed (m/s)",
-        nsamples=1000,
-        ylims=(2, 3.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
-    )
+    # # do thye same thing fo wind speed
+    # plot_gev_rps(
+    #     obs_df=block_minima_obs_wind_dt,
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     obs_val_name="data_min_dt",
+    #     model_val_name="data_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Wind speed (m/s)",
+    #     nsamples=1000,
+    #     ylims=(2, 3.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
 
     # plot empirical return periods for wind speed
     plot_emp_rps(

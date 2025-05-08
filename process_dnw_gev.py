@@ -41,14 +41,408 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
-from functions import sigmoid, dot_plot
+from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_level
 
 # Silence warnings
 warnings.filterwarnings("ignore")
+
+# Set up a function to do pivoting for DnW
+# As we detrend at the temp/wind stage pre-transformation
+# and pre-block max identification
+# we have to do this slightly differently
+def pivot_emp_rps_dnw(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_var_name_wind: str,
+    obs_var_name_tas: str,
+    model_var_name_wind: str,
+    model_var_name_tas: str,
+    model_time_name: str,
+    obs_time_name: str,
+    nsamples: int = 1000,
+    figsize: tuple[int, int] = (5, 5),
+) -> None:
+    """
+    Pivots the entire ensemble for both temperature and wind speed around each
+    year in turn and quantifies the likelihood of seeing an event worse than
+    the worst observed extreme.
+
+    Parameters
+    ==========
+
+        obs_df : pd.DataFrame
+            The dataframe containing the observed data.
+        model_df : pd.DataFrame
+            The dataframe containing the model data.
+        obs_var_name_wind : str
+            The name of the observed wind speed variable.
+        obs_var_name_tas : str
+            The name of the observed temperature variable.
+        model_var_name_wind : str
+            The name of the model wind speed variable.
+        model_var_name_tas : str
+            The name of the model temperature variable.
+        model_time_name : str
+            The name of the time variable in the model data.
+        obs_time_name : str
+            The name of the time variable in the observed data.
+        nsamples : int
+            The number of samples to use for the pivoting.
+        figsize : tuple[int, int]
+            The size of the figure.
+
+    Returns
+    =======
+
+        None
+
+    """
+
+    # Make a copy of the dataframes
+    obs_df_copy = obs_df.copy()
+    model_df_copy = model_df.copy()
+
+    # If the time column is not an int
+    # then set as an int
+    if obs_df_copy[obs_time_name].dtype != int:
+        obs_df_copy[obs_time_name] = obs_df_copy[obs_time_name].astype(int)
+    if model_df_copy[model_time_name].dtype != int:
+        model_df_copy[model_time_name] = model_df_copy[
+            model_time_name
+        ].astype(int)
+
+    # Extract the unique time points from the model
+    model_time_points = model_df_copy[model_time_name].unique()
+    obs_time_points = obs_df_copy[obs_time_name].unique()
+
+    # Set up the model vals and obs vals
+    model_vals_tas = model_df_copy.groupby(
+        model_time_name
+    )[model_var_name_tas].mean()
+    model_vals_wind = model_df_copy.groupby(
+        model_time_name
+    )[model_var_name_wind].mean()
+    obs_vals_tas = obs_df_copy.groupby(
+        obs_time_name
+    )[obs_var_name_tas].mean()
+    obs_vals_wind = obs_df_copy.groupby(
+        obs_time_name
+    )[obs_var_name_wind].mean()
+
+    # Calculate the model trend
+    slope_model_tas, intercept_model_tas, _, _, _ = linregress(
+        model_time_points, model_vals_tas
+    )
+    slope_model_wind, intercept_model_wind, _, _, _ = linregress(
+        model_time_points, model_vals_wind
+    )
+
+    # Calculate the obs trend
+    slope_obs_tas, intercept_obs_tas, _, _, _ = linregress(
+        obs_time_points, obs_vals_tas
+    )
+    slope_obs_wind, intercept_obs_wind, _, _, _ = linregress(
+        obs_time_points, obs_vals_wind
+    )
+
+    # Detrend the temperature data
+    model_df_copy[f"{model_var_name_tas}_dt"] = (
+        model_df_copy[model_var_name_tas] - (
+        slope_model_tas * model_df_copy[model_time_name] +
+        intercept_model_tas
+        )
+    )
+    model_df_copy[f"{model_var_name_wind}_dt"] = (
+        model_df_copy[model_var_name_wind] - (
+        slope_model_wind * model_df_copy[model_time_name] +
+        intercept_model_wind
+        )
+    )
+
+    # Quantify the block maxima for the obs
+    # To identify the worst eevent/day
+    # Translate the wind speed to wind power generation
+    df_obs, _ = ws_to_wp_gen(
+        obs_df=obs_df_copy,
+        model_df=model_df_copy,
+        obs_ws_col=obs_var_name_wind,
+        model_ws_col=model_var_name_wind,
+        date_range=("1961-12-01", "2018-03-01"),
+    )
+
+    # Convert the temperature to demand
+    df_obs, _ = temp_to_demand(
+        obs_df=df_obs,
+        model_df=model_df_copy,
+        obs_temp_col=obs_var_name_tas,
+        model_temp_col=model_var_name_tas,
+    )
+
+    # Calculate the demand net wind
+    df_obs["dnw"] = df_obs[f"{obs_var_name_tas}_UK_demand"] - df_obs[
+        f"{obs_var_name_wind}_sigmoid_total_wind_gen"
+    ]
+
+    # Calculate the block maxima for the obs
+    obs_block_maxima = gev_funcs.obs_block_min_max(
+        df=df_obs,
+        time_name=obs_time_name,
+        min_max_var_name="dnw",
+        new_df_cols=["time"],
+        process_min=False,
+    )
+
+    # Find the max dnw value in obs block maxima
+    obs_max_dnw = obs_block_maxima["dnw_max"].max()
+
+    # Find the time at which this occurs
+    obs_max_dnw_time = obs_block_maxima.loc[
+        obs_block_maxima["dnw_max"] == obs_max_dnw, obs_time_name
+    ].values[0]
+
+    # print the obs max dnw time
+    print(f"Obs max dnw time: {obs_max_dnw_time}")
+
+    # Print the obs max dnw value
+    print(f"Obs max dnw value: {obs_max_dnw}")
+
+    # Set up a new dataframe to append values to
+    model_df_plume = pd.DataFrame()
+
+    # Loop through the model time points
+    for i, time_point in tqdm(
+        enumerate(model_time_points), desc="Looping through model time points"
+    ):
+        # Set up the trend value this
+        trend_val_this_tas = (
+            slope_model_tas * time_point + intercept_model_tas
+        )
+        trend_val_this_wind = (
+            slope_model_wind * time_point + intercept_model_wind
+        )
+
+        # Adjust the model data for this time point
+        model_adjusted_this_tas = np.array(
+            model_df_copy[f"{model_var_name_tas}_dt"] + trend_val_this_tas
+        )
+        model_adjusted_this_wind = np.array(
+            model_df_copy[f"{model_var_name_wind}_dt"] + trend_val_this_wind
+        )
+
+        # Set up a new column in the dataframes for this data
+        model_df_copy[f"{model_var_name_tas}_dt_this_{time_point}"] = model_adjusted_this_tas
+        model_df_copy[f"{model_var_name_wind}_dt_this_{time_point}"] = model_adjusted_this_wind
+
+        # Set up the obs var names
+        model_var_name_wind_this = f"{model_var_name_wind}_dt_this_{time_point}"
+        model_var_name_tas_this = f"{model_var_name_tas}_dt_this_{time_point}"
+
+        # Convert the wind speed to wind power generation
+        _, model_df_copy_this = ws_to_wp_gen(
+            obs_df=df_obs_copy,
+            model_df=model_df_copy,
+            obs_ws_col=obs_var_name_wind,
+            model_ws_col=model_var_name_wind_this,
+            date_range=("1961-12-01", "2018-03-01"),
+        )
+
+        # Convert the temperature to demand
+        _, model_df_copy_this = temp_to_demand(
+            obs_df=df_obs_copy,
+            model_df=model_df_copy,
+            obs_temp_col=obs_var_name_tas,
+            model_temp_col=model_var_name_tas_this,
+        )
+
+        # Calculate the demand net wind
+        model_df_copy_this[f"dnw_{time_point}"] = (
+            model_df_copy_this[f"{model_var_name_tas_this}_UK_demand"]
+            - model_df_copy_this[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"]
+        )
+
+        # Calculate the block maxima for the model
+        model_block_maxima = gev_funcs.model_block_min_max(
+            df=model_df_copy_this,
+            time_name="init_year",
+            min_max_var_name=f"dnw_{time_point}",
+            new_df_cols=["lead"],
+            winter_year=["winter_year"],
+            process_min=False,
+        )
+
+        # Add in the effective dec year column
+        model_block_maxima["effective_dec_year"] = (
+            model_block_maxima["init_year"] + (model_block_maxima["winter_year"] - 1)
+        )
+
+        # Extract the model block maxima vals
+        model_block_maxima_vals = model_block_maxima[f"dnw_{time_point}"].values
+
+        # if this is not an array, then format it as an array
+        if not isinstance(model_block_maxima_vals, np.ndarray):
+            model_block_maxima_vals = np.array(model_block_maxima_vals)
+
+        # Set up the central return levels
+        model_df_central_rps_this = empirical_return_level(
+            data=model_block_maxima_vals,
+            high_values_rare=True,
+        )
+
+        # Set up the bootstrap to append to
+        model_df_bootstrap_this = np.zeros(
+            [nsamples, len(model_df_central_rps_this["sorted"])]
+        )
+
+        # Loop through the samples
+        for j in range(nsamples):
+            # Resample the model block max data
+            model_vals_this = np.random.choice(
+                model_block_maxima_vals,
+                size=len(model_block_maxima_vals),
+                replace=True,
+            )
+
+            # Calculate the empirical return levels
+            model_df_rps_this = empirical_return_level(
+                data=model_vals_this,
+                high_values_rare=True,
+            )
+
+            # Append the values to the bootstrap
+            model_df_bootstrap_this[j, :] = model_df_rps_this["sorted"]
+
+        # Find the dnw value closest in value to the obs max
+        obs_extreme_index_central = np.abs(
+            model_df_central_rps_this["sorted"] - obs_max_dnw
+        ).argmin()
+
+        # Set up the 0025 and 0975 quantiles
+        model_df_central_rps_this["0025"] = np.quantile(
+            model_df_bootstrap_this, 0.025, axis=0
+        )
+        model_df_central_rps_this["0975"] = np.quantile(
+            model_df_bootstrap_this, 0.975, axis=0
+        )
+
+        # Find the index of the row, where "sorted" is closest to the observed
+        # extreme value
+        obs_extreme_index_0025 = np.abs(
+            model_df_central_rps_this["0025"] - obs_max_dnw
+        ).argmin()
+        obs_extreme_index_0975 = np.abs(
+            model_df_central_rps_this["0975"] - obs_max_dnw
+        ).argmin()
+
+        # Set up a new dataframe to append to
+        model_df_this = pd.DataFrame(
+            {
+                "model_time": [time_point],
+                "central_rp": [
+                    model_df_central_rps_this.iloc[
+                        obs_extreme_index_central
+                    ]["period"]
+                ],
+                "0025_rp": [
+                    model_df_central_rps_this.iloc[obs_extreme_index_0025]["period"]
+                ],
+                "0975_rp": [
+                    model_df_central_rps_this.iloc[obs_extreme_index_0975]["period"]
+                ],
+            }
+        )
+
+        # Append the model df to the model df plume
+        model_df_plume = pd.concat([model_df_plume, model_df_this], ignore_index=True)
+
+    # translate these return periods in years into percentages
+    model_df_plume["central_rp_%"] = 1 / (model_df_plume["central_rp"] / 100)
+    model_df_plume["025_rp_%"] = 1 / (model_df_plume["025_rp"] / 100)
+    model_df_plume["975_rp_%"] = 1 / (model_df_plume["975_rp"] / 100)
+
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Plot the central return levels as a red line
+    ax.plot(
+        model_df_plume["model_time"],
+        model_df_plume["central_rp_%"],
+        color="red",
+        label="Central return period",
+    )
+
+    # Plot the 0.025 and 0.975 quantiles as dashed red lines
+    # Shade the area between the 0.025 and 0.975 quantiles
+    ax.fill_between(
+        model_df_plume["model_time"],
+        model_df_plume["025_rp_%"],
+        model_df_plume["975_rp_%"],
+        color="red",
+        alpha=0.3,  # Adjust transparency
+        label="Return period range (0.025 - 0.975)",
+    )
+
+    # Limit the y-axis to between 0 and 4
+    ax.set_ylim(0, 4)
+
+    # Set up the ticks for the first y-axis using the ax object
+    ax.set_yticks([0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5])  # Tick positions
+    ax.set_yticklabels(["0%", "0.5%", "1.0%", "1.5%", "2.0%", "2.5%", "3.0%", "3.5%"])  # Tick labels
+
+    # Set up yticks for the second y-axis
+    ax2 = ax.twinx()
+
+    # Synchronize the tick positions of the second y-axis with the first y-axis
+    ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
+
+    # Set tick labels for the second y-axis
+    ax2.set_yticklabels(["", "200", "100", "67", "50", "40", "33", "29"])  # Custom labels
+
+    # Set the y-axis limits for both axes to ensure alignment
+    ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
+
+    # Set the y axis labels
+    ax2.set_ylabel(
+        "Return period (years)", fontsize=12,
+    )
+
+    # Set up the xlabel
+    ax.set_xlabel(
+        "Year", fontsize=12,
+    )
+
+    # Set up the ylabel
+    ax.set_ylabel(
+        "Chance of event", fontsize=12,
+    )
+
+    # Set the xlims as the min and max of the model time
+    ax.set_xlim(
+        model_df_plume["model_time"].min(),
+        model_df_plume["model_time"].max(),
+    )
+
+    #Set up the title
+    ax.set_title(
+        f"Chance of >2010 DnW by year",
+        fontsize=12,
+    )
+
+    # include faint gridlines
+    ax.grid(
+        color="gray",
+        linestyle="-",
+        linewidth=0.5,
+        alpha=0.5,
+    )
+
+    # Show the plot
+    plt.show()
+
+    return None
 
 # Set up a function for plotting the distributions
 def plot_distributions_extremes(
@@ -916,6 +1310,22 @@ def main():
     #     figsize=(10, 5),
     # )
 
+    # Test the new function before all detrending takes place
+    pivot_emp_rps_dnw(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        obs_var_name_wind="data_sfcWind",
+        obs_var_name_tas="data_c",
+        model_var_name_wind="data_sfcWind_drift_bc",
+        model_var_name_tas="data_tas_c_drift_bc",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        nsamples=1000,
+        figsize=(5, 5),
+    )
+
+    sys.exit()
+
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
         df=df_obs,
@@ -1422,6 +1832,8 @@ def main():
         suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind + BC)",
         figsize=(15, 5),
     )
+
+    sys.exit()
 
     # format effective dec year as a datetime for the model data
     block_max_model_dnw["effective_dec_year"] = pd.to_datetime(

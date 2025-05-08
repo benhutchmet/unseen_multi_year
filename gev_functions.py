@@ -218,6 +218,9 @@ def pivot_detrend_model(
     # Determine the final point on the trend line
     final_point = trend[-1]
 
+    # Set the final point model
+    # final_point_model = final_point
+
     # calculate the final point bias
     final_point_bias = final_point - final_point_obs
 
