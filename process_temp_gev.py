@@ -48,6 +48,149 @@ from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_leve
 # Silence warnings
 warnings.filterwarnings("ignore")
 
+# Define a function to do pivoting
+# to each year and then calculating empirical return periods for this
+def pivot_emp_rps(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    obs_val_name: str,
+    model_val_name: str,
+    obs_time_name: str,
+    model_time_name: str,
+    nsamples: int = 10000,
+    figsize: tuple = (5, 5),
+) -> None:
+    """
+    Pivots the entire ensemble around each year in turn and quantifies
+    the likelihood of seeing an event worse than the worst observed extreme.
+
+    Parameters
+    ==========
+
+        obs_df : pd.DataFrame
+            DataFrame of observed data.
+        model_df : pd.DataFrame
+            DataFrame of model data.
+        obs_val_name : str
+            Name of the column to use in the observed DataFrame.
+        model_val_name : str
+            Name of the column to use in the model DataFrame.
+        obs_time_name : str
+            Name of the column to use as the time axis in the observed DataFrame.
+        model_time_name : str
+            Name of the column to use as the time axis in the model DataFrame.
+        nsamples : int, optional
+            Number of samples to use for the empirical return periods, by default 10000.
+        figsize : tuple, optional
+            Figure size, by default (5, 5).
+
+    Returns
+    =======
+
+        None
+    
+
+    """
+
+    # Make a copy of the dataframes
+    obs_df_copy = obs_df.copy()
+    model_df_copy = model_df.copy()
+
+    # if the time column is not datetime
+    if not isinstance(obs_df_copy[obs_time_name].values[0], np.datetime64):
+        obs_df_copy[obs_time_name] = pd.to_datetime(obs_df_copy[obs_time_name])
+
+    # if the time column is not datetime
+    if not isinstance(model_df_copy[model_time_name].values[0], np.datetime64):
+        model_df_copy[model_time_name] = pd.to_datetime(model_df_copy[model_time_name])
+
+    # Extract the unique time points from the models
+    unique_model_times = model_df_copy[model_time_name].unique()
+    unique_obs_times = obs_df_copy[obs_time_name].unique()
+
+    # Set up the model and obs vals
+    model_vals = model_df_copy.groupby(model_time_name)[model_val_name].mean()
+    obs_vals = obs_df_copy[obs_val_name].values
+
+    # Calculate the model trend
+    slope_model, intercept_model, _, _, _ = linregress(
+        unique_model_times, model_vals
+    )
+
+    # Calculate the obs trend
+    slope_obs, intercept_obs, _, _, _ = linregress(unique_obs_times, obs_vals)
+
+    # Calculate the model trend line
+    model_trend_line = slope_model * unique_model_times + intercept_model
+    obs_trend_line = slope_obs * unique_obs_times + intercept_obs
+
+    # Detrend the model and obs data
+    model_df_copy[f"{model_val_name}_dt"] = (
+        model_df_copy[model_val_name] - (
+            slope_model * model_df_copy[model_time_name] + intercept_model
+        )
+    )
+
+    # Set up a new dataframe to append values to
+    model_df_plume = pd.DataFrame()
+
+    # Loop over the unique model times
+    for i, model_time in tqdm(
+        enumerate(unique_model_times),
+        desc="Processing model times",
+        total=len(unique_model_times),
+        leave=False,
+    ):
+        # Set up the trend value this
+        trend_val_this = (
+            slope_model * model_time + intercept_model
+        )
+
+        # Adjust the detrended data for this year
+        model_adjusted_this = (
+            model_df_copy[f"{model_val_name}_dt"] + trend_val_this
+        )
+
+        # Set up the central return levels
+        model_df_central_rps_this = empirical_return_level(
+            data=model_adjusted_this,
+            high_values_rare=False,
+        )
+
+        # Set up the bootstrap
+        model_df_bootstrap_rps_this = np.zeros(
+            [nsamples, len(model_df_central_rps_this["sorted"])]
+        )
+
+        # Loop over the samples
+        for j in tqdm(
+            range(nsamples),
+            desc="Processing samples",
+            total=nsamples,
+            leave=False,
+        ):
+            # Resample the model data
+            model_vals_this = np.random.choice(
+                model_adjusted_this,
+                size=len(model_df_central_rps_this["sorted"]),
+                replace=True,
+            )
+
+            # Calculate the empirical return levels
+            model_df_rls_this = empirical_return_level(
+                data=model_vals_this,
+                high_values_rare=False,
+            )
+
+            # Append the return levels to the array
+            model_df_bootstrap_rps_this[j, :] = model_df_rls_this["sorted"]
+
+        # Now to find the rp for the worst obs event
+        # using the central estimate
+        # as well as the 0025 and 0975 quantiles
+
+
+
 # Define a function to subset extremes
 # based on the full field data
 def subset_extremes(
