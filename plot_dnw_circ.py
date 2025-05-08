@@ -2002,7 +2002,7 @@ def plot_tas_wind_composites(
                 if country.contains(point):
                     MASK_MATRIX_UK[l, j] = 1.0
 
-    plt.rcParams['figure.constrained_layout.use'] = False
+    plt.rcParams["figure.constrained_layout.use"] = False
     # Set up the figure
     fig = plt.figure(figsize=figsize, layout="constrained")
     gs = fig.add_gridspec(6, 3, figure=fig)
@@ -2036,9 +2036,16 @@ def plot_tas_wind_composites(
     ax17 = fig.add_subplot(gs[5, 2])  # Row 5, Col 2
 
     # # Set aspect ratio to square for all scatter plot axes
-    scatter_axes = [ax2, ax5, ax8, ax11, ax14, ax17]  # Replace with the axes where scatter plots are drawn
+    scatter_axes = [
+        ax2,
+        ax5,
+        ax8,
+        ax11,
+        ax14,
+        ax17,
+    ]  # Replace with the axes where scatter plots are drawn
     for ax in scatter_axes:
-        ax.set_aspect('equal', adjustable='box')
+        ax.set_aspect("equal", adjustable="box")
 
     all_axes = [
         ax0,
@@ -2193,12 +2200,8 @@ def plot_tas_wind_composites(
                 # Find the index of the date in the dates list
                 index_this_tas = np.where(dates_lists_obs_tas[i] == date)[0][0]
             except IndexError:
-                print(
-                    f"Date {date} not found in dates list obs tas for index {i}"
-                )
-                print(
-                    f"Dates list obs tas: {dates_lists_obs_tas[i]}"
-                )
+                print(f"Date {date} not found in dates list obs tas for index {i}")
+                print(f"Dates list obs tas: {dates_lists_obs_tas[i]}")
             indices_dates_obs_this_tas.append(index_this_tas)
 
             # Find the index of the date in the dates list
@@ -2538,8 +2541,10 @@ def plot_tas_wind_composites(
         ), "Anoms scatter tas and wind do not match in shape"
 
         # Ensure the second and third dimensions match
-        assert np.shape(anoms_scatter_tas_model_this)[1:] == np.shape(anoms_scatter_tas_obs_this)[1:], \
-            "The second and third dimensions of the arrays do not match"
+        assert (
+            np.shape(anoms_scatter_tas_model_this)[1:]
+            == np.shape(anoms_scatter_tas_obs_this)[1:]
+        ), "The second and third dimensions of the arrays do not match"
 
         # Expand the mask to match the shape of the anoms scatter this
         MASK_MATRIX_NN_RESHAPED_model = np.broadcast_to(
@@ -2730,6 +2735,7 @@ def plot_tas_wind_composites(
 
     return None
 
+
 # Define a functoin to plot the tas wind composites
 def plot_tas_composites(
     subset_dfs_obs: List[pd.DataFrame],
@@ -2880,7 +2886,9 @@ def plot_tas_composites(
     # plt.rcParams['figure.constrained_layout.use'] = False
     # Set up the figure
     fig = plt.figure(figsize=figsize, layout="constrained")
-    gs = fig.add_gridspec(3, 3, figure=fig, width_ratios=[1, 1, 1], height_ratios=[1, 1, 1])
+    gs = fig.add_gridspec(
+        3, 3, figure=fig, width_ratios=[1, 1, 1], height_ratios=[1, 1, 1]
+    )
     # # Set up the gridspec
     # gs.update(wspace=0.001, hspace=0.001)
 
@@ -3055,12 +3063,8 @@ def plot_tas_composites(
                 # Find the index of the date in the dates list
                 index_this_tas = np.where(dates_lists_obs_tas[i] == date)[0][0]
             except IndexError:
-                print(
-                    f"Date {date} not found in dates list obs tas for index {i}"
-                )
-                print(
-                    f"Dates list obs tas: {dates_lists_obs_tas[i]}"
-                )
+                print(f"Date {date} not found in dates list obs tas for index {i}")
+                print(f"Dates list obs tas: {dates_lists_obs_tas[i]}")
             indices_dates_obs_this_tas.append(index_this_tas)
 
         # Set up the subset arr this for the obs
@@ -3265,8 +3269,10 @@ def plot_tas_composites(
         anoms_scatter_tas_obs_this = subset_arr_this_obs_tas - clim_arrs_obs_tas[i]
 
         # Ensure the second and third dimensions match
-        assert np.shape(anoms_scatter_tas_model_this)[1:] == np.shape(anoms_scatter_tas_obs_this)[1:], \
-            "The second and third dimensions of the arrays do not match"
+        assert (
+            np.shape(anoms_scatter_tas_model_this)[1:]
+            == np.shape(anoms_scatter_tas_obs_this)[1:]
+        ), "The second and third dimensions of the arrays do not match"
 
         # Expand the mask to match the shape of the anoms scatter this
         MASK_MATRIX_NN_RESHAPED_model = np.broadcast_to(
@@ -3399,6 +3405,7 @@ def plot_tas_composites(
     #     ax.set_aspect("equal", adjustable="box")
 
     return None
+
 
 # Define a functoin to plot the tas wind composites
 def plot_wind_composites(
@@ -3533,7 +3540,9 @@ def plot_wind_composites(
     # plt.rcParams['figure.constrained_layout.use'] = False
     # Set up the figure
     fig = plt.figure(figsize=figsize, layout="constrained")
-    gs = fig.add_gridspec(3, 3, figure=fig, width_ratios=[1, 1, 1], height_ratios=[1, 1, 1])
+    gs = fig.add_gridspec(
+        3, 3, figure=fig, width_ratios=[1, 1, 1], height_ratios=[1, 1, 1]
+    )
     # # Set up the gridspec
     # gs.update(wspace=0.001, hspace=0.001)
 
@@ -3960,6 +3969,7 @@ def plot_wind_composites(
 
     return None
 
+
 # Define a function to plot a single column variable
 def plot_var_composites_model(
     subset_dfs_model: List[pd.DataFrame],
@@ -3990,7 +4000,7 @@ def plot_var_composites_model(
     ========
 
         None
-    
+
     """
 
     # if the variable is tas
@@ -4050,7 +4060,7 @@ def plot_var_composites_model(
         )
     else:
         raise ValueError(f"Variable {var_name} not supported.")
-    
+
     # Load the lats and lons
     lats = np.load(lats_path)
     lons = np.load(lons_path)
@@ -4125,9 +4135,7 @@ def plot_var_composites_model(
             subset_arr_this_model_index_this = subset_arr_this_model[index_this, :, :]
 
             # Store the value in the subset_arr_this_model_full
-            subset_arr_this_model_full[j, :, :] = (
-                subset_arr_this_model_index_this
-            )
+            subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
 
         # Print the row index
         print(f"Row index: {i}")
@@ -4138,6 +4146,26 @@ def plot_var_composites_model(
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
         # Calculate the model anoms
         anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
+
+        # if i == 0
+        if i == 0:
+            anoms_this_model_first = anoms_this_model
+        else:
+            anoms_this_model = anoms_this_model - anoms_this_model_first
+
+            # Set up a new
+            levels = np.array(
+                [
+                    -1,
+                    -0.75,
+                    -0.5,
+                    -0.25,
+                    0.25,
+                    0.5,
+                    0.75,
+                    1,
+                ]
+            )
 
         # Plot the model data on the right
         im_model = ax_this.contourf(
@@ -4172,7 +4200,7 @@ def plot_var_composites_model(
                 im_model,
                 ax=ax_this,
                 orientation="horizontal",
-                pad=0.0,
+                pad=0.05,
                 shrink=0.8,
             )
             cbar.set_ticks(levels)
@@ -4194,6 +4222,7 @@ def plot_var_composites_model(
         )
 
     return None
+
 
 # Define the main function
 def main():
@@ -4289,16 +4318,26 @@ def main():
 
     # Set up fnames for the psl data
     psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
-    psl_times_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    psl_times_fname = (
+        f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    )
 
     # set up fnames for the temperature data
     # NOTE: Detrended temperature here
-    temp_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
-    temp_times_fname = f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
+    temp_fname = (
+        f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
+    )
+    temp_times_fname = (
+        f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
+    )
 
     # set up fnames for the wind data
-    wind_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
-    wind_times_fname = f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    wind_fname = (
+        f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    )
+    wind_times_fname = (
+        f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    )
 
     # if the psl files do not exist then  create them
     if not os.path.exists(
@@ -4421,12 +4460,8 @@ def main():
     # sys.exit()
 
     # load in the model subset files
-    model_psl_subset_fname = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
-    )
-    model_psl_subset_json_fname = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
-    )
+    model_psl_subset_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
+    model_psl_subset_json_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname)):
@@ -4466,12 +4501,8 @@ def main():
     print(f"model_psl_subset index list keys: {model_psl_subset_index_list.keys()}")
 
     # set up the fnames for sfcWind
-    model_wind_subset_fname = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
-    )
-    model_wind_subset_json_fname = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
-    )
+    model_wind_subset_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
+    model_wind_subset_json_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname)):
@@ -4509,12 +4540,8 @@ def main():
     # print(f"model_wind_subset index list keys: {model_wind_subset_index_list.keys()}")
 
     # set up the fnames for tas
-    model_temp_subset_fname = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
-    )
-    model_temp_subset_json_fname = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
-    )
+    model_temp_subset_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
+    model_temp_subset_json_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname)):
@@ -4542,19 +4569,15 @@ def main():
         model_temp_subset_index_list = json.load(f)
 
     # Set up the fnames for the vas data
-    model_vas_subset_fname = (
-        f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
-    )
-    model_vas_subset_json_fname = (
-        f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
-    )
+    model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
+    model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
 
     # if the model subset file does not exist
     if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_fname)):
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_vas_subset_fname)} does not exist."
         )
-    
+
     # load the model vas subset
     model_vas_subset = np.load(os.path.join(subset_model_dir, model_vas_subset_fname))
 
@@ -4563,25 +4586,21 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_vas_subset_json_fname)} does not exist."
         )
-    
+
     # load the json file
     with open(os.path.join(subset_model_dir, model_vas_subset_json_fname), "r") as f:
         model_vas_subset_index_list = json.load(f)
 
     # Set up the fnames for the uas data
-    model_uas_subset_fname = (
-        f"HadGEM3-GC31-MM_uas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
-    )
-    model_uas_subset_json_fname = (
-        f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
-    )
+    model_uas_subset_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
+    model_uas_subset_json_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
 
     # if the model subset file does not exist
     if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_fname)):
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_uas_subset_fname)} does not exist."
         )
-    
+
     # load the model uas subset
     model_uas_subset = np.load(os.path.join(subset_model_dir, model_uas_subset_fname))
 
@@ -4590,7 +4609,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_uas_subset_json_fname)} does not exist."
         )
-    
+
     # load the json file
     with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
         model_uas_subset_index_list = json.load(f)
@@ -4985,7 +5004,7 @@ def main():
     lats_paths = [
         os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
         os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
-            os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
     ]
 
     # Set up the lons path
