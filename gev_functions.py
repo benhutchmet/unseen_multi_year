@@ -500,49 +500,31 @@ def model_block_min_max(
     if winter_year is not None:
         print(f"Assuming winter year column name: {winter_year}")
 
-        # Loop over the unique time names
-        for time in df[time_name].unique():
-            for wyear in df[winter_year].unique():
-                for member in df[member_name].unique():
-                    # Get the data for this time
-                    time_data = df[
-                        (df[time_name] == time)
-                        & (df[winter_year] == wyear)
-                        & (df[member_name] == member)
-                    ]
+        grouped_df = df.groupby([time_name, winter_year, member_name])
 
-                    # if time_data is empty
-                    if time_data.empty:
-                        print(f"Empty data for {time}, {wyear}, {member}")
-                        continue
+        # Define the aggregation function for min or max
+        if process_min:
+            agg_func = lambda x: x.idxmin()
+            name = "min"
+        else:
+            agg_func = lambda x: x.idxmax()
+            name = "max"
 
-                    # Get the min/max value
-                    if process_min:
-                        min_max_value = time_data[min_max_var_name].idxmin()
-                        name = "min"
-                    else:
-                        min_max_value = time_data[min_max_var_name].idxmax()
-                        name = "max"
+        # Apply the aggregation to find the min/max index
+        min_max_indices = grouped_df[min_max_var_name].apply(agg_func)
 
-                    # Create a new dataframe
-                    df_this = pd.DataFrame(
-                        {
-                            time_name: [time],
-                            winter_year: [wyear],
-                            member_name: [member],
-                            f"{min_max_var_name}_{name}": [
-                                time_data.loc[min_max_value, min_max_var_name]
-                            ],
-                        }
-                    )
+        # Extract the rows corresponding to the min/max indices
+        min_max_rows = df.loc[min_max_indices]
 
-                    # Add the new columns
-                    for col in new_df_cols:
-                        df_this[col] = time_data.loc[min_max_value, col]
+        # Rename the min/max column
+        min_max_rows = min_max_rows.rename(
+            columns={min_max_var_name: f"{min_max_var_name}_{name}"}
+        )
 
-                    # Concat to the block df
-                    block_df = pd.concat([block_df, df_this])
-
+        # Select only the required columns
+        block_df = min_max_rows[
+            [time_name, winter_year, member_name, f"{min_max_var_name}_{name}"] + new_df_cols
+        ]
     else:
         print("Assuming first winter year only")
         # Loop over the unique time names

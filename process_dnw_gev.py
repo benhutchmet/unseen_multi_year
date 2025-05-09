@@ -357,14 +357,14 @@ def pivot_emp_rps_dnw(
         )
 
         # Calculate the demand net wind
-        model_df_copy_this[f"dnw_{time_point}"] = (
-            model_df_copy_this[f"{model_var_name_tas_this}_UK_demand"]
-            - model_df_copy_this[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"]
+        model_df_copy[f"dnw_{time_point}"] = (
+            model_df_copy[f"{model_var_name_tas_this}_UK_demand"]
+            - model_df_copy[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"]
         )
 
         # Calculate the block maxima for the model
         model_block_maxima = gev_funcs.model_block_min_max(
-            df=model_df_copy_this,
+            df=model_df_copy,
             time_name="init_year",
             min_max_var_name=f"dnw_{time_point}",
             new_df_cols=["lead"],
