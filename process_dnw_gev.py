@@ -102,6 +102,11 @@ def pivot_emp_rps_dnw(
 
     """
 
+    # Hard code the HDD and CDD bases
+    hdd_base = 15.5
+    cdd_base = 22.0
+    demand_year = 2017
+
     # Make a copy of the dataframes
     obs_df_copy = obs_df.copy()
     model_df_copy = model_df.copy()
@@ -213,6 +218,75 @@ def pivot_emp_rps_dnw(
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
 
+    # Set up the sigmoid fit for wind speed pre-iterable
+    ch_df = pd.read_csv("/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv")
+
+    # Set up the onshore and offshore capacities in gw
+    onshore_cap_gw = 15710.69 / 1000
+    offshore_cap_gw = 14733.02 / 1000
+
+    # Set up the generation in CH
+    ch_df["onshore_gen"] = ch_df["ons_cfs"] * onshore_cap_gw
+    ch_df["offshore_gen"] = ch_df["ofs_cfs"] * offshore_cap_gw
+
+    # Sum to give the total generation
+    ch_df["total_gen"] = ch_df["onshore_gen"] + ch_df["offshore_gen"]
+
+    # Make sure that date is a datetime
+    ch_df["date"] = pd.to_datetime(ch_df["date"])
+
+    # Set the date as the index and remove the title
+    ch_df.set_index("date", inplace=True)
+
+    # Subset the data to the relevant months
+    ch_df = ch_df[ch_df.index.month.isin([12, 1, 2])]
+
+    # Subset the data to the relevant date range
+    ch_df = ch_df[(ch_df.index >= "1961-12-01") & (ch_df.index <= "2018-03-01")]
+
+    # Set up an initial guess for the parameters for the sigmoid fit
+    p0 = [
+        max(ch_df["total_gen"]),
+        np.median(obs_df_copy[obs_var_name_wind]),
+        1,
+        min(ch_df["total_gen"]),
+    ]
+
+    # Extract the first and last years (i.e., YYYY) from the date range
+    start_year = int("1961-12-01".split("-")[0])
+    end_year = int("2018-03-01".split("-")[0])
+
+    # set up the obs df copy subset
+    obs_df_copy_subset = obs_df_copy[
+        (obs_df_copy["effective_dec_year"] >= start_year)
+        & (obs_df_copy["effective_dec_year"] < end_year)
+    ]
+
+    # Fit the sigmoid curve to the observed data
+    popt, pcov = curve_fit(
+        sigmoid, obs_df_copy_subset[obs_var_name_wind], ch_df["total_gen"], p0=p0, method="dogbox"
+    )
+
+    # DO the same for demand
+    df_regr = pd.read_csv(
+        "/home/users/benhutch/ERA5_energy_update/ERA5_Regression_coeffs_demand_model.csv"
+    )
+
+    # Set the index
+    df_regr.set_index("Unnamed: 0", inplace=True)
+
+    # Rename the columns by splitting by _ and extracting the second element
+    df_regr.columns = [col.split("_")[0] for col in df_regr.columns]
+
+    # If there is a column called "United" replace it with "United_Kingdom"
+    if "United" in df_regr.columns:
+        df_regr.rename(columns={"United": "United_Kingdom"}, inplace=True)
+
+    # Set up the regression coefficients
+    time_coeff_uk = df_regr.loc["time", "United_Kingdom"]
+    hdd_coeff_uk = df_regr.loc["HDD", "United_Kingdom"]
+    cdd_coeff_uk = df_regr.loc["CDD", "United_Kingdom"]
+
     # Loop through the model time points
     for i, time_point in tqdm(
         enumerate(model_time_points), desc="Looping through model time points"
@@ -242,20 +316,44 @@ def pivot_emp_rps_dnw(
         model_var_name_tas_this = f"{model_var_name_tas}_dt_this_{time_point}"
 
         # Convert the wind speed to wind power generation
-        _, model_df_copy_this = ws_to_wp_gen(
-            obs_df=df_obs_copy,
-            model_df=model_df_copy,
-            obs_ws_col=obs_var_name_wind,
-            model_ws_col=model_var_name_wind_this,
-            date_range=("1961-12-01", "2018-03-01"),
+        # _, model_df_copy_this = ws_to_wp_gen(
+        #     obs_df=obs_df_copy,
+        #     model_df=model_df_copy,
+        #     obs_ws_col=obs_var_name_wind,
+        #     model_ws_col=model_var_name_wind_this,
+        #     date_range=("1961-12-01", "2018-03-01"),
+        # )
+
+        # Apply the sigmoid fit to the model data
+        model_df_copy[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"] = sigmoid(
+            model_df_copy[model_var_name_wind_this], *popt
         )
 
         # Convert the temperature to demand
-        _, model_df_copy_this = temp_to_demand(
-            obs_df=df_obs_copy,
-            model_df=model_df_copy,
-            obs_temp_col=obs_var_name_tas,
-            model_temp_col=model_var_name_tas_this,
+        # _, model_df_copy_this = temp_to_demand(
+        #     obs_df=obs_df_copy,
+        #     model_df=model_df_copy,
+        #     obs_temp_col=obs_var_name_tas,
+        #     model_temp_col=model_var_name_tas_this,
+        # )
+
+        # Calculate hdd and cdd
+        model_df_copy[f"{model_var_name_tas_this}_HDD"] = (
+            model_df_copy[model_var_name_tas_this].apply(
+                lambda x: max(0, hdd_base - x)
+            )
+        )
+        model_df_copy[f"{model_var_name_tas_this}_CDD"] = (
+            model_df_copy[model_var_name_tas_this].apply(
+                lambda x: max(0, x - cdd_base)
+            )
+        )
+
+        # Calculate the demand
+        model_df_copy[f"{model_var_name_tas_this}_UK_demand"] = (
+            (time_coeff_uk * demand_year)
+            + (hdd_coeff_uk * model_df_copy[f"{model_var_name_tas_this}_HDD"])
+            + (cdd_coeff_uk * model_df_copy[f"{model_var_name_tas_this}_CDD"])
         )
 
         # Calculate the demand net wind
@@ -270,7 +368,7 @@ def pivot_emp_rps_dnw(
             time_name="init_year",
             min_max_var_name=f"dnw_{time_point}",
             new_df_cols=["lead"],
-            winter_year=["winter_year"],
+            winter_year="winter_year",
             process_min=False,
         )
 
@@ -280,7 +378,7 @@ def pivot_emp_rps_dnw(
         )
 
         # Extract the model block maxima vals
-        model_block_maxima_vals = model_block_maxima[f"dnw_{time_point}"].values
+        model_block_maxima_vals = model_block_maxima[f"dnw_{time_point}_max"].values
 
         # if this is not an array, then format it as an array
         if not isinstance(model_block_maxima_vals, np.ndarray):
@@ -360,8 +458,8 @@ def pivot_emp_rps_dnw(
 
     # translate these return periods in years into percentages
     model_df_plume["central_rp_%"] = 1 / (model_df_plume["central_rp"] / 100)
-    model_df_plume["025_rp_%"] = 1 / (model_df_plume["025_rp"] / 100)
-    model_df_plume["975_rp_%"] = 1 / (model_df_plume["975_rp"] / 100)
+    model_df_plume["0025_rp_%"] = 1 / (model_df_plume["0025_rp"] / 100)
+    model_df_plume["0975_rp_%"] = 1 / (model_df_plume["0975_rp"] / 100)
 
     # Set up the figure
     fig, ax = plt.subplots(figsize=figsize)
@@ -378,8 +476,8 @@ def pivot_emp_rps_dnw(
     # Shade the area between the 0.025 and 0.975 quantiles
     ax.fill_between(
         model_df_plume["model_time"],
-        model_df_plume["025_rp_%"],
-        model_df_plume["975_rp_%"],
+        model_df_plume["0025_rp_%"],
+        model_df_plume["0975_rp_%"],
         color="red",
         alpha=0.3,  # Adjust transparency
         label="Return period range (0.025 - 0.975)",
@@ -1208,29 +1306,29 @@ def main():
     df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
 
     # Plot the lead pdfs to visualise the biases/drifts
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_tas_c",
-        obs_var_name="data_c",
-        lead_name="winter_year",
-        xlabel="Temperature (°C)",
-        suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_tas_c",
+    #     obs_var_name="data_c",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (°C)",
+    #     suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
+    #     figsize=(10, 5),
+    # )
 
-    # Plot the lead pdfs to visualise the biases/drifts
-    # but for wind speed
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_sfcWind",
-        obs_var_name="data_sfcWind",
-        lead_name="winter_year",
-        xlabel="10m Wind Speed (m/s)",
-        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs to visualise the biases/drifts
+    # # but for wind speed
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind",
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    #     xlabel="10m Wind Speed (m/s)",
+    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
+    #     figsize=(10, 5),
+    # )
 
     # Apply the dirft correction to the model data
     df_model_djf = model_drift_corr_plot(
@@ -1259,29 +1357,29 @@ def main():
     )
 
     # plot the lead pdfs to visualise the biases/drifts
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_tas_c_drift_bc",
-        obs_var_name="data_c",
-        lead_name="winter_year",
-        xlabel="Temperature (°C)",
-        suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_tas_c_drift_bc",
+    #     obs_var_name="data_c",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (°C)",
+    #     suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+    #     figsize=(10, 5),
+    # )
 
-    # Plot the lead pdfs to visualise the biases/drifts
-    # but for wind speed
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_sfcWind_drift_bc",
-        obs_var_name="data_sfcWind",
-        lead_name="winter_year",
-        xlabel="10m Wind Speed (m/s)",
-        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs to visualise the biases/drifts
+    # # but for wind speed
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind_drift_bc",
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    #     xlabel="10m Wind Speed (m/s)",
+    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+    #     figsize=(10, 5),
+    # )
 
     # sys.exit()
 
