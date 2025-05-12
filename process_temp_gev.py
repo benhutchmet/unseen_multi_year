@@ -39,7 +39,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import select_leads_wyears_DJF, plot_distributions_extremes
+from process_dnw_gev import select_leads_wyears_DJF, plot_distributions_extremes
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -134,36 +134,12 @@ def pivot_emp_rps(
         )
     )
 
-    # if the variable is tas
-    if var_name == "tas":
-        # Worst observed extreme is min
-        obs_extreme_value = np.min(obs_df_copy[obs_val_name].values)
-    elif var_name == "sfcWind":
-        print("Identifying second worst observed extreme")
-        # Rank the observed values from low to high
-        obs_df_copy["rank"] = obs_df_copy[obs_val_name].rank(
-            method="first", ascending=True
+    # Detrend the obs data
+    obs_df_copy[f"{obs_val_name}_dt"] = (
+        obs_df_copy[obs_val_name] - (
+            slope_obs * obs_df_copy[obs_time_name] + intercept_obs
         )
-
-        # Find the second worst observed extreme
-        obs_extreme_value = obs_df_copy.loc[
-            obs_df_copy["rank"] == 2, obs_val_name
-        ].values[0]
-    else:
-        raise ValueError(
-            "Variable not recognised. Please use tas or sfcWind."
-        )
-
-    # find the time in which this occurs
-    obs_extreme_time = obs_df_copy.loc[
-        obs_df_copy[obs_val_name] == obs_extreme_value, obs_time_name
-    ].values[0]
-
-    # print the worst observed extreme
-    print(f"Worst observed extreme: {obs_extreme_value}")
-
-    # print the time in which this occurs
-    print(f"Worst observed extreme time (year): {obs_extreme_time}")
+    )
 
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
@@ -175,6 +151,49 @@ def pivot_emp_rps(
         total=len(unique_model_times),
         leave=False,
     ):
+
+        # Set up the trend value this for the obs
+        obs_trend_val_this = (
+            slope_obs * model_time + intercept_obs
+        )
+
+        # Adjust the detrended data for this year
+        obs_adjusted_this = np.array(
+            obs_df_copy[f"{obs_val_name}_dt"] + obs_trend_val_this
+        )
+
+        # if the variable is tas
+        if var_name == "tas":
+            # Worst observed extreme is min
+            obs_extreme_value = np.min(obs_adjusted_this)
+        elif var_name == "sfcWind":
+            print("Identifying second worst observed extreme")
+
+            # Find the second worst observed extreme
+            sorted_values = np.sort(obs_adjusted_this)  # Sort the values in ascending order
+            if len(sorted_values) > 1:
+                obs_extreme_value = sorted_values[1]  # Second lowest value
+            else:
+                raise ValueError("Not enough data to determine the second worst extreme.")
+        else:
+            raise ValueError(
+                "Variable not recognised. Please use tas or sfcWind."
+            )
+        
+        # find the index of the obs extreme value in obs_adjusted_this
+        obs_extreme_index = np.where(obs_adjusted_this == obs_extreme_value)[0][0]
+
+        # find the time in which this occurs
+        obs_extreme_time = obs_df_copy.iloc[
+            obs_extreme_index
+        ][obs_time_name].values
+
+        # print the worst observed extreme
+        print(f"Worst observed extreme: {obs_extreme_value}")
+
+        # print the time in which this occurs
+        print(f"Worst observed extreme time (year): {obs_extreme_time}")
+
         # Set up the trend value this
         trend_val_this = (
             slope_model * model_time + intercept_model
@@ -2279,10 +2298,10 @@ def main():
 
     # sys.exit()
 
-    # # Ensure effective dec year is in the block minima model tas
-    block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
-        "init_year"
-    ] + (block_minima_model_tas["winter_year"] - 1)
+    # # # Ensure effective dec year is in the block minima model tas
+    # block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
+    #     "init_year"
+    # ] + (block_minima_model_tas["winter_year"] - 1)
 
     # # print the model df for lead 2
     # print(block_minima_model_tas[block_minima_model_tas["winter_year"] == 2])
@@ -2338,6 +2357,28 @@ def main():
 
     # print the head of block minima model tas
     print(block_minima_model_tas.head())
+
+    # print the columns in the block minima model tas
+    print(block_minima_model_tas.columns)
+
+    # print the columns in the block minima model wind
+    print(block_minima_model_wind.columns)
+
+    # Check for duplicate column names in block_minima_model_tas
+    if block_minima_model_tas.columns.duplicated().any():
+        print("Duplicate column names in block minima model tas")
+        print(block_minima_model_tas.columns[block_minima_model_tas.columns.duplicated()])
+
+        # Drop the duplicate columns
+        block_minima_model_tas = block_minima_model_tas.loc[:, ~block_minima_model_tas.columns.duplicated()]
+
+    # Check for duplicate column names in block_minima_model_wind
+    if block_minima_model_wind.columns.duplicated().any():
+        print("Duplicate column names in block minima model wind")
+        print(block_minima_model_wind.columns[block_minima_model_wind.columns.duplicated()])
+
+        # Drop the duplicate columns
+        block_minima_model_wind = block_minima_model_wind.loc[:, ~block_minima_model_wind.columns.duplicated()]
 
     # add the effective dec year to the block minima model tas
     block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
@@ -2461,33 +2502,33 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # # Test the new function
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_tas,
-    #     model_df=block_minima_model_tas_drift_corr,
-    #     obs_val_name="data_c_min",
-    #     model_val_name="data_tas_c_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="tas",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    # )
+    # Test the new function
+    pivot_emp_rps(
+        obs_df=block_minima_obs_tas,
+        model_df=block_minima_model_tas_drift_corr,
+        obs_val_name="data_c_min",
+        model_val_name="data_tas_c_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="tas",
+        nsamples=1000,
+        figsize=(5, 5),
+    )
 
-    # # DO the same for wind speed
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_wind,
-    #     model_df=block_minima_model_wind_drift_corr,
-    #     obs_val_name="data_min",
-    #     model_val_name="data_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="sfcWind",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    # )
+    # DO the same for wind speed
+    pivot_emp_rps(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind_drift_corr,
+        obs_val_name="data_min",
+        model_val_name="data_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="sfcWind",
+        nsamples=1000,
+        figsize=(5, 5),
+    )
 
-    # sys.exit()
+    sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
