@@ -196,15 +196,32 @@ def pivot_emp_rps(
         total=len(unique_model_times),
         leave=False,
     ):
+        # Find the index where the model time is equal to the obs time
+        obs_index_this = np.where(
+            obs_df_copy[obs_time_name] == model_time
+        )[0][0]
+
+        # Apply this index to the obs trend
+        obs_trend_point_this = obs_trend_line[obs_index_this]
 
         # Set up the trend value this
         trend_val_this = (
             slope_model * model_time + intercept_model
         )
 
+        # Calculate the final point bias
+        trend_point_bias = (
+            obs_trend_point_this - trend_val_this
+        )
+
+        # Apply this to the model data
+        trend_val_this_bc = (
+            slope_model * model_time + intercept_model + trend_point_bias
+        )
+
         # Adjust the detrended data for this year
         model_adjusted_this = np.array(
-            model_df_copy[f"{model_val_name}_dt"] + trend_val_this
+            model_df_copy[f"{model_val_name}_dt"] + trend_val_this_bc
         )
 
         # Set up the central return levels
@@ -2614,18 +2631,18 @@ def main():
     )
 
     # Do the same for wind speed short
-    pivot_emp_rps(
-        obs_df=block_minima_obs_wind_short,
-        model_df=block_minima_model_wind_short_drift_corr,
-        obs_val_name="data_min",
-        model_val_name="data_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="sfcWind",
-        nsamples=100,
-        figsize=(5, 5),
-        wind_2005_toggle=True,
-    )
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_wind_short,
+    #     model_df=block_minima_model_wind_short_drift_corr,
+    #     obs_val_name="data_min",
+    #     model_val_name="data_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="sfcWind",
+    #     nsamples=100,
+    #     figsize=(5, 5),
+    #     wind_2005_toggle=True,
+    # )
 
     # sys.exit()
 
@@ -3400,23 +3417,23 @@ def main():
     )
 
     # # Now test the plotting function for these
-    gev_funcs.plot_gev_params_subplots(
-        gev_params_top_raw=gev_params_bc_temp,
-        gev_params_top_bc=gev_params_bc_temp,
-        gev_params_bottom_raw=gev_params_bc_wind_short,
-        gev_params_bottom_bc=gev_params_bc_wind_short,
-        obs_df_top=block_minima_obs_tas_dt,
-        model_df_top=block_minima_model_tas_drift_corr_dt,
-        obs_df_bottom=block_minima_obs_wind_short_dt,
-        model_df_bottom=block_minima_model_wind_short_drift_corr_dt,
-        obs_var_name_top="data_c_min_dt",
-        model_var_name_top="data_tas_c_min_drift_bc_dt",
-        obs_var_name_bottom="data_min_dt",
-        model_var_name_bottom="data_min_drift_bc_dt",
-        title_top="Distribution of DJF block minima temperature (°C)",
-        title_bottom="Distribution of DJF block minima wind speed 1960-2023 (m/s)",
-        figsize=(15, 10),
-    )
+    # gev_funcs.plot_gev_params_subplots(
+    #     gev_params_top_raw=gev_params_bc_temp,
+    #     gev_params_top_bc=gev_params_bc_temp,
+    #     gev_params_bottom_raw=gev_params_bc_wind_short,
+    #     gev_params_bottom_bc=gev_params_bc_wind_short,
+    #     obs_df_top=block_minima_obs_tas_dt,
+    #     model_df_top=block_minima_model_tas_drift_corr_dt,
+    #     obs_df_bottom=block_minima_obs_wind_short_dt,
+    #     model_df_bottom=block_minima_model_wind_short_drift_corr_dt,
+    #     obs_var_name_top="data_c_min_dt",
+    #     model_var_name_top="data_tas_c_min_drift_bc_dt",
+    #     obs_var_name_bottom="data_min_dt",
+    #     model_var_name_bottom="data_min_drift_bc_dt",
+    #     title_top="Distribution of DJF block minima temperature (°C)",
+    #     title_bottom="Distribution of DJF block minima wind speed 1960-2023 (m/s)",
+    #     figsize=(15, 10),
+    # )
 
     sys.exit()
 
