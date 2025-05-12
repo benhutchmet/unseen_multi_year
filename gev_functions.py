@@ -1819,40 +1819,41 @@ def plot_gev_params_subplots(
         #     gev_params_non_bc["model_loc"][0].mean(), color="red", lw=3, linestyle="--"
         # )
 
-        # if i == 1
-        if i == 1:
-            # include a dashed blue vertical line to show the obs loc for long period
-            ax1.axvline(
-                gev_params["obs_loc"],
-                color="blue",
-                lw=3,
-                label="Observed",
-            )
+        # # if i == 1
+        # if i == 1:
+        #     # include a dashed blue vertical line to show the obs loc for long period
+        #     ax1.axvline(
+        #         gev_params["obs_loc"],
+        #         color="blue",
+        #         lw=3,
+        #         label="Observed",
+        #     )
 
-            # include a solid blue vertical line to show the obs loc for short period
-            ax1.axvline(
-                gev_params_non_bc["obs_loc_short"],
-                color="blue",
-                lw=3,
-                label="Observed",
-                linestyle="--",
-            )
+        #     # include a solid blue vertical line to show the obs loc for short period
+        #     ax1.axvline(
+        #         gev_params_non_bc["obs_loc_short"],
+        #         color="blue",
+        #         lw=3,
+        #         label="Observed",
+        #         linestyle="--",
+        #     )
 
-            # Set up the obs percentile loc
-            obs_percentile_loc = percentileofscore(
-                gev_params["model_loc"][0], gev_params["obs_loc"]
-            )
-        else:
-            # Plot the observed line as a blue vertical line
-            ax1.axvline(gev_params["obs_loc"], color="blue", lw=3, label="Observed")
+        #     # Set up the obs percentile loc
+        #     obs_percentile_loc = percentileofscore(
+        #         gev_params["model_loc"][0], gev_params["obs_loc"]
+        #     )
+        # else:
 
-            # Include a title for the loc
-            obs_percentile_loc = percentileofscore(
-                gev_params["model_loc"][0], gev_params["obs_loc_short"]
-            )
+        # Plot the observed line as a blue vertical line
+        ax1.axvline(gev_params["obs_loc"], color="blue", lw=3, label="Observed")
+
+        # Include a title for the loc
+        obs_percentile_loc = percentileofscore(
+            gev_params["model_loc"][0], gev_params["obs_loc_short"]
+        )
 
         # Set the title
-        ax1.set_title(f"location, {obs_percentile_loc:.2f}%")
+        ax1.set_title(f"location, {round(obs_percentile_loc)}%")
 
         # Plot the scale values
         ax2.hist(gev_params["model_scale"][0], bins=30, color="red", alpha=0.5)
@@ -1901,10 +1902,21 @@ def plot_gev_params_subplots(
                 linestyle="--",
             )
 
-            # Include a title for the scale
+            # Calculate the obs percentile scale
             obs_percentile_scale = percentileofscore(
+                gev_params["model_scale"][0], gev_params["obs_scale"]
+            )
+
+            # Include a title for the scale
+            obs_percentile_scale_short = percentileofscore(
                 gev_params["model_scale"][0], gev_params["obs_scale_short"]
             )
+
+            # Set the title
+            ax2.set_title(
+                f"scale, {round(obs_percentile_scale)}% ({round(obs_percentile_scale_short)}%)"
+            )
+
         else:
             # Plot the observed line as a blue vertical line
             ax2.axvline(gev_params["obs_scale"], color="blue", lw=3, label="Observed")
@@ -1914,8 +1926,8 @@ def plot_gev_params_subplots(
                 gev_params["model_scale"][0], gev_params["obs_scale"]
             )
 
-        # Set the title
-        ax2.set_title(f"scale, {obs_percentile_scale:.2f}%")
+            # Set the title
+            ax2.set_title(f"scale, {round(obs_percentile_scale)}%")
 
         # Plot the shape values
         ax3.hist(gev_params["model_shape"][0], bins=30, color="red", alpha=0.5)
@@ -1936,48 +1948,49 @@ def plot_gev_params_subplots(
             label="97.5%tile",
         )
 
-        if i == 1:
-            # include a dashed red vertical line
-            # to show the mean shape parameter without bias adjustment
-            # ax3.axvline(
-            #     gev_params_non_bc["model_shape"][0].mean(),
-            #     color="red",
-            #     lw=3,
-            #     linestyle="--",
-            # )
+        # if i == 1:
+        #     # include a dashed red vertical line
+        #     # to show the mean shape parameter without bias adjustment
+        #     # ax3.axvline(
+        #     #     gev_params_non_bc["model_shape"][0].mean(),
+        #     #     color="red",
+        #     #     lw=3,
+        #     #     linestyle="--",
+        #     # )
 
-            # Plot the observed line as a blue vertical line
-            ax3.axvline(
-                gev_params["obs_shape"],
-                color="blue",
-                lw=3,
-                label="Observed",
-            )
+        #     # Plot the observed line as a blue vertical line
+        #     ax3.axvline(
+        #         gev_params["obs_shape"],
+        #         color="blue",
+        #         lw=3,
+        #         label="Observed",
+        #     )
 
-            # plot the obs shape short asa blue dashed line
-            ax3.axvline(
-                gev_params["obs_shape_short"],
-                color="blue",
-                lw=3,
-                label="Observed",
-                linestyle="--",
-            )
+        #     # plot the obs shape short asa blue dashed line
+        #     ax3.axvline(
+        #         gev_params["obs_shape_short"],
+        #         color="blue",
+        #         lw=3,
+        #         label="Observed",
+        #         linestyle="--",
+        #     )
 
-            # Include a title for the shape
-            obs_percentile_shape = percentileofscore(
-                gev_params["model_shape"][0], gev_params["obs_shape_short"]
-            )
-        else:
-            # Plot the observed line as a blue vertical line
-            ax3.axvline(gev_params["obs_shape"], color="blue", lw=3, label="Observed")
+        #     # Include a title for the shape
+        #     obs_percentile_shape = percentileofscore(
+        #         gev_params["model_shape"][0], gev_params["obs_shape_short"]
+        #     )
+        # else:
 
-            # Include a title for the shape
-            obs_percentile_shape = percentileofscore(
-                gev_params["model_shape"][0], gev_params["obs_shape"]
-            )
+        # Plot the observed line as a blue vertical line
+        ax3.axvline(gev_params["obs_shape"], color="blue", lw=3, label="Observed")
+
+        # Include a title for the shape
+        obs_percentile_shape = percentileofscore(
+            gev_params["model_shape"][0], gev_params["obs_shape"]
+        )
 
         # Set the title
-        ax3.set_title(f"shape, {obs_percentile_shape:.2f}%")
+        ax3.set_title(f"shape, {round(obs_percentile_shape)}%")
 
         # remove the y-axis ticks
         for ax in [ax0, ax1, ax2, ax3]:

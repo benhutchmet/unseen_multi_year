@@ -41,7 +41,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -168,14 +168,44 @@ def pivot_emp_rps_dnw(
         )
     )
 
+    # Detrend the observed data
+    obs_df_copy[f"{obs_var_name_tas}_dt"] = (
+        obs_df_copy[obs_var_name_tas] - (
+        slope_obs_tas * obs_df_copy[obs_time_name] +
+        intercept_obs_tas
+        )
+    )
+    obs_df_copy[f"{obs_var_name_wind}_dt"] = (
+        obs_df_copy[obs_var_name_wind] - (
+        slope_obs_wind * obs_df_copy[obs_time_name] +
+        intercept_obs_wind
+        )
+    )
+
+    # Set up the final point for ths obs trend line
+    final_point_obs_trend_tas = (
+        slope_obs_tas * obs_df_copy[obs_time_name].max() + intercept_obs_tas
+    )
+    final_point_obs_trend_wind = (
+        slope_obs_wind * obs_df_copy[obs_time_name].max() + intercept_obs_wind
+    )
+
+    # Set up a new column for _dt_pivot
+    obs_df_copy[f"{obs_var_name_tas}_dt_pivot"] = (
+        obs_df_copy[f"{obs_var_name_tas}_dt"] + final_point_obs_trend_tas
+    )
+    obs_df_copy[f"{obs_var_name_wind}_dt_pivot"] = (
+        obs_df_copy[f"{obs_var_name_wind}_dt"] + final_point_obs_trend_wind
+    )
+
     # Quantify the block maxima for the obs
     # To identify the worst eevent/day
     # Translate the wind speed to wind power generation
     df_obs, _ = ws_to_wp_gen(
         obs_df=obs_df_copy,
         model_df=model_df_copy,
-        obs_ws_col=obs_var_name_wind,
-        model_ws_col=model_var_name_wind,
+        obs_ws_col=f"{obs_var_name_wind}_dt_pivot",
+        model_ws_col=f"{model_var_name_wind}",
         date_range=("1961-12-01", "2018-03-01"),
     )
 
@@ -183,8 +213,8 @@ def pivot_emp_rps_dnw(
     df_obs, _ = temp_to_demand(
         obs_df=df_obs,
         model_df=model_df_copy,
-        obs_temp_col=obs_var_name_tas,
-        model_temp_col=model_var_name_tas,
+        obs_temp_col=f"{obs_var_name_tas}_dt_pivot",
+        model_temp_col=f"{model_var_name_tas}",
     )
 
     # Calculate the demand net wind
@@ -291,6 +321,14 @@ def pivot_emp_rps_dnw(
     for i, time_point in tqdm(
         enumerate(model_time_points), desc="Looping through model time points"
     ):
+        # Applu this index to the obs trend
+        obs_trend_point_this_tas = (
+            slope_obs_tas * time_point + intercept_obs_tas
+        )
+        obs_trend_point_this_wind = (
+            slope_obs_wind * time_point + intercept_obs_wind
+        )
+
         # Set up the trend value this
         trend_val_this_tas = (
             slope_model_tas * time_point + intercept_model_tas
@@ -299,12 +337,28 @@ def pivot_emp_rps_dnw(
             slope_model_wind * time_point + intercept_model_wind
         )
 
+        # calculayte the trend point bias
+        trend_point_bias_this_tas = (
+            obs_trend_point_this_tas - trend_val_this_tas
+        )
+        trend_point_bias_this_wind = (
+            obs_trend_point_this_wind - trend_val_this_wind
+        )
+
+        # Bias correct the trend val this tas bc
+        trend_val_this_tas_bc = (
+            trend_val_this_tas + trend_point_bias_this_tas
+        )
+        trend_val_this_wind_bc = (
+            trend_val_this_wind + trend_point_bias_this_wind
+        )
+
         # Adjust the model data for this time point
         model_adjusted_this_tas = np.array(
-            model_df_copy[f"{model_var_name_tas}_dt"] + trend_val_this_tas
+            model_df_copy[f"{model_var_name_tas}_dt"] + trend_val_this_tas_bc
         )
         model_adjusted_this_wind = np.array(
-            model_df_copy[f"{model_var_name_wind}_dt"] + trend_val_this_wind
+            model_df_copy[f"{model_var_name_wind}_dt"] + trend_val_this_wind_bc
         )
 
         # Set up a new column in the dataframes for this data
