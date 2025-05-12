@@ -259,7 +259,7 @@ def pivot_detrend_model(
 
     # Apply the trend correction
     df_copy[model_y_axis_name + suffix] = (
-        final_point_model - df_copy['trend_value'] + df_copy[model_y_axis_name]
+        final_point - df_copy['trend_value'] + df_copy[model_y_axis_name]
     )
 
     return df_copy
