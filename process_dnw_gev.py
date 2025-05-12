@@ -217,6 +217,10 @@ def pivot_emp_rps_dnw(
         model_temp_col=f"{model_var_name_tas}",
     )
 
+    # Set up the pivot names
+    obs_var_name_tas = f"{obs_var_name_tas}_dt_pivot"
+    obs_var_name_wind = f"{obs_var_name_wind}_dt_pivot"
+
     # Calculate the demand net wind
     df_obs["dnw"] = df_obs[f"{obs_var_name_tas}_UK_demand"] - df_obs[
         f"{obs_var_name_wind}_sigmoid_total_wind_gen"
@@ -538,11 +542,12 @@ def pivot_emp_rps_dnw(
     )
 
     # Limit the y-axis to between 0 and 4
-    ax.set_ylim(0, 4)
-
-    # Set up the ticks for the first y-axis using the ax object
-    ax.set_yticks([0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5])  # Tick positions
-    ax.set_yticklabels(["0%", "0.5%", "1.0%", "1.5%", "2.0%", "2.5%", "3.0%", "3.5%"])  # Tick labels
+    # Set new tick labels
+    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    # Set new tick labels for the primary y-axis
+    # Set up yticks for the primary y-axis
+    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    ax.set_yticklabels(["0%", "1%", "2%", "3%", "4%", "5%", "6%", "7%", "8%", "9%", "10%", "11%", "12%"])
 
     # Set up yticks for the second y-axis
     ax2 = ax.twinx()
@@ -550,8 +555,8 @@ def pivot_emp_rps_dnw(
     # Synchronize the tick positions of the second y-axis with the first y-axis
     ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
 
-    # Set tick labels for the second y-axis
-    ax2.set_yticklabels(["", "200", "100", "67", "50", "40", "33", "29"])  # Custom labels
+    # Set tick labels for the second y-axis (ensure the number of labels matches the number of ticks)
+    ax2.set_yticklabels(["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"])  # 13 labels
 
     # Set the y-axis limits for both axes to ensure alignment
     ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
@@ -1463,20 +1468,20 @@ def main():
     # )
 
     # Test the new function before all detrending takes place
-    pivot_emp_rps_dnw(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        obs_var_name_wind="data_sfcWind",
-        obs_var_name_tas="data_c",
-        model_var_name_wind="data_sfcWind_drift_bc",
-        model_var_name_tas="data_tas_c_drift_bc",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        nsamples=1000,
-        figsize=(5, 5),
-    )
+    # pivot_emp_rps_dnw(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     obs_var_name_wind="data_sfcWind",
+    #     obs_var_name_tas="data_c",
+    #     model_var_name_wind="data_sfcWind_drift_bc",
+    #     model_var_name_tas="data_tas_c_drift_bc",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
@@ -1985,7 +1990,7 @@ def main():
         figsize=(15, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # format effective dec year as a datetime for the model data
     block_max_model_dnw["effective_dec_year"] = pd.to_datetime(
@@ -2124,21 +2129,21 @@ def main():
     
     # # plot the return period plots here
     # # first the empirical return periods
-    # plot_emp_rps(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     obs_val_name="demand_net_wind_max",
-    #     model_val_name="demand_net_wind_bc_max_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Demand net wind (GW)",
-    #     nsamples=1000,
-    #     ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
-    #     blue_line=np.max,
-    #     high_values_rare=True,
-    #     figsize=(5, 5),
-    #     bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
-    # )
+    plot_emp_rps(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_bc_max_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Demand net wind (GW)",
+        nsamples=1000,
+        ylims=(40, 60),
+        blue_line=np.max,
+        high_values_rare=True,
+        figsize=(5, 5),
+        wind_2005_toggle=False,
+    )
 
     # # plot the GEV fitted return periods
     # plot_gev_rps(
@@ -2158,7 +2163,7 @@ def main():
     # )
 
 
-    # sys.exit()
+    sys.exit()
 
     # ensure the effective dec year is a datetime and is just the year in the
     # model

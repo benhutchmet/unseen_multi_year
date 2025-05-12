@@ -687,8 +687,8 @@ def plot_emp_rps(
         "Return period (years)", fontsize=12,
     )
 
-    # if ylabel includes "wind" or "Wind"
-    if "wind" in ylabel or "Wind" in ylabel and wind_2005_toggle:
+    # If ylabel includes "wind" or "Wind", and wind_2005_toggle is True
+    if ("wind" in ylabel or "Wind" in ylabel) and wind_2005_toggle:
         # Rank the obs values from low to high
         obs_df["rank"] = obs_df[obs_val_name].rank(
             method="first", ascending=True
