@@ -141,6 +141,47 @@ def pivot_emp_rps(
         )
     )
 
+    # Set up the trend value this for the obs
+    obs_trend_val_this = (
+        slope_obs * unique_model_times[-1] + intercept_obs
+    )
+
+    # Adjust the detrended data for this year
+    obs_adjusted_this = np.array(
+        obs_df_copy[f"{obs_val_name}_dt"] + obs_trend_val_this
+    )
+
+    # if the variable is tas
+    if var_name == "tas":
+        # Worst observed extreme is min
+        obs_extreme_value = np.min(obs_adjusted_this)
+    elif var_name == "sfcWind":
+        print("Identifying second worst observed extreme")
+
+        # Find the second worst observed extreme
+        sorted_values = np.sort(obs_adjusted_this)  # Sort the values in ascending order
+        if len(sorted_values) > 1:
+            obs_extreme_value = sorted_values[1]  # Second lowest value
+        else:
+            raise ValueError("Not enough data to determine the second worst extreme.")
+    else:
+        raise ValueError(
+            "Variable not recognised. Please use tas or sfcWind."
+        )
+    
+    # find the index of the obs extreme value in obs_adjusted_this
+    obs_extreme_index = np.where(obs_adjusted_this == obs_extreme_value)[0][0]
+
+    # find the time in which this occurs
+    # Find the time in which this occurs
+    obs_extreme_time = obs_df_copy.iloc[obs_extreme_index][obs_time_name]
+
+    # print the worst observed extreme
+    print(f"Worst observed extreme: {obs_extreme_value}")
+
+    # print the time in which this occurs
+    print(f"Worst observed extreme time (year): {obs_extreme_time}")
+
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
 
@@ -151,48 +192,6 @@ def pivot_emp_rps(
         total=len(unique_model_times),
         leave=False,
     ):
-
-        # Set up the trend value this for the obs
-        obs_trend_val_this = (
-            slope_obs * model_time + intercept_obs
-        )
-
-        # Adjust the detrended data for this year
-        obs_adjusted_this = np.array(
-            obs_df_copy[f"{obs_val_name}_dt"] + obs_trend_val_this
-        )
-
-        # if the variable is tas
-        if var_name == "tas":
-            # Worst observed extreme is min
-            obs_extreme_value = np.min(obs_adjusted_this)
-        elif var_name == "sfcWind":
-            print("Identifying second worst observed extreme")
-
-            # Find the second worst observed extreme
-            sorted_values = np.sort(obs_adjusted_this)  # Sort the values in ascending order
-            if len(sorted_values) > 1:
-                obs_extreme_value = sorted_values[1]  # Second lowest value
-            else:
-                raise ValueError("Not enough data to determine the second worst extreme.")
-        else:
-            raise ValueError(
-                "Variable not recognised. Please use tas or sfcWind."
-            )
-        
-        # find the index of the obs extreme value in obs_adjusted_this
-        obs_extreme_index = np.where(obs_adjusted_this == obs_extreme_value)[0][0]
-
-        # find the time in which this occurs
-        obs_extreme_time = obs_df_copy.iloc[
-            obs_extreme_index
-        ][obs_time_name].values
-
-        # print the worst observed extreme
-        print(f"Worst observed extreme: {obs_extreme_value}")
-
-        # print the time in which this occurs
-        print(f"Worst observed extreme time (year): {obs_extreme_time}")
 
         # Set up the trend value this
         trend_val_this = (
