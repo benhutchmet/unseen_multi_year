@@ -137,7 +137,7 @@ def main():
     # Set up the test file path
     test_file_path = os.path.join(
         arrs_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day_*.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
     )
 
     # Glob the test file path
@@ -150,7 +150,7 @@ def main():
         )
     elif len(test_file_paths) > 1:
         raise FileExistsError(
-            f"Test file {test_file_path} does not exist. Please check the path."
+            f"More than 1 test file {test_file_path} found. Please check the path."
         )
 
     # Load the test file
@@ -214,7 +214,7 @@ def main():
         # set up the file to extract
         model_data_path = os.path.join(
             arrs_dir,
-            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}_*.npy",
+            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}.npy",
         )
 
         # glob the model data path

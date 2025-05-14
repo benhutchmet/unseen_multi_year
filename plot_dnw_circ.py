@@ -4230,8 +4230,8 @@ def main():
 
     # Set up the hard coded variables
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
-    obs_df_fname = "block_maxima_obs_demand_net_wind.csv"
-    model_df_fname = "block_maxima_model_demand_net_wind.csv"
+    obs_df_fname = "block_maxima_obs_demand_net_wind_07-05-2025.csv"
+    model_df_fname = "block_maxima_model_demand_net_wind_07-05-2025.csv"
     winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
     metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
     arrs_persist_dir = "/home/users/benhutch/unseen_multi_year/data"

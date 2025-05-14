@@ -2027,6 +2027,27 @@ def main():
         figsize=(10, 5),
     )
 
+    gev_funcs.dot_plot_subplots(
+        obs_df_left=block_max_obs_dnw,
+        model_df_left=block_max_model_dnw,
+        obs_df_right=block_max_obs_dnw,
+        model_df_right=block_max_model_dnw,
+        obs_val_name_left="demand_net_wind_max",
+        model_val_name_left="demand_net_wind_bc_max",
+        obs_val_name_right="demand_net_wind_max",
+        model_val_name_right="demand_net_wind_bc_max",
+        model_time_name="effective_dec_year",
+        ylabel_left="Demand net wind (GW)",
+        ylabel_right="Demand net wind (GW)",
+        title_left="Block maxima demand net wind (GW, no uniform BC)",
+        title_right="Block maxima demand net wind (GW, no uniform BC)",
+        ylims_left=(30, 60),
+        ylims_right=(30, 60),
+        dashed_quant=0.80,
+        solid_line=np.max,
+        figsize=(10, 5),
+    )
+
     # print the head and tail of the obs
     print("Block maxima obs data")
     print(block_max_obs_dnw.head())
@@ -2040,7 +2061,7 @@ def main():
         block_max_obs_dnw["demand_net_wind_max"] < obs_80th
     ]
     block_max_model_dnw_grey_dots = block_max_model_dnw[
-        block_max_model_dnw["demand_net_wind_bc_max_bc"] < obs_80th
+        block_max_model_dnw["demand_net_wind_bc_max"] < obs_80th
     ]
 
     # Find the maximum value in the obs data
@@ -2053,8 +2074,8 @@ def main():
         & (block_max_obs_dnw["demand_net_wind_max"] < obs_max)
     ]
     block_max_model_dnw_yellow_dots = block_max_model_dnw[
-        (block_max_model_dnw["demand_net_wind_bc_max_bc"] >= obs_80th)
-        & (block_max_model_dnw["demand_net_wind_bc_max_bc"] < obs_max)
+        (block_max_model_dnw["demand_net_wind_bc_max"] >= obs_80th)
+        & (block_max_model_dnw["demand_net_wind_bc_max"] < obs_max)
     ]
 
     # Subset the obs data to the max value
@@ -2064,7 +2085,7 @@ def main():
 
     # Subset the model data to values above the max value
     block_max_model_dnw_red_dots = block_max_model_dnw[
-        block_max_model_dnw["demand_net_wind_bc_max_bc"] >= obs_max
+        block_max_model_dnw["demand_net_wind_bc_max"] >= obs_max
     ]
 
     # Set up the subtitles
@@ -2122,7 +2143,7 @@ def main():
         figsize=(10, 5),
     )
 
-    # sys.exit()
+    sys.exit()
 
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
@@ -2133,12 +2154,12 @@ def main():
         obs_df=block_max_obs_dnw,
         model_df=block_max_model_dnw,
         obs_val_name="demand_net_wind_max",
-        model_val_name="demand_net_wind_bc_max_bc",
+        model_val_name="demand_net_wind_bc_max",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel="Demand net wind (GW)",
         nsamples=1000,
-        ylims=(40, 60),
+        ylims=(44, 52),
         blue_line=np.max,
         high_values_rare=True,
         figsize=(5, 5),
