@@ -79,7 +79,7 @@ def main():
     # Check if running in IPython
     if "ipykernel_launcher" in sys.argv[0]:
         # Manually set arguments for IPython
-        args = parser.parse_args(["--variable", "tas", "--country", "United_Kingdom"])
+        args = parser.parse_args(["--variable", "sfcWind", "--country", "UK_wind_box"])
     else:
         # Parse arguments normally
         args = parser.parse_args()
@@ -140,7 +140,7 @@ def main():
                 continue
             
             # Set up the fname this
-            fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}_daymean.nc"
+            fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}.nc"
 
             # if the variable is tas
             if args.variable == "tas":
@@ -197,6 +197,9 @@ def main():
 
     # Re assign the variable
     obs_cube_recent = obs_cube
+
+    # process this cube into daily means
+    obs_cube_recent = obs_cube_recent.aggregated_by("day", iris.analysis.MEAN)
 
     # if the variable is tas
     if args.variable == "tas":

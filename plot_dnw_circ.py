@@ -4058,12 +4058,58 @@ def plot_var_composites_model(
                 4,
             ]
         )
+    elif var_name == "psl":
+        cmap = "coolwarm"
+        levels = np.array(
+            [
+                -12,
+                -10,
+                -8,
+                -6,
+                -4,
+                -2,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+            ]
+        )
     else:
         raise ValueError(f"Variable {var_name} not supported.")
 
     # Load the lats and lons
     lats = np.load(lats_path)
     lons = np.load(lons_path)
+
+    # Set up the x and y
+    x, y = lons, lats
+
+    # Set up the countries shapefile
+    countries_shp = shpreader.natural_earth(
+        resolution="10m",
+        category="cultural",
+        name="admin_0_countries",
+    )
+
+    # Set up the land shapereader
+    # Initialize the mask with the correct shape
+    MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
+    country_shapely = []
+    for country in shpreader.Reader(countries_shp).records():
+        country_shapely.append(country.geometry)
+
+    # Loop over the latitude and longitude points
+    for l in range(len(lats)):
+        for j in range(len(lons)):
+            point = shapely.geometry.Point(lons[j], lats[l])
+            for country in country_shapely:
+                if country.contains(point):
+                    MASK_MATRIX_TMP[l, j] = 1.0
+
+    # Reshape the mask to match the shape of the data
+    MASK_MATRIX_RESHAPED = MASK_MATRIX_TMP
 
     # Set up the figure
     fig, axs = plt.subplots(
@@ -4093,6 +4139,72 @@ def plot_var_composites_model(
         subset_arr_this_model_full = np.zeros(
             (len(subset_dfs_model[i]), len(lats), len(lons))
         )
+
+        # if the var name is tas
+        if var_name == "tas":
+            print("Applying detrend to the tas data")
+
+            # Extract the index dicts this
+            index_dict_this = model_index_dicts[i]
+
+            # Extract the effective dec years array
+            effective_dec_years_arr = np.array(index_dict_this["effective_dec_year"])
+
+            # Extract the unique effective dec years
+            unique_effective_dec_years = np.unique(effective_dec_years_arr)
+
+            # Set up a new array to append to
+            subset_arr_this_detrended = np.zeros(
+                (
+                    len(unique_effective_dec_years),
+                    subset_arr_this_model.shape[1],
+                    subset_arr_this_model.shape[2],
+                )
+            )
+
+            # Loop over the unique effective dec years
+            for j, effective_dec_year in enumerate(unique_effective_dec_years):
+                # Find the index of this effective dec year in the index dict this
+                index_this = np.where(effective_dec_years_arr == effective_dec_year)[0]
+
+                # Extract the subset arr this for this index
+                subset_arr_this_model_this = np.mean(
+                    subset_arr_this_model[index_this, :, :], axis=0
+                )
+
+                # Store the value in the subset arr this detrended
+                subset_arr_this_detrended[j, :, :] = subset_arr_this_model_this
+
+            # Loop over the lats and lons
+            for j in range(len(lats)):
+                for k in range(len(lons)):
+                    # Detrend the data
+                    slope_this, intercept_this, _, _, _ = linregress(
+                        unique_effective_dec_years,
+                        subset_arr_this_detrended[:, j, k],
+                    )
+
+                    # Calculate the trend line this
+                    trend_line_this = (
+                        slope_this * unique_effective_dec_years + intercept_this
+                    )
+
+                    # Find the final point on the trend line
+                    final_point_this = trend_line_this[-1]
+
+                    # Loop over the unique effective dec years
+                    for l, eff_dec_year_this in enumerate(unique_effective_dec_years):
+                        # Find the index of this effective dec year in the index dict this
+                        index_this = np.where(effective_dec_years_arr == eff_dec_year_this)[
+                            0
+                        ]
+
+                        # Extract the subset arr this for this index
+                        subset_arr_this_model[index_this, j, k] = (
+                            final_point_this
+                            - trend_line_this[l]
+                            + subset_arr_this_model[index_this, j, k]
+                        )
 
         # Set up the N for model this
         N_model_this = np.shape(subset_arr_this_model_full)[0]
@@ -4147,24 +4259,50 @@ def plot_var_composites_model(
         # Calculate the model anoms
         anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
 
-        # if i == 0
+        # # if i == 0
         if i == 0:
             anoms_this_model_first = anoms_this_model
         else:
             anoms_this_model = anoms_this_model - anoms_this_model_first
 
-            # Set up a new
+        # # Set up a new
+        # levels = np.array(
+        #     [
+        #         -1,
+        #         -0.75,
+        #         -0.5,
+        #         -0.25,
+        #         0.25,
+        #         0.5,
+        #         0.75,
+        #         1,
+        #     ]
+        # )
+            
+        # Set up wider levels for temp
+        if var_name == "tas":
             levels = np.array(
                 [
-                    -1,
-                    -0.75,
-                    -0.5,
-                    -0.25,
-                    0.25,
-                    0.5,
-                    0.75,
-                    1,
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
                 ]
+            )
+
+        # if the var name is psl
+        # do anoms this / 100 to get in hPa
+        if var_name == "psl":
+            anoms_this_model = anoms_this_model / 100.0
+        elif var_name == "tas":
+            anoms_this_model = np.ma.masked_where(
+                MASK_MATRIX_RESHAPED == 0, anoms_this_model
             )
 
         # Plot the model data on the right
@@ -4314,7 +4452,9 @@ def main():
     print(obs_df.tail())
 
     # extract the current date
-    current_date = datetime.now().strftime("%Y-%m-%d")
+    # NOTE: Hardcode the current date for now
+    current_date = "2025-05-08"
+    # current_date = datetime.now().strftime("%Y-%m-%d")
 
     # Set up fnames for the psl data
     psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
@@ -4460,8 +4600,11 @@ def main():
     # sys.exit()
 
     # load in the model subset files
-    model_psl_subset_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
-    model_psl_subset_json_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
+    # NOTE: Updated for longer period
+    model_psl_subset_fname = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_2025-05-14.npy"
+    )
+    model_psl_subset_json_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-05-14.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname)):
@@ -4501,8 +4644,10 @@ def main():
     print(f"model_psl_subset index list keys: {model_psl_subset_index_list.keys()}")
 
     # set up the fnames for sfcWind
-    model_wind_subset_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
-    model_wind_subset_json_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
+    model_wind_subset_fname = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_2025-05-14.npy"
+    )
+    model_wind_subset_json_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-14.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname)):
@@ -4540,8 +4685,11 @@ def main():
     # print(f"model_wind_subset index list keys: {model_wind_subset_index_list.keys()}")
 
     # set up the fnames for tas
-    model_temp_subset_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-04-16.npy"
-    model_temp_subset_json_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-04-16.json"
+    # NOTE: Updated for longer period
+    model_temp_subset_fname = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-14.npy"
+    )
+    model_temp_subset_json_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-14.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname)):
@@ -5098,6 +5246,42 @@ def main():
         lats_path=lats_europe_uas,
         lons_path=lons_europe_uas,
         var_name="uas",
+        figsize=(10, 10),
+    )
+
+    # Plot the var composites for psl
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model,
+        clim_arrs_model=clim_arrs_model,
+        model_index_dicts=model_index_dicts,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="psl",
+        figsize=(10, 10),
+    )
+
+    # Do the same for tas
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model_tas,
+        clim_arrs_model=clim_arrs_model_tas,
+        model_index_dicts=model_index_dicts_tas,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        var_name="tas",
+        figsize=(10, 10),
+    )
+
+    # Do the same for wind
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model_wind,
+        clim_arrs_model=clim_arrs_model_wind,
+        model_index_dicts=model_index_dicts_wind,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        var_name="sfcWind",
         figsize=(10, 10),
     )
 

@@ -38,7 +38,12 @@ def check_files_exist():
     """
 
     # Set up the target directory
-    target_dir = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/'
+    target_dir = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/check_files/'
+
+    # Check if the target directory exists
+    if not os.path.exists(target_dir):
+        # make the directory
+        os.makedirs(target_dir)
 
     # Set up the years to check for
     years = list(range(1940,2024))
@@ -104,7 +109,7 @@ def download_ERA5_to_jasmin(
     #print(str(MONTH))
     y = str(year)
 
-    target = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/ERA5_EU_T_U10_V10_msl' + str(y) + '_' + str(m) + '.nc'
+    target = '/gws/nopw/j04/canari/users/benhutch/ERA5/year_month/check_files/' + 'ERA5_EU_T_U10_V10_msl' + str(y) + '_' + str(m) + '.nc'
 
     # if the file already exists, skip
     if os.path.exists(target):
