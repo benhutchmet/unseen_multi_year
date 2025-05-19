@@ -44,6 +44,7 @@ import pandas as pd
 import shapely.geometry
 import cartopy.io.shapereader as shpreader
 import iris
+import iris.coord_categorisation
 import cftime
 
 # Specific imports
@@ -198,8 +199,23 @@ def main():
     # Re assign the variable
     obs_cube_recent = obs_cube
 
+    # Add the year and day_of_year coordinates
+    iris.coord_categorisation.add_year(obs_cube_recent, "time", name="year")
+    iris.coord_categorisation.add_day_of_year(obs_cube_recent, "time", name="day_of_year")
+
+    # Check the types of the new coordinates
+    print(obs_cube_recent.coord('year').points)  # Should be integers
+    print(obs_cube_recent.coord('day_of_year').points)  # Should be integers
+
+    # Ensure the coordinates are numeric
+    obs_cube_recent.coord('year').points = obs_cube_recent.coord('year').points.astype(int)
+    obs_cube_recent.coord('day_of_year').points = obs_cube_recent.coord('day_of_year').points.astype(int)
+
+    # print the obs cube recent
+    print(obs_cube_recent)
+
     # process this cube into daily means
-    obs_cube_recent = obs_cube_recent.aggregated_by("day", iris.analysis.MEAN)
+    obs_cube_recent = obs_cube_recent.aggregated_by(['year', 'day_of_year'], iris.analysis.MEAN)
 
     # if the variable is tas
     if args.variable == "tas":
