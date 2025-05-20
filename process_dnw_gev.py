@@ -1181,22 +1181,22 @@ def plot_multi_var_perc(
         # Set up a new dataframe for the obs
         obs_perc_df_this = pd.DataFrame(
             {
-                "percentile": perc_this,
-                "lower_bound": obs_lower_bound_this,
-                "upper_bound": obs_upper_bound_this,
-                "n_days": obs_df_this.shape[0],
-                f"{y_var_name_obs}_mean": obs_df_this[y_var_name_obs].mean(),
+                "percentile": [perc_this],
+                "lower_bound": [obs_lower_bound_this],
+                "upper_bound": [obs_upper_bound_this],
+                "n_days": [obs_df_this.shape[0]],
+                f"{y_var_name_obs}_mean": [obs_df_this[y_var_name_obs].mean()],
             }
         )
 
         # Set up a new dataframe for the model
         model_perc_df_this = pd.DataFrame(
             {
-                "percentile": perc_this,
-                "lower_bound": model_lower_bound_this,
-                "upper_bound": model_upper_bound_this,
-                "n_days": model_df_this.shape[0],
-                f"{y_var_name_model}_mean": model_df_this[y_var_name_model].mean(),
+                "percentile": [perc_this],
+                "lower_bound": [model_lower_bound_this],
+                "upper_bound": [model_upper_bound_this],
+                "n_days": [model_df_this.shape[0]],
+                f"{y_var_name_model}_mean": [model_df_this[y_var_name_model].mean()],
             }
         )
 
@@ -2174,26 +2174,26 @@ def main():
         figsize=(10, 5),
     )
 
-    gev_funcs.dot_plot_subplots(
-        obs_df_left=block_max_obs_dnw,
-        model_df_left=block_max_model_dnw,
-        obs_df_right=block_max_obs_dnw,
-        model_df_right=block_max_model_dnw,
-        obs_val_name_left="demand_net_wind_max",
-        model_val_name_left="demand_net_wind_bc_max",
-        obs_val_name_right="demand_net_wind_max",
-        model_val_name_right="demand_net_wind_bc_max",
-        model_time_name="effective_dec_year",
-        ylabel_left="Demand net wind (GW)",
-        ylabel_right="Demand net wind (GW)",
-        title_left="Block maxima demand net wind (GW, no uniform BC)",
-        title_right="Block maxima demand net wind (GW, no uniform BC)",
-        ylims_left=(30, 60),
-        ylims_right=(30, 60),
-        dashed_quant=0.80,
-        solid_line=np.max,
-        figsize=(10, 5),
-    )
+    # gev_funcs.dot_plot_subplots(
+    #     obs_df_left=block_max_obs_dnw,
+    #     model_df_left=block_max_model_dnw,
+    #     obs_df_right=block_max_obs_dnw,
+    #     model_df_right=block_max_model_dnw,
+    #     obs_val_name_left="demand_net_wind_max",
+    #     model_val_name_left="demand_net_wind_bc_max",
+    #     obs_val_name_right="demand_net_wind_max",
+    #     model_val_name_right="demand_net_wind_bc_max",
+    #     model_time_name="effective_dec_year",
+    #     ylabel_left="Demand net wind (GW)",
+    #     ylabel_right="Demand net wind (GW)",
+    #     title_left="Block maxima demand net wind (GW, no uniform BC)",
+    #     title_right="Block maxima demand net wind (GW, no uniform BC)",
+    #     ylims_left=(30, 60),
+    #     ylims_right=(30, 60),
+    #     dashed_quant=0.80,
+    #     solid_line=np.max,
+    #     figsize=(10, 5),
+    # )
 
     # print the head and tail of the obs
     print("Block maxima obs data")
@@ -2247,48 +2247,48 @@ def main():
     print(block_max_model_dnw.columns)
 
     # plot the multi var scatter
-    plot_multi_var_scatter(
-        subset_obs_dfs=[
-            block_max_obs_dnw_grey_dots,
-            block_max_obs_dnw_yellow_dots,
-            block_max_obs_dnw_red_dots,
-        ],
-        subset_model_dfs=[
-            block_max_model_dnw_grey_dots,
-            block_max_model_dnw_yellow_dots,
-            block_max_model_dnw_red_dots,
-        ],
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_sfcWind_drift_bc_dt",
-        xlabel="Temperature (°C)",
-        ylabel="10m Wind Speed (m/s)",
-        subtitles=subplot_titles,
-        figsize=(10, 5),
-    )
+    # plot_multi_var_scatter(
+    #     subset_obs_dfs=[
+    #         block_max_obs_dnw_grey_dots,
+    #         block_max_obs_dnw_yellow_dots,
+    #         block_max_obs_dnw_red_dots,
+    #     ],
+    #     subset_model_dfs=[
+    #         block_max_model_dnw_grey_dots,
+    #         block_max_model_dnw_yellow_dots,
+    #         block_max_model_dnw_red_dots,
+    #     ],
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature (°C)",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     subtitles=subplot_titles,
+    #     figsize=(10, 5),
+    # )
 
-    # do the same thing, but for different variables
-    plot_multi_var_scatter(
-        subset_obs_dfs=[
-            block_max_obs_dnw_grey_dots,
-            block_max_obs_dnw_yellow_dots,
-            block_max_obs_dnw_red_dots,
-        ],
-        subset_model_dfs=[
-            block_max_model_dnw_grey_dots,
-            block_max_model_dnw_yellow_dots,
-            block_max_model_dnw_red_dots,
-        ],
-        x_var_name_obs="data_c_dt_UK_demand",
-        y_var_name_obs="data_sfcWind_dt_sigmoid_total_wind_gen",
-        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand",
-        y_var_name_model="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
-        xlabel="Demand (GW)",
-        ylabel="Wind Power Generation (GW)",
-        subtitles=subplot_titles,
-        figsize=(10, 5),
-    )
+    # # do the same thing, but for different variables
+    # plot_multi_var_scatter(
+    #     subset_obs_dfs=[
+    #         block_max_obs_dnw_grey_dots,
+    #         block_max_obs_dnw_yellow_dots,
+    #         block_max_obs_dnw_red_dots,
+    #     ],
+    #     subset_model_dfs=[
+    #         block_max_model_dnw_grey_dots,
+    #         block_max_model_dnw_yellow_dots,
+    #         block_max_model_dnw_red_dots,
+    #     ],
+    #     x_var_name_obs="data_c_dt_UK_demand",
+    #     y_var_name_obs="data_sfcWind_dt_sigmoid_total_wind_gen",
+    #     x_var_name_model="data_tas_c_drift_bc_dt_UK_demand",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+    #     xlabel="Demand (GW)",
+    #     ylabel="Wind Power Generation (GW)",
+    #     subtitles=subplot_titles,
+    #     figsize=(10, 5),
+    # )
 
     # Plot the percentiles of temp against wind speed
     # for subset data
@@ -2301,8 +2301,22 @@ def main():
         y_var_name_model="data_sfcWind_drift_bc_dt",
         xlabel="Temperature",
         ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of temperature vs 10m wind speed",
-        figsize=(10, 5),
+        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+        figsize=(5, 6),
+    )
+
+    # Do the same but for the full distribution
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
+        figsize=(5, 6),
     )
 
     sys.exit()
