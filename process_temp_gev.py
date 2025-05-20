@@ -152,26 +152,28 @@ def pivot_emp_rps(
         obs_df_copy[f"{obs_val_name}_dt"] + obs_trend_val_this
     )
 
-    # if the variable is tas
-    if var_name == "tas":
-        # Worst observed extreme is min
-        obs_extreme_value = np.min(obs_adjusted_this)
-    elif var_name == "sfcWind" and wind_2005_toggle:
-        print("Identifying second worst observed extreme")
+    obs_extreme_value = np.min(obs_adjusted_this)
 
-        # Find the second worst observed extreme
-        sorted_values = np.sort(obs_adjusted_this)  # Sort the values in ascending order
-        if len(sorted_values) > 1:
-            obs_extreme_value = sorted_values[1]  # Second lowest value
-        else:
-            raise ValueError("Not enough data to determine the second worst extreme.")
-    elif var_name == "sfcWind" and not wind_2005_toggle:
-        # Worst observed extreme is min
-        obs_extreme_value = np.min(obs_adjusted_this)
-    else:
-        raise ValueError(
-            "Variable not recognised. Please use tas or sfcWind."
-        )
+    # # if the variable is tas
+    # if var_name == "tas":
+    #     # Worst observed extreme is min
+    #     obs_extreme_value = np.min(obs_adjusted_this)
+    # elif var_name == "sfcWind" and wind_2005_toggle:
+    #     print("Identifying second worst observed extreme")
+
+    #     # Find the second worst observed extreme
+    #     sorted_values = np.sort(obs_adjusted_this)  # Sort the values in ascending order
+    #     if len(sorted_values) > 1:
+    #         obs_extreme_value = sorted_values[1]  # Second lowest value
+    #     else:
+    #         raise ValueError("Not enough data to determine the second worst extreme.")
+    # elif var_name == "sfcWind" and not wind_2005_toggle:
+    #     # Worst observed extreme is min
+    #     obs_extreme_value = np.min(obs_adjusted_this)
+    # else:
+    #     raise ValueError(
+    #         "Variable not recognised. Please use tas or sfcWind."
+    #     )
     
     # find the index of the obs extreme value in obs_adjusted_this
     obs_extreme_index = np.where(obs_adjusted_this == obs_extreme_value)[0][0]
@@ -687,26 +689,31 @@ def plot_emp_rps(
         "Return period (years)", fontsize=12,
     )
 
-    # If ylabel includes "wind" or "Wind", and wind_2005_toggle is True
-    if ("wind" in ylabel or "Wind" in ylabel) and wind_2005_toggle:
-        # Rank the obs values from low to high
-        obs_df["rank"] = obs_df[obs_val_name].rank(
-            method="first", ascending=True
-        )
-        # Find the second worst observed extreme
-        extreme_value = obs_df.loc[
-            obs_df["rank"] == 2, obs_val_name
-        ].values[0]
-    elif "wind" in ylabel or "Wind" in ylabel and not wind_2005_toggle:
-        # Find the extreme value
-        extreme_value = blue_line(
-            obs_df[obs_val_name].values
-        )
-    else:
-        # Find the extreme value
-        extreme_value = blue_line(
-            obs_df[obs_val_name].values
-        )
+    # Extreme value as the min
+    extreme_value = blue_line(
+        obs_df[obs_val_name].values
+    )
+
+    # # If ylabel includes "wind" or "Wind", and wind_2005_toggle is True
+    # if ("wind" in ylabel or "Wind" in ylabel) and wind_2005_toggle:
+    #     # Rank the obs values from low to high
+    #     obs_df["rank"] = obs_df[obs_val_name].rank(
+    #         method="first", ascending=True
+    #     )
+    #     # Find the second worst observed extreme
+    #     extreme_value = obs_df.loc[
+    #         obs_df["rank"] == 2, obs_val_name
+    #     ].values[0]
+    # elif "wind" in ylabel or "Wind" in ylabel and not wind_2005_toggle:
+    #     # Find the extreme value
+    #     extreme_value = blue_line(
+    #         obs_df[obs_val_name].values
+    #     )
+    # else:
+    #     # Find the extreme value
+    #     extreme_value = blue_line(
+    #         obs_df[obs_val_name].values
+    #     )
 
     # find the time in which this occurs
     extreme_time = obs_df.loc[
@@ -2135,18 +2142,25 @@ def main():
     )
 
     # Set up the path to the obs data
-    obs_wind_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-04-24.csv"
+    obs_wind_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-05-20.csv"
 
     # load the obs data
     df_obs_wind = pd.read_csv(obs_wind_path)
 
     # Convert the 'time' column to datetime, assuming it represents days since "1950-01-01 00:00:00"
-    df_obs_wind["time"] = pd.to_datetime(
-        df_obs_wind["time"], origin="1952-01-01", unit="D"
-    )
+    # df_obs_wind["time"] = pd.to_datetime(
+    #     df_obs_wind["time"], origin="1952-01-01", unit="D"
+    # )
+
+    # Set up the start and end date to use
+    start_date = pd.to_datetime("1960-01-01")
+    end_date = pd.to_datetime("2025-02-28")
+
+    # Create a date range
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
 
     # Make sure time is a datetime
-    df_obs_wind["time"] = pd.to_datetime(df_obs_wind["time"])
+    df_obs_wind["time"] = date_range
 
     # subset the obs data to D, J, F
     df_obs_wind = df_obs_wind[df_obs_wind["time"].dt.month.isin([12, 1, 2])]
@@ -2269,6 +2283,9 @@ def main():
         process_min=True,
     )
 
+    # rename "obs_mean" to "data" in df_obs_wind
+    df_obs_wind.rename(columns={"obs_mean": "data"}, inplace=True)
+
     # Calculate the block minima for trhe obs wind speed
     block_minima_obs_wind = gev_funcs.obs_block_min_max(
         df=df_obs_wind,
@@ -2277,6 +2294,9 @@ def main():
         new_df_cols=["time"],
         process_min=True,
     )
+
+    # do the same for obs wind short
+    df_obs_wind_short.rename(columns={"obs_mean": "data"}, inplace=True)
 
     # block minima obs wind short
     block_minima_obs_wind_short = gev_funcs.obs_block_min_max(
