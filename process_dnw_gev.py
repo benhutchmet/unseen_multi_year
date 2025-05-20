@@ -1323,13 +1323,21 @@ def main():
 
     # Load the obs wind data
     df_obs_sfcWind = pd.read_csv(
-        os.path.join(dfs_dir, "ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-04-24.csv")
+        os.path.join(dfs_dir, "ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-05-20.csv")
     )
 
-    # Convert the 'time' column to datetime, assuming it represents days since "1950-01-01 00:00:00"
-    df_obs_sfcWind["time"] = pd.to_datetime(
-        df_obs_sfcWind["time"], origin="1952-01-01", unit="D"
-    )
+    # Set up the start and end date to use
+    start_date = pd.to_datetime("1960-01-01")
+    end_date = pd.to_datetime("2025-02-28")
+
+    # Create a date range
+    date_range = pd.date_range(start=start_date, end=end_date, freq="D")
+
+    # Make sure time is a datetime
+    df_obs_sfcWind["time"] = date_range
+
+    # rename the 'obs_mean' column to 'data'
+    df_obs_sfcWind.rename(columns={"obs_mean": "data"}, inplace=True)
 
     # subset the obs data to D, J, F
     df_obs_sfcWind = df_obs_sfcWind[df_obs_sfcWind["time"].dt.month.isin([12, 1, 2])]
