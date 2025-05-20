@@ -1243,6 +1243,52 @@ def plot_multi_var_perc(
     # Set the title
     ax.set_title(title)
 
+    # Set up the x ticks for the percentiel axis
+    x_ticks_perc = [
+        20, 40, 60, 80, 100
+    ]
+
+    x_tick_vals_model = []
+    x_tick_vals_obs = []
+
+    # Find the values corresponding to these percentiles
+    # in both the mnodel and obs df
+    for x_tick in x_ticks_perc:
+        # do the percentile correctly for inverted T
+        x_tick = 100 - x_tick
+        
+        # Find the closest value of percentile in the observed DataFrame
+        obs_df_this = obs_percs_5.iloc[
+            (np.abs(obs_percs_5["percentile"] - x_tick)).argmin()
+        ]
+
+        # Find the closest value of percentile in the model DataFrame
+        model_df_this = model_percs_5.iloc[
+            (np.abs(model_percs_5["percentile"] - x_tick)).argmin()
+        ]
+
+        # Get the values
+        obs_val_this = (obs_df_this["lower_bound"] + obs_df_this["upper_bound"]) / 2
+        model_val_this = (model_df_this["lower_bound"] + model_df_this["upper_bound"]) / 2
+
+        # Print the values
+        print("x tick this: ", x_tick)
+        print("obs val this: ", obs_val_this)
+        print("model val this: ", model_val_this)
+
+        # Append to the lists
+        x_tick_vals_obs.append(obs_val_this)
+        x_tick_vals_model.append(model_val_this)
+
+    # format the values to two sf
+    x_tick_vals_obs = [f"{x:.2f}" for x in x_tick_vals_obs]
+    x_tick_vals_model = [f"{x:.2f}" for x in x_tick_vals_model]
+
+    # Create a second x-axis
+    secax = ax.secondary_xaxis("top")
+    secax.set_xticks(x_ticks_perc)
+    secax.set_xticklabels(x_tick_vals_model)
+
     # Set a tight layour
     plt.tight_layout()
 
@@ -2305,6 +2351,48 @@ def main():
         figsize=(5, 6),
     )
 
+    # do the same but for greyb dots
+    plot_multi_var_perc(
+        obs_df=block_max_obs_dnw_grey_dots,
+        model_df=block_max_model_dnw_grey_dots,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days < 80th percentile",
+        figsize=(5, 6),
+    )
+
+    # do the same but for yellow dots
+    plot_multi_var_perc(
+        obs_df=block_max_obs_dnw_yellow_dots,
+        model_df=block_max_model_dnw_yellow_dots,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days > 80th percentile",
+        figsize=(5, 6),
+    )
+
+    # do the same but for red dots
+    plot_multi_var_perc(
+        obs_df=block_max_obs_dnw_red_dots,
+        model_df=block_max_model_dnw_red_dots,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days > obs max",
+        figsize=(5, 6),
+    )
+
     # Do the same but for the full distribution
     plot_multi_var_perc(
         obs_df=df_obs,
@@ -2316,6 +2404,30 @@ def main():
         xlabel="Temperature",
         ylabel="10m Wind Speed (m/s)",
         title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
+        figsize=(5, 6),
+    )
+
+    # subset the data to values beneath 3 *C
+    full_df_obs_subset = df_obs[
+        df_obs["data_c_dt"] < 3
+    ]
+
+    # subset the data to values beneath 3 *C
+    full_df_model_subset = df_model_djf[
+        df_model_djf["data_tas_c_drift_bc_dt"] < 3
+    ]
+
+    # DO the same but for the subset distribution
+    plot_multi_var_perc(
+        obs_df=full_df_obs_subset,
+        model_df=full_df_model_subset,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days < 3 *C",
         figsize=(5, 6),
     )
 
