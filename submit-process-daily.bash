@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name="sub-process-daily"
 #SBATCH --time=03:00:00
-#SBATCH --mem=500M
+#SBATCH --mem=10000M
 #SBATCH --account=canari
 #SBATCH --partition=standard
 #SBATCH --qos=standard
 #SBATCH --cpus-per-task=1
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.err
-#SBATCH --array=1960-2018
+#SBATCH --array=1983-2018
 
 # Set up the usage messages
 usage="Usage: sbatch submit_process_analogs.bash <variable> <country>"

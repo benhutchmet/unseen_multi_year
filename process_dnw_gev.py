@@ -14,6 +14,7 @@ Methodology is still in development, so this script is a work in progress.
 import os
 import sys
 import glob
+import shutil
 import time
 import argparse
 import warnings
@@ -1461,6 +1462,68 @@ def main():
 
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
+
+    # Set up the years test
+    test_years = np.arange(1960, 2018 + 1, 1)
+    members = np.arange(1, 10 + 1, 1)
+
+    # Set up a list to store the missing fnames
+    missing_fnames = []
+    missing_fname_years = []
+
+    # Loop over the years
+    for year in test_years:
+        for member in members:
+            # Set up the test fname
+            test_fname = f"HadGEM3-GC31-MM_dcppA-hindcast_psl_delta_p_{year}_{member}_day.csv"
+
+            # Set up thge output dir
+            output_dir = os.path.join(
+                dfs_dir,
+                "delta_p",
+                str(year),
+            )
+
+            # Cehck if the file exists
+            if os.path.exists(os.path.join(output_dir, test_fname)):
+                continue
+            else:
+                missing_fnames.append(test_fname)
+                missing_fname_years.append(year)
+
+            # # Check if the file exists
+            # if os.path.exists(os.path.join(dfs_dir, test_fname)):
+            #     # create a new directory to save to
+            #     new_dir = os.path.join(
+            #         dfs_dir,
+            #         "delta_p",
+            #         str(year),
+            #     )
+
+            #     # if the directory does not exist, create it
+            #     if not os.path.exists(new_dir):
+            #         os.makedirs(new_dir)
+
+            #     # Move the file to the new directory
+            #     shutil.move(
+            #         os.path.join(dfs_dir, test_fname),
+            #         os.path.join(new_dir, test_fname),
+            #     )
+            # else:
+            #     # Append the fname to the list
+            #     missing_fnames.append(test_fname)
+            #     missing_fname_years.append(year)
+
+    # Print the missing fnames
+    print(f"Missing files: {missing_fnames}")
+
+    # print the len of the missing fnames
+    print(f"Number of missing files: {len(missing_fnames)}")
+
+    # print the unique years
+    print(f"Unique years: {len(set(missing_fname_years))}")
+
+    sys.exit()
 
     # Load the model temperature data
     df_model_tas = pd.read_csv(

@@ -95,9 +95,6 @@ def main():
     freq="day"
     months=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
-    # Set up the output directory for the dfs
-    output_dir_dfs = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs"
-
     # Set up the argument parser
     parser = argparse.ArgumentParser(description="Process daily model data into dataframes for a given initialisation year, variable, member, and country combination.")
     parser.add_argument("--variable", type=str, help="Variable name (e.g. tas, pr, psl)")
@@ -123,6 +120,10 @@ def main():
     print(f"Member: {args.member}")
     print("=====================================")
 
+    # Set up the output directory for the dfs
+    # NOTE: modified for delta P
+    output_dir_dfs = f"/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/delta_p/{str(args.init_year)}"
+
     # if country has a space, replace with _
     country = args.country.replace(" ", "_")
 
@@ -135,7 +136,7 @@ def main():
     # If the df already exists raise an error
     if os.path.exists(os.path.join(output_dir_dfs, df_name)):
         print(f"The dataframe {df_name} already exists.")
-        # return
+        return
 
     # Get the member string
     member_str = get_member_string(args.member, model)
@@ -256,45 +257,73 @@ def main():
             latitude=(gridbox["lat1"], gridbox["lat2"]),
         )
 
-        # # extract the model lats
-        # model_lats = model_cube.coord("latitude").points
-        # model_lons = model_cube.coord("longitude").points
-
-        # # set up a figure
-        # fig, ax = plt.subplots()
-
-        # # Set up the projection
-        # ax = plt.axes(projection=ccrs.PlateCarree())
-
-        # # Add the coastlines
-        # ax.coastlines()
-
-        # # Add the gridlines
-        # ax.gridlines(draw_labels=True)
-
-        # # pcolormesh the model values
-        # im = ax.pcolormesh(model_lons, model_lats, model_cube.data[0, :, :], transform=ccrs.PlateCarree())
-
-        # # set the extent
-        # ax.set_extent([-10, 5, 50, 60], crs=ccrs.PlateCarree())
-
-        # # # Add the colorbar
-        # # plt.colorbar(im, ax=ax, orientation="horizontal", label="Model values")
-
-        # # Add the title
-        # plt.title(f"Model values for {args.country}")
-
-        # # Save the figure
-        # plt.savefig(f"/home/users/benhutch/unseen_multi_year/plots/model_values_{args.country}_wind_box.png")
-
-        # # # print that we aree eitin
-        # print("=====================================")
-        # print("Exiting the script")
-        # print("=====================================")
-
         # sys.exit()
         # Take the mean over lat and lon
         model_values = model_cube.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+    elif args.country == "delta_p":
+        print("Processing gridboxes for delta P")
+
+        # Set up the gridboxes
+        n_box = dic.uk_n_box_corrected
+        s_box = dic.uk_s_box_corrected
+
+        # Subset to the north sea region
+        model_cube_n = model_cube.intersection(
+            longitude=(n_box["lon1"], n_box["lon2"]),
+            latitude=(n_box["lat1"], n_box["lat2"]),
+        )
+        model_cube_s = model_cube.intersection(
+            longitude=(s_box["lon1"], s_box["lon2"]),
+            latitude=(s_box["lat1"], s_box["lat2"]),
+        )
+
+        # Take the values
+        model_values_n = model_cube_n.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+        model_values_s = model_cube_s.collapsed(["latitude", "longitude"], iris.analysis.MEAN).data
+
+        model_df = pd.DataFrame()
+
+        # Extract the ini years, member and lead times
+        init_years = model_cube.coord("init").points
+        members = model_cube.coord("member").points
+        lead_times = model_cube.coord("lead").points
+
+        # loop through the inits, members and leadtimes
+        for i, init_year in enumerate(init_years):
+            for m, member in enumerate(members):
+                for l, lead_time in enumerate(lead_times):
+                    # get the model data
+                    model_data_n = model_values_n[l]
+                    model_data_s = model_values_s[l]
+
+                    # set up the model df this
+                    model_df_this = pd.DataFrame(
+                        {
+                            "init_year": [init_year],
+                            "member": [member],
+                            "lead": [lead_time],
+                            "data_n": [model_data_n],
+                            "data_s": [model_data_s],
+                        },
+                    )
+
+                    # concat to the model df
+                    model_df = pd.concat([model_df, model_df_this])
+
+        # if the path to the file exists, raise an error
+        if os.path.exists(os.path.join(output_dir_dfs, df_name)):
+            raise ValueError(f"The dataframe {df_name} already exists.")
+        else:
+            print(f"Saving the dataframe to {os.path.join(output_dir_dfs, df_name)}")
+            model_df.to_csv(os.path.join(output_dir_dfs, df_name), index=False)
+
+        # end teh timer
+        end_time = time.time()
+
+        # Print the time taken
+        print(f"Time taken to load the data: {end_time - start_time} seconds")
+
+        return
     else:
         raise ValueError("Country not recognised")
 
