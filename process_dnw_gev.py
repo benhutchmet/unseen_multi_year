@@ -50,6 +50,7 @@ from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_leve
 # Silence warnings
 warnings.filterwarnings("ignore")
 
+
 # Set up a function to do pivoting for DnW
 # As we detrend at the temp/wind stage pre-transformation
 # and pre-block max identification
@@ -116,27 +117,17 @@ def pivot_emp_rps_dnw(
     if obs_df_copy[obs_time_name].dtype != int:
         obs_df_copy[obs_time_name] = obs_df_copy[obs_time_name].astype(int)
     if model_df_copy[model_time_name].dtype != int:
-        model_df_copy[model_time_name] = model_df_copy[
-            model_time_name
-        ].astype(int)
+        model_df_copy[model_time_name] = model_df_copy[model_time_name].astype(int)
 
     # Extract the unique time points from the model
     model_time_points = model_df_copy[model_time_name].unique()
     obs_time_points = obs_df_copy[obs_time_name].unique()
 
     # Set up the model vals and obs vals
-    model_vals_tas = model_df_copy.groupby(
-        model_time_name
-    )[model_var_name_tas].mean()
-    model_vals_wind = model_df_copy.groupby(
-        model_time_name
-    )[model_var_name_wind].mean()
-    obs_vals_tas = obs_df_copy.groupby(
-        obs_time_name
-    )[obs_var_name_tas].mean()
-    obs_vals_wind = obs_df_copy.groupby(
-        obs_time_name
-    )[obs_var_name_wind].mean()
+    model_vals_tas = model_df_copy.groupby(model_time_name)[model_var_name_tas].mean()
+    model_vals_wind = model_df_copy.groupby(model_time_name)[model_var_name_wind].mean()
+    obs_vals_tas = obs_df_copy.groupby(obs_time_name)[obs_var_name_tas].mean()
+    obs_vals_wind = obs_df_copy.groupby(obs_time_name)[obs_var_name_wind].mean()
 
     # Calculate the model trend
     slope_model_tas, intercept_model_tas, _, _, _ = linregress(
@@ -155,31 +146,19 @@ def pivot_emp_rps_dnw(
     )
 
     # Detrend the temperature data
-    model_df_copy[f"{model_var_name_tas}_dt"] = (
-        model_df_copy[model_var_name_tas] - (
-        slope_model_tas * model_df_copy[model_time_name] +
-        intercept_model_tas
-        )
+    model_df_copy[f"{model_var_name_tas}_dt"] = model_df_copy[model_var_name_tas] - (
+        slope_model_tas * model_df_copy[model_time_name] + intercept_model_tas
     )
-    model_df_copy[f"{model_var_name_wind}_dt"] = (
-        model_df_copy[model_var_name_wind] - (
-        slope_model_wind * model_df_copy[model_time_name] +
-        intercept_model_wind
-        )
+    model_df_copy[f"{model_var_name_wind}_dt"] = model_df_copy[model_var_name_wind] - (
+        slope_model_wind * model_df_copy[model_time_name] + intercept_model_wind
     )
 
     # Detrend the observed data
-    obs_df_copy[f"{obs_var_name_tas}_dt"] = (
-        obs_df_copy[obs_var_name_tas] - (
-        slope_obs_tas * obs_df_copy[obs_time_name] +
-        intercept_obs_tas
-        )
+    obs_df_copy[f"{obs_var_name_tas}_dt"] = obs_df_copy[obs_var_name_tas] - (
+        slope_obs_tas * obs_df_copy[obs_time_name] + intercept_obs_tas
     )
-    obs_df_copy[f"{obs_var_name_wind}_dt"] = (
-        obs_df_copy[obs_var_name_wind] - (
-        slope_obs_wind * obs_df_copy[obs_time_name] +
-        intercept_obs_wind
-        )
+    obs_df_copy[f"{obs_var_name_wind}_dt"] = obs_df_copy[obs_var_name_wind] - (
+        slope_obs_wind * obs_df_copy[obs_time_name] + intercept_obs_wind
     )
 
     # Set up the final point for ths obs trend line
@@ -222,9 +201,10 @@ def pivot_emp_rps_dnw(
     obs_var_name_wind = f"{obs_var_name_wind}_dt_pivot"
 
     # Calculate the demand net wind
-    df_obs["dnw"] = df_obs[f"{obs_var_name_tas}_UK_demand"] - df_obs[
-        f"{obs_var_name_wind}_sigmoid_total_wind_gen"
-    ]
+    df_obs["dnw"] = (
+        df_obs[f"{obs_var_name_tas}_UK_demand"]
+        - df_obs[f"{obs_var_name_wind}_sigmoid_total_wind_gen"]
+    )
 
     # Calculate the block maxima for the obs
     obs_block_maxima = gev_funcs.obs_block_min_max(
@@ -253,7 +233,9 @@ def pivot_emp_rps_dnw(
     model_df_plume = pd.DataFrame()
 
     # Set up the sigmoid fit for wind speed pre-iterable
-    ch_df = pd.read_csv("/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv")
+    ch_df = pd.read_csv(
+        "/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv"
+    )
 
     # Set up the onshore and offshore capacities in gw
     onshore_cap_gw = 15710.69 / 1000
@@ -298,7 +280,11 @@ def pivot_emp_rps_dnw(
 
     # Fit the sigmoid curve to the observed data
     popt, pcov = curve_fit(
-        sigmoid, obs_df_copy_subset[obs_var_name_wind], ch_df["total_gen"], p0=p0, method="dogbox"
+        sigmoid,
+        obs_df_copy_subset[obs_var_name_wind],
+        ch_df["total_gen"],
+        p0=p0,
+        method="dogbox",
     )
 
     # DO the same for demand
@@ -326,36 +312,20 @@ def pivot_emp_rps_dnw(
         enumerate(model_time_points), desc="Looping through model time points"
     ):
         # Applu this index to the obs trend
-        obs_trend_point_this_tas = (
-            slope_obs_tas * time_point + intercept_obs_tas
-        )
-        obs_trend_point_this_wind = (
-            slope_obs_wind * time_point + intercept_obs_wind
-        )
+        obs_trend_point_this_tas = slope_obs_tas * time_point + intercept_obs_tas
+        obs_trend_point_this_wind = slope_obs_wind * time_point + intercept_obs_wind
 
         # Set up the trend value this
-        trend_val_this_tas = (
-            slope_model_tas * time_point + intercept_model_tas
-        )
-        trend_val_this_wind = (
-            slope_model_wind * time_point + intercept_model_wind
-        )
+        trend_val_this_tas = slope_model_tas * time_point + intercept_model_tas
+        trend_val_this_wind = slope_model_wind * time_point + intercept_model_wind
 
         # calculayte the trend point bias
-        trend_point_bias_this_tas = (
-            obs_trend_point_this_tas - trend_val_this_tas
-        )
-        trend_point_bias_this_wind = (
-            obs_trend_point_this_wind - trend_val_this_wind
-        )
+        trend_point_bias_this_tas = obs_trend_point_this_tas - trend_val_this_tas
+        trend_point_bias_this_wind = obs_trend_point_this_wind - trend_val_this_wind
 
         # Bias correct the trend val this tas bc
-        trend_val_this_tas_bc = (
-            trend_val_this_tas + trend_point_bias_this_tas
-        )
-        trend_val_this_wind_bc = (
-            trend_val_this_wind + trend_point_bias_this_wind
-        )
+        trend_val_this_tas_bc = trend_val_this_tas + trend_point_bias_this_tas
+        trend_val_this_wind_bc = trend_val_this_wind + trend_point_bias_this_wind
 
         # Adjust the model data for this time point
         model_adjusted_this_tas = np.array(
@@ -366,8 +336,12 @@ def pivot_emp_rps_dnw(
         )
 
         # Set up a new column in the dataframes for this data
-        model_df_copy[f"{model_var_name_tas}_dt_this_{time_point}"] = model_adjusted_this_tas
-        model_df_copy[f"{model_var_name_wind}_dt_this_{time_point}"] = model_adjusted_this_wind
+        model_df_copy[f"{model_var_name_tas}_dt_this_{time_point}"] = (
+            model_adjusted_this_tas
+        )
+        model_df_copy[f"{model_var_name_wind}_dt_this_{time_point}"] = (
+            model_adjusted_this_wind
+        )
 
         # Set up the obs var names
         model_var_name_wind_this = f"{model_var_name_wind}_dt_this_{time_point}"
@@ -396,16 +370,12 @@ def pivot_emp_rps_dnw(
         # )
 
         # Calculate hdd and cdd
-        model_df_copy[f"{model_var_name_tas_this}_HDD"] = (
-            model_df_copy[model_var_name_tas_this].apply(
-                lambda x: max(0, hdd_base - x)
-            )
-        )
-        model_df_copy[f"{model_var_name_tas_this}_CDD"] = (
-            model_df_copy[model_var_name_tas_this].apply(
-                lambda x: max(0, x - cdd_base)
-            )
-        )
+        model_df_copy[f"{model_var_name_tas_this}_HDD"] = model_df_copy[
+            model_var_name_tas_this
+        ].apply(lambda x: max(0, hdd_base - x))
+        model_df_copy[f"{model_var_name_tas_this}_CDD"] = model_df_copy[
+            model_var_name_tas_this
+        ].apply(lambda x: max(0, x - cdd_base))
 
         # Calculate the demand
         model_df_copy[f"{model_var_name_tas_this}_UK_demand"] = (
@@ -431,8 +401,8 @@ def pivot_emp_rps_dnw(
         )
 
         # Add in the effective dec year column
-        model_block_maxima["effective_dec_year"] = (
-            model_block_maxima["init_year"] + (model_block_maxima["winter_year"] - 1)
+        model_block_maxima["effective_dec_year"] = model_block_maxima["init_year"] + (
+            model_block_maxima["winter_year"] - 1
         )
 
         # Extract the model block maxima vals
@@ -498,9 +468,7 @@ def pivot_emp_rps_dnw(
             {
                 "model_time": [time_point],
                 "central_rp": [
-                    model_df_central_rps_this.iloc[
-                        obs_extreme_index_central
-                    ]["period"]
+                    model_df_central_rps_this.iloc[obs_extreme_index_central]["period"]
                 ],
                 "0025_rp": [
                     model_df_central_rps_this.iloc[obs_extreme_index_0025]["period"]
@@ -547,7 +515,23 @@ def pivot_emp_rps_dnw(
     # Set new tick labels for the primary y-axis
     # Set up yticks for the primary y-axis
     ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-    ax.set_yticklabels(["0%", "1%", "2%", "3%", "4%", "5%", "6%", "7%", "8%", "9%", "10%", "11%", "12%"])
+    ax.set_yticklabels(
+        [
+            "0%",
+            "1%",
+            "2%",
+            "3%",
+            "4%",
+            "5%",
+            "6%",
+            "7%",
+            "8%",
+            "9%",
+            "10%",
+            "11%",
+            "12%",
+        ]
+    )
 
     # Set up yticks for the second y-axis
     ax2 = ax.twinx()
@@ -556,24 +540,29 @@ def pivot_emp_rps_dnw(
     ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
 
     # Set tick labels for the second y-axis (ensure the number of labels matches the number of ticks)
-    ax2.set_yticklabels(["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"])  # 13 labels
+    ax2.set_yticklabels(
+        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"]
+    )  # 13 labels
 
     # Set the y-axis limits for both axes to ensure alignment
     ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
 
     # Set the y axis labels
     ax2.set_ylabel(
-        "Return period (years)", fontsize=12,
+        "Return period (years)",
+        fontsize=12,
     )
 
     # Set up the xlabel
     ax.set_xlabel(
-        "Year", fontsize=12,
+        "Year",
+        fontsize=12,
     )
 
     # Set up the ylabel
     ax.set_ylabel(
-        "Chance of event", fontsize=12,
+        "Chance of event",
+        fontsize=12,
     )
 
     # Set the xlims as the min and max of the model time
@@ -582,7 +571,7 @@ def pivot_emp_rps_dnw(
         model_df_plume["model_time"].max(),
     )
 
-    #Set up the title
+    # Set up the title
     ax.set_title(
         f"Chance of >2010 DnW by year",
         fontsize=12,
@@ -601,6 +590,7 @@ def pivot_emp_rps_dnw(
 
     return None
 
+
 # Set up a function for plotting the distributions
 def plot_distributions_extremes(
     model_df_full_field: pd.DataFrame,
@@ -617,12 +607,12 @@ def plot_distributions_extremes(
 ) -> None:
     """
     Plots two distributions of the model and obs data
-    for the full field and the block min/max, along with 
+    for the full field and the block min/max, along with
     the 5th percentile of the full distribution.
-    
+
     Parameters
     ==========
-    
+
     model_df_full_field : pd.DataFrame
         The dataframe containing the model data for the full field.
     obs_df_full_field : pd.DataFrame
@@ -645,10 +635,10 @@ def plot_distributions_extremes(
         The percentile to plot the full field distribution.
     figsize : tuple[int, int]
         The size of the figure.
-        
+
     Returns
     =======
-    
+
     None
     """
 
@@ -835,6 +825,7 @@ def plot_distributions_extremes(
 
     return None
 
+
 # Define a function to set up the winter years
 def select_leads_wyears_DJF(
     df: pd.DataFrame,
@@ -972,7 +963,11 @@ def ws_to_wp_gen(
 
     # Fit the sigmoid curve to the observed data
     popt, pcov = curve_fit(
-        sigmoid, obs_df_copy_subset [obs_ws_col], ch_df["total_gen"], p0=p0, method="dogbox"
+        sigmoid,
+        obs_df_copy_subset[obs_ws_col],
+        ch_df["total_gen"],
+        p0=p0,
+        method="dogbox",
     )
 
     # Apply the sigmoid function to the observed data
@@ -1103,6 +1098,159 @@ def temp_to_demand(
 
     return obs_df_copy, model_df_copy
 
+
+# Define a function to plot the distribution by percentiles
+def plot_multi_var_perc(
+    obs_df: pd.DataFrame,
+    model_df: pd.DataFrame,
+    x_var_name_obs: str,
+    y_var_name_obs: str,
+    x_var_name_model: str,
+    y_var_name_model: str,
+    xlabel: str,
+    ylabel: str,
+    title: str,
+    figsize: tuple[int, int] = (5, 10),
+):
+    """
+    Plots the relationship between variables as percentiles. E.g., binned by
+    percentiles of temperature, what is the wind speed doing.
+
+    Parameters
+    ==========
+
+        obs_df : pd.DataFrame
+            The dataframe containing the observed data.
+        model_df : pd.DataFrame
+            The dataframe containing the model data.
+        x_var_name_obs : str
+            The name of the observed x variable.
+        y_var_name_obs : str
+            The name of the observed y variable.
+        x_var_name_model : str
+            The name of the model x variable.
+        y_var_name_model : str
+            The name of the model y variable.
+        xlabel : str
+            The label for the x-axis.
+        ylabel : str
+            The label for the y-axis.
+        title : str
+            The title for the plot.
+        figsize : tuple[int, int]
+            The size of the figure.
+
+    Returns
+    =======
+
+        None
+
+    """
+
+    # Hard code the percentiles 5
+    percentiles_5 = np.arange(0, 95 + 1, 1)
+
+    # Set up a new dataframe for the obs perc 5
+    obs_percs_5 = pd.DataFrame()
+    model_percs_5 = pd.DataFrame()
+
+    # Loop through the percentiles
+    for perc_this in percentiles_5:
+        # Find the lower and upper bound
+        lower_bound_this = perc_this / 100
+        upper_bound_this = (perc_this + 5) / 100
+
+        # Find the lower bound for the obs
+        obs_lower_bound_this = obs_df[x_var_name_obs].quantile(lower_bound_this)
+        obs_upper_bound_this = obs_df[x_var_name_obs].quantile(upper_bound_this)
+
+        # Find the lower bound for the model
+        model_lower_bound_this = model_df[x_var_name_model].quantile(lower_bound_this)
+        model_upper_bound_this = model_df[x_var_name_model].quantile(upper_bound_this)
+
+        # Subset the dataframes to the lower and upper bounds
+        obs_df_this = obs_df[
+            (obs_df[x_var_name_obs] >= obs_lower_bound_this)
+            & (obs_df[x_var_name_obs] < obs_upper_bound_this)
+        ]
+        model_df_this = model_df[
+            (model_df[x_var_name_model] >= model_lower_bound_this)
+            & (model_df[x_var_name_model] < model_upper_bound_this)
+        ]
+
+        # Set up a new dataframe for the obs
+        obs_perc_df_this = pd.DataFrame(
+            {
+                "percentile": perc_this,
+                "lower_bound": obs_lower_bound_this,
+                "upper_bound": obs_upper_bound_this,
+                "n_days": obs_df_this.shape[0],
+                f"{y_var_name_obs}_mean": obs_df_this[y_var_name_obs].mean(),
+            }
+        )
+
+        # Set up a new dataframe for the model
+        model_perc_df_this = pd.DataFrame(
+            {
+                "percentile": perc_this,
+                "lower_bound": model_lower_bound_this,
+                "upper_bound": model_upper_bound_this,
+                "n_days": model_df_this.shape[0],
+                f"{y_var_name_model}_mean": model_df_this[y_var_name_model].mean(),
+            }
+        )
+
+        # Concat these dataframes
+        obs_percs_5 = pd.concat([obs_percs_5, obs_perc_df_this])
+        model_percs_5 = pd.concat([model_percs_5, model_perc_df_this])
+
+    # Set up the figure
+    fig, ax = plt.subplots(
+        nrows=1,
+        ncols=1,
+        figsize=figsize,
+    )
+
+    # Do the same for the model
+    ax.plot(
+        100 - model_percs_5["percentile"],
+        model_percs_5[f"{y_var_name_model}_mean"],
+        color="red",
+        label=f"Model {xlabel} (5%)"
+    )
+
+    # Plot the 5% percentiles for temperature for wind speed
+    ax.plot(
+        100 - obs_percs_5["percentile"],
+        obs_percs_5[f"{y_var_name_obs}_mean"],
+        color="black",
+        label=f"Obs {xlabel} (5%)"
+    )
+
+    # Set the x and y labels
+    ax.set_xlabel(f"{xlabel} percentile")
+    ax.set_ylabel(f"{ylabel}")
+
+    # Include gridlines
+    ax.grid()
+
+    # Include a legend in the top left
+    ax.legend(
+        loc="upper left",
+        fontsize=10,
+    )
+
+    # Set the title
+    ax.set_title(title)
+
+    # Set a tight layour
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+    return None
+
 # Define a function
 # to plot the subplots of variable against variable
 def plot_multi_var_scatter(
@@ -1149,7 +1297,7 @@ def plot_multi_var_scatter(
     =======
 
         None
-    
+
     """
 
     # Set up the figure
@@ -1175,16 +1323,12 @@ def plot_multi_var_scatter(
         # if the len of obs is greater than one
         if N_obs > 1:
             # Calculate the correlation for the obs
-            r_obs, _ = pearsonr(
-                obs_df[x_var_name_obs], obs_df[y_var_name_obs]
-            )
+            r_obs, _ = pearsonr(obs_df[x_var_name_obs], obs_df[y_var_name_obs])
         else:
             r_obs = np.nan
 
         # Calculate the correlation for the model
-        r_model, _ = pearsonr(
-            model_df[x_var_name_model], model_df[y_var_name_model]
-        )
+        r_model, _ = pearsonr(model_df[x_var_name_model], model_df[y_var_name_model])
 
         # Plot the model data
         axs[i].scatter(
@@ -1236,10 +1380,10 @@ def plot_multi_var_scatter(
 
         # Set the labels and title
         axs[i].set_xlabel(xlabel)
-        
+
         if i == 0:
             axs[i].set_ylabel(ylabel)
-        
+
         # Set up the titles
         axs[i].set_title(subtitles[i])
 
@@ -1250,6 +1394,7 @@ def plot_multi_var_scatter(
         )
 
     return None
+
 
 # Define the main function
 def main():
@@ -1361,7 +1506,7 @@ def main():
     )
 
     # Limit the obs data to the same years as the model data
-    common_wyears = np.arange(1961, 2024 + 1) # test full period first
+    common_wyears = np.arange(1961, 2024 + 1)  # test full period first
 
     # Subset the obs data to the common_wyears
     df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
@@ -1475,7 +1620,7 @@ def main():
     #     figsize=(10, 5),
     # )
 
-    # Test the new function before all detrending takes place
+    # # Test the new function before all detrending takes place
     # pivot_emp_rps_dnw(
     #     obs_df=df_obs,
     #     model_df=df_model_djf,
@@ -1681,28 +1826,28 @@ def main():
     )
 
     # plot the lead pdfs to visualise the biases/drifts
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
-        obs_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
-        lead_name="winter_year",
-        xlabel="Wind Power Generation (GW)",
-        suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2024 (detrended, no BC wind)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
+    #     obs_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
+    #     lead_name="winter_year",
+    #     xlabel="Wind Power Generation (GW)",
+    #     suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2024 (detrended, no BC wind)",
+    #     figsize=(10, 5),
+    # )
 
     # plot the lead pdfs to visualise the biases/drifts
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
-        obs_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
-        lead_name="winter_year",
-        xlabel="Wind Power Generation (GW)",
-        suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2024 (detrended, BC wind)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+    #     obs_var_name="data_sfcWind_dt_sigmoid_total_wind_gen",
+    #     lead_name="winter_year",
+    #     xlabel="Wind Power Generation (GW)",
+    #     suptitle="Lead dependent wind power generation PDFs, DJF all days, 1961-2024 (detrended, BC wind)",
+    #     figsize=(10, 5),
+    # )
 
     # sys.exit()
 
@@ -1724,29 +1869,29 @@ def main():
 
     # do the same for temperature
     # convert the temperature tyo demand for bias corrected T data
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_tas_c_dt_UK_demand",
-        obs_var_name="data_c_dt_UK_demand",
-        lead_name="winter_year",
-        xlabel="Demand (GW)",
-        suptitle="Lead dependent demand PDFs, DJF all days, 1961-2024 (detrended, no BC T)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_tas_c_dt_UK_demand",
+    #     obs_var_name="data_c_dt_UK_demand",
+    #     lead_name="winter_year",
+    #     xlabel="Demand (GW)",
+    #     suptitle="Lead dependent demand PDFs, DJF all days, 1961-2024 (detrended, no BC T)",
+    #     figsize=(10, 5),
+    # )
 
     # do the same for temperature
     # convert the temperature tyo demand for non bias corrected T data
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_tas_c_drift_bc_dt_UK_demand",
-        obs_var_name="data_c_dt_UK_demand",
-        lead_name="winter_year",
-        xlabel="Demand (GW)",
-        suptitle="Lead dependent demand PDFs, DJF all days, 1961-2024 (detrended, BC T)",
-        figsize=(10, 5),
-    )
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_tas_c_drift_bc_dt_UK_demand",
+    #     obs_var_name="data_c_dt_UK_demand",
+    #     lead_name="winter_year",
+    #     xlabel="Demand (GW)",
+    #     suptitle="Lead dependent demand PDFs, DJF all days, 1961-2024 (detrended, BC T)",
+    #     figsize=(10, 5),
+    # )
 
     # sys.exit()
 
@@ -1804,35 +1949,35 @@ def main():
     ]
 
     # plot the PDFs for multivariatie testing
-    gev_funcs.plot_multi_var_dist(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        model_df_bc=df_model_djf,
-        obs_var_names=obs_var_names,
-        model_var_names=model_var_names,
-        model_var_names_bc=model_var_names_bc,
-        row_titles=[
-            "Temp (°C)",
-            "Demand (GW)",
-            "10m wind speed (m/s)",
-            "Wind power gen. (GW)",
-            "Demand net wind (GW)",
-        ],
-        subplot_titles=subplot_titles,
-        figsize=(15, 15),
-    )
+    # gev_funcs.plot_multi_var_dist(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     model_df_bc=df_model_djf,
+    #     obs_var_names=obs_var_names,
+    #     model_var_names=model_var_names,
+    #     model_var_names_bc=model_var_names_bc,
+    #     row_titles=[
+    #         "Temp (°C)",
+    #         "Demand (GW)",
+    #         "10m wind speed (m/s)",
+    #         "Wind power gen. (GW)",
+    #         "Demand net wind (GW)",
+    #     ],
+    #     subplot_titles=subplot_titles,
+    #     figsize=(15, 15),
+    # )
 
-    # now plot the relationships between variables here
-    gev_funcs.plot_rel_var(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        model_df_bc=df_model_djf,
-        obs_var_names=("data_c_dt", "data_sfcWind_dt"),
-        model_var_names=("data_tas_c_dt", "data_sfcWind_dt"),
-        model_var_names_bc=("data_tas_c_drift_bc_dt", "data_sfcWind_drift_bc_dt"),
-        row_title="T vs sfcWind",
-        figsize=(15, 5),
-    )
+    # # now plot the relationships between variables here
+    # gev_funcs.plot_rel_var(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     model_df_bc=df_model_djf,
+    #     obs_var_names=("data_c_dt", "data_sfcWind_dt"),
+    #     model_var_names=("data_tas_c_dt", "data_sfcWind_dt"),
+    #     model_var_names_bc=("data_tas_c_drift_bc_dt", "data_sfcWind_drift_bc_dt"),
+    #     row_title="T vs sfcWind",
+    #     figsize=(15, 5),
+    # )
 
     # Ensure the 'time' column is in datetime format
     df_obs["time"] = pd.to_datetime(df_obs["time"])
@@ -1849,19 +1994,15 @@ def main():
     # Extract all of the data for January 2025
     jan_2025 = df_obs[(df_obs["time"].dt.month == 1) & (df_obs["time"].dt.year == 2025)]
 
-    feb_2006 = df_obs[
-        (df_obs["time"].dt.month == 2) & (df_obs["time"].dt.year == 2006)
-    ]
+    feb_2006 = df_obs[(df_obs["time"].dt.month == 2) & (df_obs["time"].dt.year == 2006)]
 
-    eff_dec_year_24 = df_obs[
-        (df_obs["effective_dec_year"] == 2024)
-    ]
+    eff_dec_year_24 = df_obs[(df_obs["effective_dec_year"] == 2024)]
 
     # # create a new column for rank_dnw
     # rank dnw from highest to lowest
     # for eff_dec_year_24
-    eff_dec_year_24["rank_dnw"] = (
-        eff_dec_year_24["demand_net_wind"].rank(ascending=False)
+    eff_dec_year_24["rank_dnw"] = eff_dec_year_24["demand_net_wind"].rank(
+        ascending=False
     )
 
     # Print the January 2025 data
@@ -1933,17 +2074,17 @@ def main():
         block_max_model_dnw["winter_year"] - 1
     )
 
-    # Plot the biases in these
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_max_model_dnw,
-        obs_df=block_max_obs_dnw,
-        model_var_name="demand_net_wind_bc_max",
-        obs_var_name="demand_net_wind_max",
-        lead_name="winter_year",
-        xlabel="Demand net wind (GW)",
-        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind)",
-        figsize=(10, 5),
-    )
+    # # Plot the biases in these
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_max_model_dnw,
+    #     obs_df=block_max_obs_dnw,
+    #     model_var_name="demand_net_wind_bc_max",
+    #     obs_var_name="demand_net_wind_max",
+    #     lead_name="winter_year",
+    #     xlabel="Demand net wind (GW)",
+    #     suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind)",
+    #     figsize=(10, 5),
+    # )
 
     # apply a uniform bias correction to the block maxima from the model
     bias = (
@@ -1960,26 +2101,24 @@ def main():
     )
 
     # apply a uniform bias correct to the jan 8 df
-    jan_8_2025["demand_net_wind_bc"] = (
-        jan_8_2025["demand_net_wind"] - bias
-    )
+    jan_8_2025["demand_net_wind_bc"] = jan_8_2025["demand_net_wind"] - bias
 
     # print the row
     print(jan_8_2025)
 
     # sys.exit()
 
-    # Plot the biases in these
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_max_model_dnw,
-        obs_df=block_max_obs_dnw,
-        model_var_name="demand_net_wind_bc_max_bc",
-        obs_var_name="demand_net_wind_max",
-        lead_name="winter_year",
-        xlabel="Demand net wind (GW)",
-        suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind + BC)",
-        figsize=(10, 5),
-    )
+    # # Plot the biases in these
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_max_model_dnw,
+    #     obs_df=block_max_obs_dnw,
+    #     model_var_name="demand_net_wind_bc_max_bc",
+    #     obs_var_name="demand_net_wind_max",
+    #     lead_name="winter_year",
+    #     xlabel="Demand net wind (GW)",
+    #     suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind + BC)",
+    #     figsize=(10, 5),
+    # )
 
     # Compare the trends
     gev_funcs.compare_trends(
@@ -2151,11 +2290,26 @@ def main():
         figsize=(10, 5),
     )
 
+    # Plot the percentiles of temp against wind speed
+    # for subset data
+    plot_multi_var_perc(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_sfcWind_drift_bc_dt",
+        xlabel="Temperature",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of temperature vs 10m wind speed",
+        figsize=(10, 5),
+    )
+
     sys.exit()
 
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
-    
+
     # # plot the return period plots here
     # # first the empirical return periods
     plot_emp_rps(
@@ -2191,7 +2345,6 @@ def main():
     #     bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
     # )
 
-
     sys.exit()
 
     # ensure the effective dec year is a datetime and is just the year in the
@@ -2219,9 +2372,13 @@ def main():
     # )
 
     # set up a fname for the obs dnw df
-    obs_dnw_fpath = os.path.join(dfs_dir, "block_maxima_obs_demand_net_wind_07-05-2025.csv")
+    obs_dnw_fpath = os.path.join(
+        dfs_dir, "block_maxima_obs_demand_net_wind_07-05-2025.csv"
+    )
     # set up a fname for the model dnw df
-    model_dnw_fpath = os.path.join(dfs_dir, "block_maxima_model_demand_net_wind_07-05-2025.csv")
+    model_dnw_fpath = os.path.join(
+        dfs_dir, "block_maxima_model_demand_net_wind_07-05-2025.csv"
+    )
 
     # if the fpath does not exist, svae the dtaa
     if not os.path.exists(obs_dnw_fpath):
