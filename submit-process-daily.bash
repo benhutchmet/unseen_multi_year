@@ -8,12 +8,13 @@
 #SBATCH --cpus-per-task=1
 #SBATCH -o /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.out
 #SBATCH -e /home/users/benhutch/unseen_functions/logs/submit_process_daily_DePreSys-%A_%a.err
+#SBATCH --array=1960-2018
 
 # Set up the usage messages
-usage="Usage: sbatch submit_process_analogs.bash <variable> <country> <init_year>"
+usage="Usage: sbatch submit_process_analogs.bash <variable> <country>"
 
 # Check the number of CLI arguments
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 2 ]; then
     echo "Illegal number of parameters"
     echo $usage
     exit 1
@@ -47,7 +48,7 @@ for member in "${members[@]}"; do
     python ${process_script} \
         --variable $1 \
         --country $2 \
-        --init_year $3 \
+        --init_year ${SLURM_ARRAY_TASK_ID} \
         --member ${member}
 done
 
