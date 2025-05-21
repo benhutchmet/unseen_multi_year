@@ -1111,7 +1111,10 @@ def plot_multi_var_perc(
     xlabel: str,
     ylabel: str,
     title: str,
+    y2_var_name_model: str = None,
+    y2_label: str = None,
     figsize: tuple[int, int] = (5, 10),
+    inverse_flag = False,
 ):
     """
     Plots the relationship between variables as percentiles. E.g., binned by
@@ -1138,6 +1141,8 @@ def plot_multi_var_perc(
             The label for the y-axis.
         title : str
             The title for the plot.
+        y2_var_name_model : str
+            The name of the model y2 variable (optional).
         figsize : tuple[int, int]
             The size of the figure.
 
@@ -1201,6 +1206,12 @@ def plot_multi_var_perc(
             }
         )
 
+        # if there is a y2 variable, add it to the model dataframe
+        if y2_var_name_model is not None:
+            model_perc_df_this[f"{y2_var_name_model}_mean"] = model_df_this[
+                y2_var_name_model
+            ].mean()
+
         # Concat these dataframes
         obs_percs_5 = pd.concat([obs_percs_5, obs_perc_df_this])
         model_percs_5 = pd.concat([model_percs_5, model_perc_df_this])
@@ -1212,21 +1223,71 @@ def plot_multi_var_perc(
         figsize=figsize,
     )
 
-    # Do the same for the model
-    ax.plot(
-        100 - model_percs_5["percentile"],
-        model_percs_5[f"{y_var_name_model}_mean"],
-        color="red",
-        label=f"Model {xlabel} (5%)"
-    )
 
-    # Plot the 5% percentiles for temperature for wind speed
-    ax.plot(
-        100 - obs_percs_5["percentile"],
-        obs_percs_5[f"{y_var_name_obs}_mean"],
-        color="black",
-        label=f"Obs {xlabel} (5%)"
-    )
+    # if the inverse flag is set, invert the y axis
+    if inverse_flag:
+        # Do the same for the model
+        ax.plot(
+            100 - model_percs_5["percentile"],
+            model_percs_5[f"{y_var_name_model}_mean"],
+            color="red",
+            label=f"Model {xlabel} (5%)"
+        )
+
+        # Plot the 5% percentiles for temperature for wind speed
+        ax.plot(
+            100 - obs_percs_5["percentile"],
+            obs_percs_5[f"{y_var_name_obs}_mean"],
+            color="black",
+            label=f"Obs {xlabel} (5%)"
+        )
+    else:
+        # Plot the 5% percentiles for temperature for wind speed
+        ax.plot(
+            obs_percs_5["percentile"],
+            obs_percs_5[f"{y_var_name_obs}_mean"],
+            color="black",
+            label=f"Obs {xlabel} (5%)"
+        )
+
+        # Do the same for the model
+        ax.plot(
+            model_percs_5["percentile"],
+            model_percs_5[f"{y_var_name_model}_mean"],
+            color="red",
+            label=f"Model {xlabel} (5%)"
+        )
+
+
+    # If there is a y2 variable, plot it
+    if y2_var_name_model is not None:
+        # Create a second y-axis
+        ax2 = ax.twinx()
+
+        if inverse_flag:
+            ax2.plot(
+                100 - model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_mean"],
+                color="blue",
+                label=f"Model {y2_label} (5%)"
+            )
+        else:
+            ax2.plot(
+                model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_mean"],
+                color="blue",
+                label=f"Model {y2_label} (5%)"
+            )
+
+        # incldue a blue dashed zero line
+        ax2.axhline(
+            0,
+            color="blue",
+            linestyle="--",
+        )
+
+        # Set the y2 label
+        ax2.set_ylabel(f"{y2_label}")
 
     # Set the x and y labels
     ax.set_xlabel(f"{xlabel} percentile")
@@ -1471,6 +1532,9 @@ def main():
     missing_fnames = []
     missing_fname_years = []
 
+    # Set up an empty dataframe
+    df_delta_p_full = pd.DataFrame()
+
     # Loop over the years
     for year in test_years:
         for member in members:
@@ -1490,7 +1554,13 @@ def main():
 
             # Cehck if the file exists
             if os.path.exists(os.path.join(new_output_dir, test_fname)):
-                continue
+                # Load the df
+                df_delta_p_this = pd.read_csv(
+                    os.path.join(new_output_dir, test_fname)
+                )
+
+                # concat the df to the full df
+                df_delta_p_full = pd.concat([df_delta_p_full, df_delta_p_this])
             else:
                 missing_fnames.append(test_fname)
                 missing_fname_years.append(year)
@@ -1530,9 +1600,20 @@ def main():
     # print the unique years
     print(f"Unique years: {set(missing_fname_years)}")
 
-    # or
+    # create a new column for delta_p_hpa as the difference between 
+    # "data_n" and "data_s"
+    df_delta_p_full["delta_p_hpa"] = (df_delta_p_full["data_n"] - df_delta_p_full["data_s"]) / 100
 
-    sys.exit()
+    # print the ehad of the df
+    print(df_delta_p_full.head())
+
+    # print the tail of the df
+    print(df_delta_p_full.tail())
+
+    # print the statistics of the df
+    print(df_delta_p_full.describe())
+
+    # sys.exit()
 
     # Load the model temperature data
     df_model_tas = pd.read_csv(
@@ -1556,6 +1637,24 @@ def main():
         on=["init_year", "member", "lead"],
         suffixes=("_tas", "_sfcWind"),
     )
+
+    # merge the df delta p here as well
+    df_model = df_model.merge(
+        df_delta_p_full,
+        on=["init_year", "member", "lead"],
+        suffixes=("", ""),
+    )
+
+    # print the head of df_model
+    print(df_model.head())
+
+    # print the tail of df_model
+    print(df_model.tail())
+
+    # drop data_n and data_s
+    df_model.drop(columns=["data_n", "data_s"], inplace=True)
+
+    # sys.exit()
 
     # Subset the leads for the valid winter years
     winter_years = np.arange(1, 11 + 1)
@@ -2182,6 +2281,7 @@ def main():
             "lead",
             "data_tas_c_drift_bc_dt",
             "data_sfcWind_drift_bc_dt",
+            "delta_p_hpa",
         ],
         winter_year="winter_year",
         process_min=False,
@@ -2420,50 +2520,70 @@ def main():
         xlabel="Temperature",
         ylabel="10m Wind Speed (m/s)",
         title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
         figsize=(5, 6),
+        inverse_flag=True,
     )
 
-    # do the same but for greyb dots
+    # do the same for electricity demand against wind power generation
     plot_multi_var_perc(
-        obs_df=block_max_obs_dnw_grey_dots,
-        model_df=block_max_model_dnw_grey_dots,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_sfcWind_drift_bc_dt",
-        xlabel="Temperature",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days < 80th percentile",
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        x_var_name_obs="data_c_dt_UK_demand",
+        y_var_name_obs="data_sfcWind_dt_sigmoid_total_wind_gen",
+        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand",
+        y_var_name_model="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+        xlabel="Demand (GW)",
+        ylabel="Wind Power Generation (GW)",
+        title="Percentiles of demand vs wind power generation, DnW days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
         figsize=(5, 6),
+        inverse_flag=False,
     )
 
-    # do the same but for yellow dots
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw_yellow_dots,
-        model_df=block_max_model_dnw_yellow_dots,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_sfcWind_drift_bc_dt",
-        xlabel="Temperature",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days > 80th percentile",
-        figsize=(5, 6),
-    )
+    # # do the same but for greyb dots
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw_grey_dots,
+    #     model_df=block_max_model_dnw_grey_dots,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days < 80th percentile",
+    #     figsize=(5, 6),
+    # )
 
-    # do the same but for red dots
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw_red_dots,
-        model_df=block_max_model_dnw_red_dots,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_sfcWind_drift_bc_dt",
-        xlabel="Temperature",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days > obs max",
-        figsize=(5, 6),
-    )
+    # # do the same but for yellow dots
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw_yellow_dots,
+    #     model_df=block_max_model_dnw_yellow_dots,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days > 80th percentile",
+    #     figsize=(5, 6),
+    # )
+
+    # # do the same but for red dots
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw_red_dots,
+    #     model_df=block_max_model_dnw_red_dots,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days > obs max",
+    #     figsize=(5, 6),
+    # )
 
     # Do the same but for the full distribution
     plot_multi_var_perc(
@@ -2476,20 +2596,42 @@ def main():
         xlabel="Temperature",
         ylabel="10m Wind Speed (m/s)",
         title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
         figsize=(5, 6),
+        inverse_flag=True,
     )
 
-    # subset the data to values beneath 3 *C
+    # do the same for electricity demand against wind power generation
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        x_var_name_obs="data_c_dt_UK_demand",
+        y_var_name_obs="data_sfcWind_dt_sigmoid_total_wind_gen",
+        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand",
+        y_var_name_model="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+        xlabel="Demand (GW)",
+        ylabel="Wind Power Generation (GW)",
+        title="Percentiles of demand vs wind power generation, all winter days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+    )
+
+    # find the 90th percentile of demand net wind
+    model_90th = df_model_djf["demand_net_wind_bc"].quantile(0.90)
+    obs_90th = df_obs["demand_net_wind"].quantile(0.90)
+
+    # subset the data to values above the 90th percentile
     full_df_obs_subset = df_obs[
-        df_obs["data_c_dt"] < 3
+        df_obs["demand_net_wind"] > obs_90th
     ]
-
-    # subset the data to values beneath 3 *C
     full_df_model_subset = df_model_djf[
-        df_model_djf["data_tas_c_drift_bc_dt"] < 3
+        df_model_djf["demand_net_wind_bc"] > model_90th
     ]
 
-    # DO the same but for the subset distribution
+    # Plot the percentiles for these subset data
     plot_multi_var_perc(
         obs_df=full_df_obs_subset,
         model_df=full_df_model_subset,
@@ -2499,9 +2641,53 @@ def main():
         y_var_name_model="data_sfcWind_drift_bc_dt",
         xlabel="Temperature",
         ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days < 3 *C",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days > 90th percentile",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
         figsize=(5, 6),
+        inverse_flag=True,
     )
+
+    # plot the percentiles of demand and supply for these subset data
+    plot_multi_var_perc(
+        obs_df=full_df_obs_subset,
+        model_df=full_df_model_subset,
+        x_var_name_obs="data_c_dt_UK_demand",
+        y_var_name_obs="data_sfcWind_dt_sigmoid_total_wind_gen",
+        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand",
+        y_var_name_model="data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+        xlabel="Demand (GW)",
+        ylabel="Wind Power Generation (GW)",
+        title="Percentiles of demand vs wind power generation, all winter days > 90th percentile",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+    )
+
+    # # subset the data to values beneath 3 *C
+    # full_df_obs_subset = df_obs[
+    #     df_obs["data_c_dt"] < 3
+    # ]
+
+    # # subset the data to values beneath 3 *C
+    # full_df_model_subset = df_model_djf[
+    #     df_model_djf["data_tas_c_drift_bc_dt"] < 3
+    # ]
+
+    # # DO the same but for the subset distribution
+    # plot_multi_var_perc(
+    #     obs_df=full_df_obs_subset,
+    #     model_df=full_df_model_subset,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days < 3 *C",
+    #     figsize=(5, 6),
+    # )
 
     sys.exit()
 
