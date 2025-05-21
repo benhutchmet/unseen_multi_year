@@ -1478,14 +1478,18 @@ def main():
             test_fname = f"HadGEM3-GC31-MM_dcppA-hindcast_psl_delta_p_{year}_{member}_day.csv"
 
             # Set up thge output dir
-            output_dir = os.path.join(
-                dfs_dir,
+            # Set up the new base dir
+            base_dir_new = "/home/users/benhutch/unseen_data/saved_dfs"
+
+            # Set up the new output directory
+            new_output_dir = os.path.join(
+                base_dir_new,
                 "delta_p",
                 str(year),
             )
 
             # Cehck if the file exists
-            if os.path.exists(os.path.join(output_dir, test_fname)):
+            if os.path.exists(os.path.join(new_output_dir, test_fname)):
                 continue
             else:
                 missing_fnames.append(test_fname)
@@ -1522,6 +1526,11 @@ def main():
 
     # print the unique years
     print(f"Unique years: {len(set(missing_fname_years))}")
+
+    # print the unique years
+    print(f"Unique years: {set(missing_fname_years)}")
+
+    # or
 
     sys.exit()
 

@@ -122,7 +122,11 @@ def main():
 
     # Set up the output directory for the dfs
     # NOTE: modified for delta P
-    output_dir_dfs = f"/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/delta_p/{str(args.init_year)}"
+    output_dir_dfs = f"/home/users/benhutch/unseen_data/saved_dfs/delta_p/{str(args.init_year)}"
+
+    # if the directory does not exist, create it
+    if not os.path.exists(output_dir_dfs):
+        os.makedirs(output_dir_dfs)
 
     # if country has a space, replace with _
     country = args.country.replace(" ", "_")
