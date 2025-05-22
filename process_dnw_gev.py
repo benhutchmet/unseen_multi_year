@@ -42,7 +42,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -1117,6 +1117,9 @@ def plot_multi_var_perc(
     y2_label: str = None,
     figsize: tuple[int, int] = (5, 10),
     inverse_flag = False,
+    y1_zero_line = False,
+    xlims: tuple[float, float] = None,
+    ylims: tuple[float, float] = None,
 ):
     """
     Plots the relationship between variables as percentiles. E.g., binned by
@@ -1155,8 +1158,12 @@ def plot_multi_var_perc(
 
     """
 
+    # Create copies of the df to work from here
+    obs_df_copy = obs_df.copy()
+    model_df_copy = model_df.copy()
+
     # Hard code the percentiles in increments of 5
-    percentiles_5 = np.arange(0, 100, 5)  # 0, 5, 10, ..., 95
+    percentiles_5 = np.arange(0, 95, 1)  # 0, 5, 10, ..., 95
 
     # Set up new dataframes for the observed and model percentiles
     obs_percs_5 = pd.DataFrame()
@@ -1169,21 +1176,21 @@ def plot_multi_var_perc(
         upper_bound_this = (perc_this + 5) / 100  # Increment by 5%
 
         # Find the lower bound for the obs
-        obs_lower_bound_this = obs_df[x_var_name_obs].quantile(lower_bound_this)
-        obs_upper_bound_this = obs_df[x_var_name_obs].quantile(upper_bound_this)
+        obs_lower_bound_this = obs_df_copy[x_var_name_obs].quantile(lower_bound_this)
+        obs_upper_bound_this = obs_df_copy[x_var_name_obs].quantile(upper_bound_this)
 
         # Find the lower bound for the model
-        model_lower_bound_this = model_df[x_var_name_model].quantile(lower_bound_this)
-        model_upper_bound_this = model_df[x_var_name_model].quantile(upper_bound_this)
+        model_lower_bound_this = model_df_copy[x_var_name_model].quantile(lower_bound_this)
+        model_upper_bound_this = model_df_copy[x_var_name_model].quantile(upper_bound_this)
 
         # Subset the dataframes to the lower and upper bounds
-        obs_df_this = obs_df[
-            (obs_df[x_var_name_obs] >= obs_lower_bound_this)
-            & (obs_df[x_var_name_obs] < obs_upper_bound_this)
+        obs_df_this = obs_df_copy[
+            (obs_df_copy[x_var_name_obs] >= obs_lower_bound_this)
+            & (obs_df_copy[x_var_name_obs] < obs_upper_bound_this)
         ]
-        model_df_this = model_df[
-            (model_df[x_var_name_model] >= model_lower_bound_this)
-            & (model_df[x_var_name_model] < model_upper_bound_this)
+        model_df_this = model_df_copy[
+            (model_df_copy[x_var_name_model] >= model_lower_bound_this)
+            & (model_df_copy[x_var_name_model] < model_upper_bound_this)
         ]
 
         # Set up a new dataframe for the obs
@@ -1223,6 +1230,25 @@ def plot_multi_var_perc(
         # Concat these dataframes
         obs_percs_5 = pd.concat([obs_percs_5, obs_perc_df_this])
         model_percs_5 = pd.concat([model_percs_5, model_perc_df_this])
+
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    #  Set up the current time as YYYYMMDD-HHMMSS
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    # set up fnames
+    obs_fname = f"{save_dir}/obs_perc_5_{current_time}.csv"
+    model_fname = f"{save_dir}/model_perc_5_{current_time}.csv"
+
+    # if the obs_percs_5 is not empty, save it
+    if not obs_percs_5.empty:
+        obs_percs_5.to_csv(obs_fname, index=False)
+        print(f"Saved obs_percs_5 to {obs_fname}")
+
+    # if the model_percs_5 is not empty, save it
+    if not model_percs_5.empty:
+        model_percs_5.to_csv(model_fname, index=False)
+        print(f"Saved model_percs_5 to {model_fname}")
 
     # Set up the figure
     fig, ax = plt.subplots(
@@ -1285,6 +1311,15 @@ def plot_multi_var_perc(
             label=f"Model {xlabel} (5%)"
         )
 
+    # if y1 zero line is True
+    if y1_zero_line:
+        # include a red dashed zero line
+        ax.axhline(
+            0,
+            color="red",
+            linestyle="--",
+        )
+
     # If there is a y2 variable, plot it
     if y2_var_name_model is not None:
         # Create a second y-axis
@@ -1306,14 +1341,24 @@ def plot_multi_var_perc(
             )
 
         # incldue a blue dashed zero line
-        ax2.axhline(
-            0,
-            color="blue",
-            linestyle="--",
-        )
+        # ax2.axhline(
+        #     0,
+        #     color="blue",
+        #     linestyle="--",
+        # )
 
         # Set the y2 label
         ax2.set_ylabel(f"{y2_label}")
+
+    # if xlims is not none
+    if xlims is not None:
+        # Set the xlims
+        ax.set_xlim(xlims)
+
+    # if ylims is not none
+    if ylims is not None:
+        # Set the ylims
+        ax.set_ylim(ylims)
 
     # Set the x and y labels
     ax.set_xlabel(f"{xlabel} percentile")

@@ -39,7 +39,11 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import select_leads_wyears_DJF, plot_distributions_extremes
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -47,6 +51,7 @@ from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_leve
 
 # Silence warnings
 warnings.filterwarnings("ignore")
+
 
 # Define a function to do pivoting
 # to each year and then calculating empirical return periods for this
@@ -92,7 +97,7 @@ def pivot_emp_rps(
     =======
 
         None
-    
+
 
     """
 
@@ -117,9 +122,7 @@ def pivot_emp_rps(
     obs_vals = obs_df_copy[obs_val_name].values
 
     # Calculate the model trend
-    slope_model, intercept_model, _, _, _ = linregress(
-        unique_model_times, model_vals
-    )
+    slope_model, intercept_model, _, _, _ = linregress(unique_model_times, model_vals)
 
     # Calculate the obs trend
     slope_obs, intercept_obs, _, _, _ = linregress(unique_obs_times, obs_vals)
@@ -129,28 +132,20 @@ def pivot_emp_rps(
     obs_trend_line = slope_obs * unique_obs_times + intercept_obs
 
     # Detrend the model and obs data
-    model_df_copy[f"{model_val_name}_dt"] = (
-        model_df_copy[model_val_name] - (
-            slope_model * model_df_copy[model_time_name] + intercept_model
-        )
+    model_df_copy[f"{model_val_name}_dt"] = model_df_copy[model_val_name] - (
+        slope_model * model_df_copy[model_time_name] + intercept_model
     )
 
     # Detrend the obs data
-    obs_df_copy[f"{obs_val_name}_dt"] = (
-        obs_df_copy[obs_val_name] - (
-            slope_obs * obs_df_copy[obs_time_name] + intercept_obs
-        )
+    obs_df_copy[f"{obs_val_name}_dt"] = obs_df_copy[obs_val_name] - (
+        slope_obs * obs_df_copy[obs_time_name] + intercept_obs
     )
 
     # Set up the trend value this for the obs
-    obs_trend_val_this = (
-        slope_obs * unique_model_times[-1] + intercept_obs
-    )
+    obs_trend_val_this = slope_obs * unique_model_times[-1] + intercept_obs
 
     # Adjust the detrended data for this year
-    obs_adjusted_this = np.array(
-        obs_df_copy[f"{obs_val_name}_dt"] + obs_trend_val_this
-    )
+    obs_adjusted_this = np.array(obs_df_copy[f"{obs_val_name}_dt"] + obs_trend_val_this)
 
     obs_extreme_value = np.min(obs_adjusted_this)
 
@@ -174,7 +169,7 @@ def pivot_emp_rps(
     #     raise ValueError(
     #         "Variable not recognised. Please use tas or sfcWind."
     #     )
-    
+
     # find the index of the obs extreme value in obs_adjusted_this
     obs_extreme_index = np.where(obs_adjusted_this == obs_extreme_value)[0][0]
 
@@ -199,22 +194,16 @@ def pivot_emp_rps(
         leave=False,
     ):
         # Find the index where the model time is equal to the obs time
-        obs_index_this = np.where(
-            obs_df_copy[obs_time_name] == model_time
-        )[0][0]
+        obs_index_this = np.where(obs_df_copy[obs_time_name] == model_time)[0][0]
 
         # Apply this index to the obs trend
         obs_trend_point_this = obs_trend_line[obs_index_this]
 
         # Set up the trend value this
-        trend_val_this = (
-            slope_model * model_time + intercept_model
-        )
+        trend_val_this = slope_model * model_time + intercept_model
 
         # Calculate the final point bias
-        trend_point_bias = (
-            obs_trend_point_this - trend_val_this
-        )
+        trend_point_bias = obs_trend_point_this - trend_val_this
 
         # Apply this to the model data
         trend_val_this_bc = (
@@ -321,9 +310,15 @@ def pivot_emp_rps(
         model_df_this = pd.DataFrame(
             {
                 "model_time": [model_time],  # Wrap scalar in a list
-                "central_rp": [model_df_central_rps_this.iloc[obs_extreme_index_central]["period"]],
-                "025_rp": [model_df_central_rps_this.iloc[obs_extreme_index_025]["period"]],
-                "975_rp": [model_df_central_rps_this.iloc[obs_extreme_index_975]["period"]],
+                "central_rp": [
+                    model_df_central_rps_this.iloc[obs_extreme_index_central]["period"]
+                ],
+                "025_rp": [
+                    model_df_central_rps_this.iloc[obs_extreme_index_025]["period"]
+                ],
+                "975_rp": [
+                    model_df_central_rps_this.iloc[obs_extreme_index_975]["period"]
+                ],
             }
         )
 
@@ -375,7 +370,23 @@ def pivot_emp_rps(
     # Set new tick labels for the primary y-axis
     # Set up yticks for the primary y-axis
     ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-    ax.set_yticklabels(["0%", "1%", "2%", "3%", "4%", "5%", "6%", "7%", "8%", "9%", "10%", "11%", "12%"])
+    ax.set_yticklabels(
+        [
+            "0%",
+            "1%",
+            "2%",
+            "3%",
+            "4%",
+            "5%",
+            "6%",
+            "7%",
+            "8%",
+            "9%",
+            "10%",
+            "11%",
+            "12%",
+        ]
+    )
 
     # Set up yticks for the second y-axis
     ax2 = ax.twinx()
@@ -384,24 +395,29 @@ def pivot_emp_rps(
     ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
 
     # Set tick labels for the second y-axis (ensure the number of labels matches the number of ticks)
-    ax2.set_yticklabels(["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"])  # 13 labels
+    ax2.set_yticklabels(
+        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"]
+    )  # 13 labels
 
     # Set the y-axis limits for both axes to ensure alignment
     ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
 
     # Set the y axis labels
     ax2.set_ylabel(
-        "Return period (years)", fontsize=12,
+        "Return period (years)",
+        fontsize=12,
     )
 
     # Set up the xlabel
     ax.set_xlabel(
-        "Year", fontsize=12,
+        "Year",
+        fontsize=12,
     )
 
     # Set up the ylabel
     ax.set_ylabel(
-        "Chance of event", fontsize=12,
+        "Chance of event",
+        fontsize=12,
     )
 
     # Set the xlims as the min and max of the model time
@@ -410,7 +426,7 @@ def pivot_emp_rps(
         model_df_plume["model_time"].max(),
     )
 
-    #Set up the title
+    # Set up the title
     ax.set_title(
         f"Chance of <{obs_extreme_time} by year",
         fontsize=12,
@@ -428,6 +444,7 @@ def pivot_emp_rps(
     plt.show()
 
     return None
+
 
 # Define a function to subset extremes
 # based on the full field data
@@ -501,49 +518,38 @@ def subset_extremes(
 
     # Count the number of block values which exceed this threshold
     model_df_block_exceed = np.sum(
-        model_df_block_copy[model_var_name_block].values
-        > model_df_full_field_threshold
+        model_df_block_copy[model_var_name_block].values > model_df_full_field_threshold
     )
     obs_df_block_exceed = np.sum(
-        obs_df_block_copy[obs_var_name_block].values
-        > obs_df_full_field_threshold
+        obs_df_block_copy[obs_var_name_block].values > obs_df_full_field_threshold
     )
 
     # Print the number of block values which exceed this threshold
-    print(
-        f"Model block values exceeding threshold: {model_df_block_exceed}"
-    )
-    print(
-        f"Obs block values exceeding threshold: {obs_df_block_exceed}"
-    )
+    print(f"Model block values exceeding threshold: {model_df_block_exceed}")
+    print(f"Obs block values exceeding threshold: {obs_df_block_exceed}")
 
     # Find the indices of rows where the model block values exceed the threshold
     model_df_block_exceed_indices = model_df_block_copy[
-        model_df_block_copy[model_var_name_block]
-        > model_df_full_field_threshold
+        model_df_block_copy[model_var_name_block] > model_df_full_field_threshold
     ].index
 
     # Drop these rows
-    model_df_block_copy = model_df_block_copy.drop(
-        model_df_block_exceed_indices
-    )
+    model_df_block_copy = model_df_block_copy.drop(model_df_block_exceed_indices)
 
     # Find the indices of rows where the obs block values exceed the threshold
     obs_df_block_exceed_indices = obs_df_block_copy[
-        obs_df_block_copy[obs_var_name_block]
-        > obs_df_full_field_threshold
+        obs_df_block_copy[obs_var_name_block] > obs_df_full_field_threshold
     ].index
 
     # Drop these rows
-    obs_df_block_copy = obs_df_block_copy.drop(
-        obs_df_block_exceed_indices
-    )
+    obs_df_block_copy = obs_df_block_copy.drop(obs_df_block_exceed_indices)
 
     # Return the DataFrames as a tuple
     return (
         model_df_block_copy,
         obs_df_block_copy,
     )
+
 
 # Define a function for plotting the return periods
 # empirical
@@ -565,7 +571,7 @@ def plot_emp_rps(
 ) -> None:
     """
     Plot the empirical return periods for the model data.
-    
+
     Parameters
     ==========
 
@@ -596,7 +602,7 @@ def plot_emp_rps(
     =======
 
         None
-    
+
     """
 
     # if the time column is not datetime
@@ -617,9 +623,7 @@ def plot_emp_rps(
     model_df_bootstrap_rps = np.zeros([nsamples, len(model_df_central_rps)])
 
     # Loop over the samples
-    for i in tqdm(
-        range(nsamples)
-    ):
+    for i in tqdm(range(nsamples)):
         # Resample the model data
         model_vals_this = np.random.choice(
             model_df[model_val_name].values,
@@ -681,18 +685,18 @@ def plot_emp_rps(
 
     # Set the y labels
     ax.set_ylabel(
-        ylabel, fontsize=12,
+        ylabel,
+        fontsize=12,
     )
 
     # Set the x labels
     ax.set_xlabel(
-        "Return period (years)", fontsize=12,
+        "Return period (years)",
+        fontsize=12,
     )
 
     # Extreme value as the min
-    extreme_value = blue_line(
-        obs_df[obs_val_name].values
-    )
+    extreme_value = blue_line(obs_df[obs_val_name].values)
 
     # # If ylabel includes "wind" or "Wind", and wind_2005_toggle is True
     # if ("wind" in ylabel or "Wind" in ylabel) and wind_2005_toggle:
@@ -729,14 +733,9 @@ def plot_emp_rps(
     # Print the time in which this occurs
     print(f"Extreme time (year): {extreme_time}")
 
-    # Plot the extreme value as a blue horizontal 
+    # Plot the extreme value as a blue horizontal
     # dashed line
-    ax.axhline(
-        y=extreme_value,
-        color="blue",
-        linestyle="--",
-        label=f"{extreme_time}"
-    )
+    ax.axhline(y=extreme_value, color="blue", linestyle="--", label=f"{extreme_time}")
 
     # if bonus line is not none, then mark it on the plot
     if bonus_line is not None:
@@ -754,6 +753,7 @@ def plot_emp_rps(
     )
 
     return None
+
 
 # Define a function to plot the gev return periods
 def plot_gev_rps(
@@ -804,7 +804,7 @@ def plot_gev_rps(
     =======
 
         None
-    
+
     """
 
     # If the time column is not a datetime
@@ -825,9 +825,7 @@ def plot_gev_rps(
     model_df_bootstrap_rps = np.zeros([nsamples, len(model_df_central_rps["sorted"])])
 
     # Loop over the samples
-    for i in tqdm(
-        range(nsamples)
-    ):
+    for i in tqdm(range(nsamples)):
         # Resample the model data
         model_vals_this = np.random.choice(
             model_df[model_val_name].values,
@@ -858,9 +856,7 @@ def plot_gev_rps(
     )
 
     # Loop over the samples
-    for i in tqdm(
-        range(nsamples)
-    ):
+    for i in tqdm(range(nsamples)):
         # Resample the model data
         model_vals_this = np.random.choice(
             model_df[model_val_name].values,
@@ -899,9 +895,7 @@ def plot_gev_rps(
         years_ppf = 1 / years
 
     # Loop over the nsamples
-    for i in tqdm(
-        range(nsamples)
-    ):
+    for i in tqdm(range(nsamples)):
         # Calculate the return levels for the model
         model_gev_rls.append(
             np.array(
@@ -938,7 +932,9 @@ def plot_gev_rps(
     value_1_in_100 = gev.ppf(probability, *model_gev_params_first)
 
     # Print the value
-    print(f"The value corresponding to a 1-in-100-year return period is: {value_1_in_100}")
+    print(
+        f"The value corresponding to a 1-in-100-year return period is: {value_1_in_100}"
+    )
 
     # Convert the probs to return years
     return_years = 1 / (probs / 100)
@@ -1022,18 +1018,18 @@ def plot_gev_rps(
 
     # Set the y labels
     ax.set_ylabel(
-        ylabel, fontsize=12,
+        ylabel,
+        fontsize=12,
     )
 
     # Set the x labels
     ax.set_xlabel(
-        "Return period (years)", fontsize=12,
+        "Return period (years)",
+        fontsize=12,
     )
 
     # Find the extreme value
-    extreme_value = blue_line(
-        obs_df[obs_val_name].values
-    )
+    extreme_value = blue_line(obs_df[obs_val_name].values)
 
     # find the time in which this occurs
     extreme_time = obs_df.loc[
@@ -1049,14 +1045,9 @@ def plot_gev_rps(
     # Print the time in which this occurs
     print(f"Extreme time (year): {extreme_time}")
 
-    # Plot the extreme value as a blue horizontal 
+    # Plot the extreme value as a blue horizontal
     # dashed line
-    ax.axhline(
-        y=extreme_value,
-        color="blue",
-        linestyle="--",
-        label=f"{extreme_time}"
-    )
+    ax.axhline(y=extreme_value, color="blue", linestyle="--", label=f"{extreme_time}")
 
     # if bonus line is not none, then mark it on the plot
     if bonus_line is not None:
@@ -1116,7 +1107,8 @@ def plot_gev_rps(
 
     # Set the x label
     ax.set_xlabel(
-        ylabel, fontsize=12,
+        ylabel,
+        fontsize=12,
     )
 
     # remove the y label
@@ -1176,7 +1168,8 @@ def plot_gev_rps(
 
     # Set the x label
     ax.set_xlabel(
-        ylabel, fontsize=12,
+        ylabel,
+        fontsize=12,
     )
 
     # remove the y label
@@ -1219,7 +1212,9 @@ def plot_gev_rps(
     # Add a 1:1 reference line
     # Filter out NaN and inf values from sorted_model_data and theoretical_quantiles
     valid_model_data = sorted_model_data[np.isfinite(sorted_model_data)]
-    valid_theoretical_quantiles = theoretical_quantiles[np.isfinite(theoretical_quantiles)]
+    valid_theoretical_quantiles = theoretical_quantiles[
+        np.isfinite(theoretical_quantiles)
+    ]
 
     # Calculate min and max values ignoring NaN and inf
     min_val = min(np.nanmin(valid_model_data), np.nanmin(valid_theoretical_quantiles))
@@ -1258,7 +1253,9 @@ def plot_gev_rps(
     # Add a 1:1 reference line
     # Filter out NaN and inf values from sorted_model_data and theoretical_quantiles
     valid_model_data = sorted_model_data[np.isfinite(sorted_model_data)]
-    valid_theoretical_quantiles = theoretical_quantiles[np.isfinite(theoretical_quantiles)]
+    valid_theoretical_quantiles = theoretical_quantiles[
+        np.isfinite(theoretical_quantiles)
+    ]
 
     # Calculate min and max values ignoring NaN and inf
     min_val = min(np.nanmin(valid_model_data), np.nanmin(valid_theoretical_quantiles))
@@ -1293,6 +1290,7 @@ def plot_gev_rps(
     )
 
     return None
+
 
 # Set up a function to perform the model drift correction
 def model_drift_corr_plot(
@@ -1444,7 +1442,9 @@ def model_drift_corr_plot(
             print(f"Shape of ensemble means this: {ensemble_means_this.shape}")
 
             # print the shape of the effective dec years constant
-            print(f"Shape of effective dec years constant: {effective_dec_years_constant.shape}")
+            print(
+                f"Shape of effective dec years constant: {effective_dec_years_constant.shape}"
+            )
 
             raise ValueError(
                 f"Ensemble means this does not have the same length as effective dec years constant"
@@ -1454,7 +1454,9 @@ def model_drift_corr_plot(
         forecast_clim_lead_this = np.mean(ensemble_means_this)
 
         # print the lead and the forecast climatology lead this
-        print(f"lead: {lead} - forecast climatology lead this: {forecast_clim_lead_this}")
+        print(
+            f"lead: {lead} - forecast climatology lead this: {forecast_clim_lead_this}"
+        )
 
         # if the forecast clim lead this is nan
         if np.isnan(forecast_clim_lead_this):
@@ -1530,9 +1532,9 @@ def model_drift_corr_plot(
 
     #     # Plot the histograms using matplotlib
     #     ax.hist(
-    #         model_df_lead_this[f"{model_var_name}"], 
-    #         bins=30, 
-    #         color="red", 
+    #         model_df_lead_this[f"{model_var_name}"],
+    #         bins=30,
+    #         color="red",
     #         edgecolor="black"
     #     )
 
@@ -1589,9 +1591,9 @@ def model_drift_corr_plot(
 
     #     # Plot the histograms using matplotlib
     #     ax.hist(
-    #         model_df_lead_this[f"{model_var_name}_anomaly"], 
-    #         bins=30, 
-    #         color="red", 
+    #         model_df_lead_this[f"{model_var_name}_anomaly"],
+    #         bins=30,
+    #         color="red",
     #         edgecolor="black"
     #     )
 
@@ -1650,9 +1652,9 @@ def model_drift_corr_plot(
 
     #     # Plot the histograms using matplotlib
     #     ax.hist(
-    #         model_df_lead_this[f"{model_var_name}_anomaly"], 
-    #         bins=30, 
-    #         color="red", 
+    #         model_df_lead_this[f"{model_var_name}_anomaly"],
+    #         bins=30,
+    #         color="red",
     #         edgecolor="black"
     #     )
 
@@ -1848,11 +1850,17 @@ def model_drift_corr_plot(
         unique_eff_dec_years_this = model_df_lead_this[eff_dec_years_name].unique()
 
         # print the first and last unique effective dec years in this df
-        print(f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}")
-        print(f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}")
+        print(
+            f"First unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[0]}"
+        )
+        print(
+            f"Last unique effective dec years: {model_df_lead_this[eff_dec_years_name].unique()[-1]}"
+        )
 
         # print the len of the unique effective dec years in this df
-        print(f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}")
+        print(
+            f"Length of unique effective dec years: {len(model_df_lead_this[eff_dec_years_name].unique())}"
+        )
 
         # Subset the obs df to the same period
         obs_df_lead_this = obs_df_copy[
@@ -1866,10 +1874,8 @@ def model_drift_corr_plot(
         if np.isnan(obs_mean_lead_this):
             print(f"Obs mean is nan for lead {lead}")
             print(f"Obs df lead this: {obs_df_lead_this}")
-            raise ValueError(
-                f"Obs mean is nan for lead {lead}: {obs_mean_lead_this}"
-            )
-        
+            raise ValueError(f"Obs mean is nan for lead {lead}: {obs_mean_lead_this}")
+
         # print the obs mean
         print(f"Obs mean lead this: {obs_mean_lead_this}")
 
@@ -1877,7 +1883,9 @@ def model_drift_corr_plot(
         model_df_copy.loc[
             model_df_copy[lead_name] == lead, f"{model_var_name}_drift_bc"
         ] = (
-            model_df_copy.loc[model_df_copy[lead_name] == lead, f"{model_var_name}_anomaly"]
+            model_df_copy.loc[
+                model_df_copy[lead_name] == lead, f"{model_var_name}_anomaly"
+            ]
             + obs_mean_lead_this
         )
 
@@ -1958,6 +1966,7 @@ def model_drift_corr_plot(
 
     return model_df_copy
 
+
 # Define the main function
 def main():
     # Start the timer
@@ -2004,6 +2013,119 @@ def main():
     #         print(f"Files: {vas_files}")
 
     # sys.exit()
+
+    # Set up the directory in which to store the dfs
+    dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
+
+    # Set up the years test
+    test_years = np.arange(1960, 2018 + 1, 1)
+    members = np.arange(1, 10 + 1, 1)
+
+    # Set up a list to store the missing fnames
+    missing_fnames = []
+    missing_fname_years = []
+
+    # Set up an empty dataframe
+    df_delta_p_full = pd.DataFrame()
+    df_uas_full = pd.DataFrame()
+    df_vas_full = pd.DataFrame()
+
+    # Loop over the years
+    for year in test_years:
+        for member in members:
+            # Set up the test fname
+            test_fname = (
+                f"HadGEM3-GC31-MM_dcppA-hindcast_psl_delta_p_{year}_{member}_day.csv"
+            )
+
+            # Set up the test fname for the uas and vas
+            test_fname_uas = f"HadGEM3-GC31-MM_dcppA-hindcast_uas_UK_wind_box_{year}_{member}_day.csv"
+            test_fname_vas = f"HadGEM3-GC31-MM_dcppA-hindcast_vas_UK_wind_box_{year}_{member}_day.csv"
+
+            # Set up thge output dir
+            # Set up the new base dir
+            base_dir_new = "/home/users/benhutch/unseen_data/saved_dfs"
+
+            # Set up the new output directory
+            new_output_dir = os.path.join(
+                base_dir_new,
+                "delta_p",
+                str(year),
+            )
+
+            # Cehck if the file exists
+            if os.path.exists(os.path.join(new_output_dir, test_fname)):
+                # Load the df
+                df_delta_p_this = pd.read_csv(os.path.join(new_output_dir, test_fname))
+
+                # concat the df to the full df
+                df_delta_p_full = pd.concat([df_delta_p_full, df_delta_p_this])
+            else:
+                missing_fnames.append(test_fname)
+                missing_fname_years.append(year)
+
+            # Check if the uas file exists
+            if os.path.exists(os.path.join(new_output_dir, test_fname_uas)):
+                # Load the df
+                df_uas_this = pd.read_csv(os.path.join(new_output_dir, test_fname_uas))
+
+                # concat the df to the full df
+                df_uas_full = pd.concat([df_uas_full, df_uas_this])
+            else:
+                missing_fnames.append(test_fname_uas)
+                missing_fname_years.append(year)
+
+            # Check if the vas file exists
+            if os.path.exists(os.path.join(new_output_dir, test_fname_vas)):
+                # Load the df
+                df_vas_this = pd.read_csv(os.path.join(new_output_dir, test_fname_vas))
+
+                # concat the df to the full df
+                df_vas_full = pd.concat([df_vas_full, df_vas_this])
+            else:
+                missing_fnames.append(test_fname_vas)
+                missing_fname_years.append(year)
+
+            # # Check if the file exists
+            # if os.path.exists(os.path.join(dfs_dir, test_fname)):
+            #     # create a new directory to save to
+            #     new_dir = os.path.join(
+            #         dfs_dir,
+            #         "delta_p",
+            #         str(year),
+            #     )
+
+            #     # if the directory does not exist, create it
+            #     if not os.path.exists(new_dir):
+            #         os.makedirs(new_dir)
+
+            #     # Move the file to the new directory
+            #     shutil.move(
+            #         os.path.join(dfs_dir, test_fname),
+            #         os.path.join(new_dir, test_fname),
+            #     )
+            # else:
+            #     # Append the fname to the list
+            #     missing_fnames.append(test_fname)
+            #     missing_fname_years.append(year)
+
+    # Print the missing fnames
+    print(f"Missing files: {missing_fnames}")
+
+    # print the len of the missing fnames
+    print(f"Number of missing files: {len(missing_fnames)}")
+
+    # print the unique years
+    print(f"Unique years: {len(set(missing_fname_years))}")
+
+    # print the unique years
+    print(f"Unique years: {set(missing_fname_years)}")
+
+    # create a new column for delta_p_hpa as the difference between
+    # "data_n" and "data_s"
+    df_delta_p_full["delta_p_hpa"] = (
+        df_delta_p_full["data_n"] - df_delta_p_full["data_s"]
+    ) / 100
 
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
@@ -2141,6 +2263,37 @@ def main():
         df_model_wind["winter_year"] - 1
     )
 
+    # Merge the two dfs
+    df_model = df_model_tas_djf.merge(
+        df_model_wind,
+        on=["init_year", "member", "lead", "winter_year", "effective_dec_year"],
+        suffixes=("_tas", "_sfcWind"),
+    )
+
+    # merge in the delta P
+    df_model = df_model.merge(
+        df_delta_p_full,
+        on=["init_year", "member", "lead"],
+        suffixes=("", ""),
+    )
+
+    # Merge the uas data in
+    df_model = df_model.merge(
+        df_uas_full,
+        on=["init_year", "member", "lead"],
+        suffixes=("", "_uas"),
+    )
+
+    # Merge the vas data in
+    df_model = df_model.merge(
+        df_vas_full,
+        on=["init_year", "member", "lead"],
+        suffixes=("", "_vas"),
+    )
+
+    # rename data as data_uas
+    df_model.rename(columns={"data": "data_uas"}, inplace=True)
+
     # Set up the path to the obs data
     obs_wind_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/ERA5_sfcWind_UK_wind_box_1960-2025_daily_2025-05-20.csv"
 
@@ -2170,6 +2323,13 @@ def main():
         lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
     )
 
+    # join the two obs dfs on the time column
+    df_obs = df_obs_tas.merge(
+        df_obs_wind,
+        on=["time", "effective_dec_year"],
+        suffixes=("_tas", "_sfcWind"),
+    )
+
     # # calculate the return period for ver cold days
     # gev_funcs.plot_return_periods_decades_obs(
     #     obs_df=df_obs_tas,
@@ -2181,6 +2341,42 @@ def main():
     #     figsize=(10, 5),
     #     bad_min=True,
     # )
+
+    # drop the data column from the df obs
+    df_obs.drop(columns=["data"], inplace=True)
+
+    # rename the data_c column as data_tas_c
+    df_obs.rename(columns={"data_c": "data_tas_c"}, inplace=True)
+
+    # create a new column in the model df for data_tas_c
+    df_model["data_tas_c"] = df_model["data_tas"] - 273.15
+
+    # rename the obs_mean column in the df obs as data_sfcWind
+    df_obs.rename(columns={"obs_mean": "data_sfcWind"}, inplace=True)
+
+    # print the head of df model
+    print(df_model.head())
+
+    # print the tail of df model
+    print(df_model.tail())
+
+    # print the head of df obs
+    print(df_obs.head())
+
+    # print the tail of df obs
+    print(df_obs.tail())
+
+    # extract the unique leads in df model
+    unique_leads = df_model["lead"].unique()
+
+    # # rpint the unique leads
+    # print(f"Unique leads: {unique_leads}")
+
+    # # ptin the number of unique leads
+    # print(f"Number of unique leads: {len(unique_leads)}")
+
+    # print the len of the df obs
+    print(f"Length of df obs: {len(df_obs)}")
 
     # sys.exit()
 
@@ -2227,140 +2423,602 @@ def main():
     # available for this year
     common_wyears = np.arange(1961, 2024 + 1)
 
-    # Set up the common w years for wind
-    common_wyears_wind = np.arange(1961, 2023 + 1)
+    # # Set up the common w years for wind
+    # common_wyears_wind = np.arange(1961, 2023 + 1)
 
     # Subset the model data to the common winter years
-    df_model_tas_djf = df_model_tas_djf[
-        df_model_tas_djf["effective_dec_year"].isin(common_wyears)
-    ]
+    # df_model_tas_djf = df_model_tas_djf[
+    #     df_model_tas_djf["effective_dec_year"].isin(common_wyears)
+    # ]
+
+    # Do the same for df model
+    df_model = df_model[df_model["effective_dec_year"].isin(common_wyears)]
 
     # Subset the obs data to the common winter years
-    df_obs_tas = df_obs_tas[df_obs_tas["effective_dec_year"].isin(common_wyears)]
+    # df_obs_tas = df_obs_tas[df_obs_tas["effective_dec_year"].isin(common_wyears)]
+
+    # Do the same for df obs
+    df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
 
     # Subset the model wind data to the common winter years
-    df_model_wind = df_model_wind[
-        df_model_wind["effective_dec_year"].isin(common_wyears)
-    ]
+    # df_model_wind = df_model_wind[
+    #     df_model_wind["effective_dec_year"].isin(common_wyears)
+    # ]
 
-    df_model_wind_short = df_model_wind[
-        df_model_wind["effective_dec_year"].isin(common_wyears_wind)
-    ]
+    # df_model_wind_short = df_model_wind[
+    #     df_model_wind["effective_dec_year"].isin(common_wyears_wind)
+    # ]
 
     # Subset the obs wind data to the common winter years
-    df_obs_wind = df_obs_wind[df_obs_wind["effective_dec_year"].isin(common_wyears)]
+    # df_obs_wind = df_obs_wind[df_obs_wind["effective_dec_year"].isin(common_wyears)]
 
-    # do the same for df obs wind short
-    df_obs_wind_short = df_obs_wind[
-        df_obs_wind["effective_dec_year"].isin(common_wyears_wind)
-    ]
+    # # do the same for df obs wind short
+    # df_obs_wind_short = df_obs_wind[
+    #     df_obs_wind["effective_dec_year"].isin(common_wyears_wind)
+    # ]
 
     # print the head and tail of df model wind
-    print(df_model_wind.head())
-    print(df_model_wind.tail())
+    # print(df_model_wind.head())
+    # print(df_model_wind.tail())
 
-    # print the model tas head
-    print(df_model_tas_djf.head())
-    print(df_model_tas_djf.tail())
+    # # print the model tas head
+    # print(df_model_tas_djf.head())
+    # print(df_model_tas_djf.tail())
 
-    # print the head and tail of df obs wind
-    print(df_obs_wind.head())
-    print(df_obs_wind.tail())
+    # # print the head and tail of df obs wind
+    # print(df_obs_wind.head())
+    # print(df_obs_wind.tail())
 
-    # print the head and tail of df obs tas
-    print(df_obs_tas.head())
-    print(df_obs_tas.tail())
+    # # print the head and tail of df obs tas
+    # print(df_obs_tas.head())
+    # print(df_obs_tas.tail())
 
-    # Create a new column for data tas c in df_model_full_djf
-    df_model_tas_djf["data_tas_c"] = df_model_tas_djf["data"] - 273.15
+    # # Create a new column for data tas c in df_model_full_djf
+    # df_model_tas_djf["data_tas_c"] = df_model_tas_djf["data"] - 273.15
 
     # Apply the block minima transform to the obs data
     block_minima_obs_tas = gev_funcs.obs_block_min_max(
-        df=df_obs_tas,
+        df=df_obs,
         time_name="effective_dec_year",
-        min_max_var_name="data_c",
-        new_df_cols=["time"],
+        min_max_var_name="data_tas_c",
+        new_df_cols=["time", "data_sfcWind"],
         process_min=True,
     )
 
-    # rename "obs_mean" to "data" in df_obs_wind
-    df_obs_wind.rename(columns={"obs_mean": "data"}, inplace=True)
+    # # rename "obs_mean" to "data" in df_obs_wind
+    # df_obs_wind.rename(columns={"obs_mean": "data"}, inplace=True)
 
     # Calculate the block minima for trhe obs wind speed
     block_minima_obs_wind = gev_funcs.obs_block_min_max(
-        df=df_obs_wind,
+        df=df_obs,
         time_name="effective_dec_year",
-        min_max_var_name="data",
-        new_df_cols=["time"],
+        min_max_var_name="data_sfcWind",
+        new_df_cols=["time", "data_tas_c"],
         process_min=True,
     )
 
-    # do the same for obs wind short
-    df_obs_wind_short.rename(columns={"obs_mean": "data"}, inplace=True)
+    # # do the same for obs wind short
+    # df_obs_wind_short.rename(columns={"obs_mean": "data"}, inplace=True)
 
-    # block minima obs wind short
-    block_minima_obs_wind_short = gev_funcs.obs_block_min_max(
-        df=df_obs_wind_short,
-        time_name="effective_dec_year",
-        min_max_var_name="data",
-        new_df_cols=["time"],
-        process_min=True,
-    )
+    # # block minima obs wind short
+    # block_minima_obs_wind_short = gev_funcs.obs_block_min_max(
+    #     df=df_obs_wind_short,
+    #     time_name="effective_dec_year",
+    #     min_max_var_name="data",
+    #     new_df_cols=["time"],
+    #     process_min=True,
+    # )
 
-    # print the heaad and tail of df obs tas
-    print(df_obs_tas.head())
-    print(df_obs_tas.tail())
+    # # print the heaad and tail of df obs tas
+    # print(df_obs_tas.head())
+    # print(df_obs_tas.tail())
 
     # print the head of the block minima obs tas
     print(block_minima_obs_tas.head())
     print(block_minima_obs_tas.tail())
 
-    # Set up a fname for the dataframe
-    fname = "block_minima_obs_tas_UK_1961-2024_DJF_2_April.csv"
+    # # Set up a fname for the dataframe
+    # fname = "block_minima_obs_tas_UK_1961-2024_DJF_2_April.csv"
 
-    # Set up the dir to save to
-    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+    # # Set up the dir to save to
+    # save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
 
-    # if the full path does not exist
-    if not os.path.exists(os.path.join(save_dir, fname)):
-        print(f"Saving {fname} to {save_dir}")
-        block_minima_obs_tas.to_csv(os.path.join(save_dir, fname))
+    # # if the full path does not exist
+    # if not os.path.exists(os.path.join(save_dir, fname)):
+    #     print(f"Saving {fname} to {save_dir}")
+    #     block_minima_obs_tas.to_csv(os.path.join(save_dir, fname))
 
-    # sys.exit()
+    # # sys.exit()
 
-    # print the head of the df_model_tas_djf
-    print(df_model_tas_djf.head())
-    print(df_model_tas_djf.tail())
+    # # print the head of the df_model_tas_djf
+    # print(df_model_tas_djf.head())
+    # print(df_model_tas_djf.tail())
 
     # Apply the block minima transform to the model data
     block_minima_model_tas = gev_funcs.model_block_min_max(
-        df=df_model_tas_djf,
+        df=df_model,
         time_name="init_year",
         min_max_var_name="data_tas_c",
-        new_df_cols=["init_year", "member", "lead"],
+        new_df_cols=["init_year", "member", "lead", "data_sfcWind", "delta_p_hpa", "data_uas", "data_vas"],
         winter_year="winter_year",
         process_min=True,
     )
 
     # Apply the model block minima transform to the model wind data
     block_minima_model_wind = gev_funcs.model_block_min_max(
-        df=df_model_wind,
+        df=df_model,
         time_name="init_year",
-        min_max_var_name="data",
-        new_df_cols=["init_year", "member", "lead"],
+        min_max_var_name="data_sfcWind",
+        new_df_cols=["init_year", "member", "lead", "data_tas_c", "delta_p_hpa", "data_uas", "data_vas"],
         winter_year="winter_year",
         process_min=True,
     )
 
-    # Set up the block minima model wind short
-    block_minima_model_wind_short = gev_funcs.model_block_min_max(
-        df=df_model_wind_short,
-        time_name="init_year",
-        min_max_var_name="data",
-        new_df_cols=["init_year", "member", "lead"],
-        winter_year="winter_year",
-        process_min=True,
+    # --------------------------------------------------
+    # Now plot the percentile plots
+    # First for temperature, then for wind
+    # --------------------------------------------------
+
+    # print the columns in the df obs
+    print(df_obs.columns)
+
+    # print the columns in the df model
+    print(df_model.columns)
+
+    # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
+
+    # # Plot percentiles of sfcWind against T
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_sfcWind",
+    #     y_var_name_obs="data_tas_c",
+    #     x_var_name_model="data_sfcWind",
+    #     y_var_name_model="data_tas_c",
+    #     xlabel="100 - wind speed percentiles",
+    #     ylabel="Temperature (C)",
+    #     title="Percentiles of wind speed vs temperature, all DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    # )
+
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_sfcWind",
+    #     y_var_name_obs="data_tas_c",
+    #     x_var_name_model="data_sfcWind",
+    #     y_var_name_model="data_tas_c",
+    #     xlabel="100 - wind speed percentiles",
+    #     ylabel="Temperature (C)",
+    #     title="Percentiles of wind speed vs temperature, all DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     xlims=(-5, 20),
+    #     ylims=(1.8, 2.8),
+    # )
+
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_sfcWind",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_sfcWind",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Wind speed percentiles",
+    #     ylabel="U/V-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     y1_zero_line=True,
+    # )
+
+    # sys.exit()
+
+    # # For all days, sense check by plotting the uas against delta P
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    # )
+
+    # Find the median wind speed
+    # median_wind_speed = df_model["data_sfcWind"].median()
+
+    # Find the 10th percentile value of data_sfcWind
+    tenth_percentile = df_model["data_sfcWind"].quantile(0.1)
+
+    central_lower = df_model["data_sfcWind"].quantile(0.40)
+    central_upper = df_model["data_sfcWind"].quantile(0.60)
+
+    # # subset the ensemble to force the wind speed to be less than 5 m/s
+    df_model_low_wind = df_model[df_model["data_sfcWind"] < tenth_percentile]
+    df_model_higher_wind = df_model[
+        (df_model["data_sfcWind"] > central_lower) & (df_model["data_sfcWind"] < central_upper)
+    ]
+    # # find at which percentile/qunatile the value of 5 m/s is in the data
+    # # print the quantile of the wind speed
+    # value = 5
+
+    # percentile = percentileofscore(
+    #     df_model["data_sfcWind"],
+    #     value,
+    #     kind="rank",
+    # )
+
+    # # print the percentile
+    # print(f"Percentile of {value} m/s: {percentile:.2f}%")
+
+    # sys.exit()
+
+    # For all days, plot the percentiles of T against sfcWind
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_low_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of temperature vs 10m wind speed, low wind speed days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
     )
+
+    # Do the same, but for U and V, and then wind speed on the second y-axis
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_low_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_sfcWind",
+        y2_label="10m Wind Speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_low_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_sfcWind",
+        y2_label="10m Wind Speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+        xlims=(80, 100),
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_low_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+        xlims=(80, 100),
+    )
+
+    # do the same but with temperature on the oteher y-axis
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_low_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+        xlims=(80, 100),
+    )
+
+
+    # For all days, plot the percentiles of T against sfcWind
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_higher_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of temperature vs 10m wind speed, higher wind speed days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_higher_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_sfcWind",
+        y2_label="10m Wind Speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_higher_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_sfcWind",
+        y2_label="10m Wind Speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+        xlims=(80, 100),
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_higher_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+        xlims=(80, 100),
+    )
+
+    # Do the same but with temperature on the other y-axis
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_higher_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_uas",
+        xlabel="100 - temperature percentiles",
+        ylabel="U-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        y1_zero_line=True,
+        xlims=(80, 100),
+    )
+
+    sys.exit()
+
+    # Sense check by plotting temp percentiles against temperature
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_tas_c",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="Temperature (C)",
+    #     title="Percentiles of temperature vs temperature, all DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    # )
+
+    # Sense check by plotting wind percentiles against wind speed
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model,
+        x_var_name_obs="data_sfcWind",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_sfcWind",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - wind speed percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of wind speed vs wind speed, all DJF days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+    )
+
+    # Do the same, but for block minima T days
+    # plot_multi_var_perc(
+    #     obs_df=block_minima_obs_tas,
+    #     model_df=block_minima_model_tas,
+    #     x_var_name_obs="data_tas_c_min",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c_min",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, block min T days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
+
+    # Do the same but for block minima wind days
+    plot_multi_var_perc(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind,
+        x_var_name_obs="data_sfcWind_min",
+        y_var_name_obs="data_tas_c",
+        x_var_name_model="data_sfcWind_min",
+        y_var_name_model="data_tas_c",
+        xlabel="10m Wind Speed (m/s)",
+        ylabel="Temperature",
+        title="Percentiles of 10m wind speed vs temperature, block min wind days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+    )
+
+    plot_multi_var_perc(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind,
+        x_var_name_obs="data_sfcWind_min",
+        y_var_name_obs="data_sfcWind_min",
+        x_var_name_model="data_sfcWind_min",
+        y_var_name_model="data_uas",
+        xlabel="Wind speed percentiles",
+        ylabel="U/V-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_sfcWind_min",
+        y2_label="10m Wind Speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        y1_zero_line=True,
+    )
+
+    plot_multi_var_perc(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind,
+        x_var_name_obs="data_sfcWind_min",
+        y_var_name_obs="data_sfcWind_min",
+        x_var_name_model="data_sfcWind_min",
+        y_var_name_model="data_uas",
+        xlabel="Wind speed percentiles",
+        ylabel="U/V-component of Wind at 10m (m/s)",
+        title="Percentiles of temperature vs U10m wind speed, all DJF days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        y1_zero_line=True,
+    )
+
+    sys.exit()
+
+    # obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
+
+
+    # # Set up the block minima model wind short
+    # block_minima_model_wind_short = gev_funcs.model_block_min_max(
+    #     df=df_model_wind_short,
+    #     time_name="init_year",
+    #     min_max_var_name="data",
+    #     new_df_cols=["init_year", "member", "lead"],
+    #     winter_year="winter_year",
+    #     process_min=True,
+    # )
 
     # # print the head of the block minima model tas
     # print(block_minima_model_tas.head())
@@ -2451,26 +3109,42 @@ def main():
     # Check for duplicate column names in block_minima_model_tas
     if block_minima_model_tas.columns.duplicated().any():
         print("Duplicate column names in block minima model tas")
-        print(block_minima_model_tas.columns[block_minima_model_tas.columns.duplicated()])
+        print(
+            block_minima_model_tas.columns[block_minima_model_tas.columns.duplicated()]
+        )
 
         # Drop the duplicate columns
-        block_minima_model_tas = block_minima_model_tas.loc[:, ~block_minima_model_tas.columns.duplicated()]
+        block_minima_model_tas = block_minima_model_tas.loc[
+            :, ~block_minima_model_tas.columns.duplicated()
+        ]
 
     # Check for duplicate column names in block_minima_model_wind
     if block_minima_model_wind.columns.duplicated().any():
         print("Duplicate column names in block minima model wind")
-        print(block_minima_model_wind.columns[block_minima_model_wind.columns.duplicated()])
+        print(
+            block_minima_model_wind.columns[
+                block_minima_model_wind.columns.duplicated()
+            ]
+        )
 
         # Drop the duplicate columns
-        block_minima_model_wind = block_minima_model_wind.loc[:, ~block_minima_model_wind.columns.duplicated()]
+        block_minima_model_wind = block_minima_model_wind.loc[
+            :, ~block_minima_model_wind.columns.duplicated()
+        ]
 
     # if anything is duplicate in model block wind short
     if block_minima_model_wind_short.columns.duplicated().any():
         print("Duplicate column names in block minima model wind short")
-        print(block_minima_model_wind_short.columns[block_minima_model_wind_short.columns.duplicated()])
+        print(
+            block_minima_model_wind_short.columns[
+                block_minima_model_wind_short.columns.duplicated()
+            ]
+        )
 
         # Drop the duplicate columns
-        block_minima_model_wind_short = block_minima_model_wind_short.loc[:, ~block_minima_model_wind_short.columns.duplicated()]
+        block_minima_model_wind_short = block_minima_model_wind_short.loc[
+            :, ~block_minima_model_wind_short.columns.duplicated()
+        ]
 
     # add the effective dec year to the block minima model tas
     block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
@@ -2571,7 +3245,7 @@ def main():
         figsize=(10, 5),
     )
 
-    #plot the lead pdfs for model wind drift corr short
+    # plot the lead pdfs for model wind drift corr short
     gev_funcs.plot_lead_pdfs(
         model_df=block_minima_model_wind_short_drift_corr,
         obs_df=block_minima_obs_wind_short,
@@ -2710,7 +3384,9 @@ def main():
 
     # print the number of Nans in the model data
     # for the data tas c min dt column
-    print(block_minima_model_tas_drift_corr_dt["data_tas_c_min_drift_bc_dt"].isna().sum())
+    print(
+        block_minima_model_tas_drift_corr_dt["data_tas_c_min_drift_bc_dt"].isna().sum()
+    )
 
     # pviot detrend the obs data
     block_minima_obs_tas_dt = gev_funcs.pivot_detrend_obs(
@@ -3050,7 +3726,7 @@ def main():
 
     # Set this as the index in the obs wind data short
     block_minima_obs_wind_short_dt.set_index("effective_dec_year", inplace=True)
-    
+
     # print the head and tail ofg block minima obs wind dt
     print(block_minima_obs_wind_dt.head())
     print(block_minima_obs_wind_dt.tail())
@@ -3211,9 +3887,9 @@ def main():
     )
 
     # format effective dec year as an int
-    block_minima_model_tas_drift_corr_dt["effective_dec_year"] = block_minima_model_tas_drift_corr_dt[
-        "effective_dec_year"
-    ].dt.year.astype(int)
+    block_minima_model_tas_drift_corr_dt["effective_dec_year"] = (
+        block_minima_model_tas_drift_corr_dt["effective_dec_year"].dt.year.astype(int)
+    )
 
     # do the same conversion for wind speed
     block_minima_model_wind_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
@@ -3221,9 +3897,9 @@ def main():
     )
 
     # format effective dec year as an int
-    block_minima_model_wind_drift_corr_dt["effective_dec_year"] = block_minima_model_wind_drift_corr_dt[
-        "effective_dec_year"
-    ].dt.year.astype(int)
+    block_minima_model_wind_drift_corr_dt["effective_dec_year"] = (
+        block_minima_model_wind_drift_corr_dt["effective_dec_year"].dt.year.astype(int)
+    )
 
     # Make sure that effective dec year is a datetime year
     block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
@@ -3231,9 +3907,11 @@ def main():
     )
 
     # format effective dec year as an int
-    block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = block_minima_model_wind_short_drift_corr_dt[
-        "effective_dec_year"
-    ].dt.year.astype(int)
+    block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = (
+        block_minima_model_wind_short_drift_corr_dt[
+            "effective_dec_year"
+        ].dt.year.astype(int)
+    )
 
     # # plot the return periods by decade for wind speed
     # gev_funcs.plot_return_periods_decades(
@@ -3353,9 +4031,9 @@ def main():
     ].dt.year.astype(int)
 
     # format the obs effective dec year as an int in years
-    block_minima_obs_wind_short_dt["effective_dec_year"] = block_minima_obs_wind_short_dt[
-        "effective_dec_year"
-    ].dt.year.astype(int)
+    block_minima_obs_wind_short_dt["effective_dec_year"] = (
+        block_minima_obs_wind_short_dt["effective_dec_year"].dt.year.astype(int)
+    )
 
     # print the head of the block minima obs tas dt
     print(block_minima_obs_tas_dt.head())
