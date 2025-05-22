@@ -3970,6 +3970,286 @@ def plot_wind_composites(
     return None
 
 
+# Define a function to plot the temp quartiles
+def plot_temp_quartiles(
+    subset_df_model: pd.DataFrame,
+    tas_var_name: str,
+    subset_arr_model: np.ndarray,
+    model_index_dict: Dict[str, np.ndarray],
+    lats_path: str,
+    lons_path: str,
+    var_name: str,
+    figsize: Tuple[int, int] = (8, 9),
+):
+    """
+    Plots subplots with 4 rows and 2 columns. The left column shows the full
+    field MSLP and the right column shows the differences between that
+    field and the one above. The 4 rows are for the 4 quartiles of the
+    temperature. E.g., the top row is the warmest quartile and the bottom row
+    is the coldest quartile.
+
+    Args:
+    =====
+
+        subset_df_model (pd.DataFrame): The subset dataframe for the model.
+        tas_var_name (str): The name of the temperature variable.
+        subset_arr_model (np.ndarray): The subset array for the model.
+        model_index_dict (Dict[str, np.ndarray]): The model index dictionary.
+        lats_path (str): The path to the latitude file.
+        lons_path (str): The path to the longitude file.
+        var_name (str): The name of the variable to plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+
+    """
+
+    # assert that var_name is tas
+    assert var_name == "tas", "Variable name must be tas"
+
+    # Assert that tas_var_name is one of the columns in the subset_df_model
+    assert (
+        tas_var_name in subset_df_model.columns
+    ), f"Variable name {tas_var_name} not found in the subset dataframe"
+
+    # Set up the cmap
+    cmap = "bwr"
+
+    # Sert up the levels
+    levels = np.array(
+        [
+            1004,
+            1006,
+            1008,
+            1010,
+            1012,
+            1014,
+            1016,
+            1018,
+            1020,
+            1022,
+            1024,
+            1026,
+        ]
+    )
+
+    # every other tick
+    levels_ticks = np.arange(
+        np.min(levels),
+        np.max(levels) + 1,
+        4,
+    )
+
+    levels_diff = np.array(
+        [
+            -4,
+            -3,
+            -2,
+            -1,
+            1,
+            2,
+            3,
+            4,
+        ]
+    )
+
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        ncols=2,
+        nrows=4,
+        figsize=figsize,
+        layout="constrained",
+        subplot_kw={"projection": ccrs.PlateCarree()},
+    )
+
+    # Set up the quartiles
+    temp_quartiles = [
+        [0.75, 1.00],
+        [0.50, 0.75],
+        [0.25, 0.50],
+        [0.00, 0.25],
+    ]
+
+    # set up the axes in rows
+    axes_rows = [
+        [axs[0, 0], axs[0, 1]],
+        [axs[1, 0], axs[1, 1]],
+        [axs[2, 0], axs[2, 1]],
+        [axs[3, 0], axs[3, 1]],
+    ]
+
+    # Set up the arrays of init year
+    init_year_array = np.array(model_index_dict["init_year"])
+    member_array = np.array(model_index_dict["member"])
+    lead_array = np.array(model_index_dict["lead"])
+
+    # Loop over the axes rows
+    for i, axes_row in enumerate(axes_rows):
+        # Set up the subset arr this model
+        subset_arr_this_model = subset_arr_model.copy()
+
+        # Set up the cols
+        left_col_full = axes_row[0]
+        right_col_diff = axes_row[1]
+
+        # Quantify the lower and upper bounds of the quartile
+        lower_bound = np.quantile(
+            subset_df_model[tas_var_name].values, temp_quartiles[i][0]
+        )
+        upper_bound = np.quantile(
+            subset_df_model[tas_var_name].values, temp_quartiles[i][1]
+        )
+
+        # Subset the dataframe for the quartile
+        subset_df_model_this = subset_df_model[
+            (subset_df_model[tas_var_name] >= lower_bound)
+            & (subset_df_model[tas_var_name] < upper_bound)
+        ]
+
+        # Zero the missing days
+        missing_days = 0
+
+        # Set ip the array to store the values
+        subset_arr_this_model_full = np.zeros(
+            (
+                len(subset_df_model_this),
+                subset_arr_model.shape[1],
+                subset_arr_model.shape[2],
+            )
+        )
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_df_model_this.iterrows())):
+            # Extract the init year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition_this = (
+                (init_year_array == init_year_df)
+                & (member_array == member_df)
+                & (lead_array == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this = np.where(condition_this)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found"
+                )
+                missing_days += 1
+
+            # # prit the shape of the subset_arr_model
+            # print(f"Shape of subset_arr_model: {subset_arr_model.shape}")
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_index_this = subset_arr_this_model[index_this, :, :]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
+
+        # Print the row index
+        print(f"Row index: {i}")
+        print(f"Number of missing days: {missing_days}")
+        print(f"Model overall N: {len(subset_df_model_this)}")
+
+        # Take the mean over this
+        subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+
+        if i == 0:
+            warmest_composite = subset_arr_this_model_mean
+
+        # Plot the full field on the left
+        im_full = left_col_full.contourf(
+            lons,
+            lats,
+            (subset_arr_this_model_mean / 100),
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # Add coastlines
+        left_col_full.coastlines()
+
+        # Include a textbox in the top right for N
+        left_col_full.text(
+            0.95,
+            0.95,
+            f"N = {len(subset_df_model_this)}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=left_col_full.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Plot the difference on the right
+        im_diff = right_col_diff.contourf(
+            lons,
+            lats,
+            (subset_arr_this_model_mean - warmest_composite) / 100,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels_diff,
+            extend="both",
+        )
+
+        # Add coastlines
+        right_col_diff.coastlines()
+
+        # Include a textbox in the top right for N
+        right_col_diff.text(
+            0.95,
+            0.95,
+            f"N = {len(subset_df_model_this)}",
+            horizontalalignment="right",
+            verticalalignment="top",
+            transform=right_col_diff.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # if i == 3, then set up the cbars
+        if i == 3:
+            cbar_full = fig.colorbar(
+                im_full,
+                ax=left_col_full,
+                orientation="horizontal",
+                pad=0.05,
+                shrink=0.8,
+            )
+
+            cbar_full.set_ticks(levels_ticks)
+
+            cbar_diff = fig.colorbar(
+                im_diff,
+                ax=right_col_diff,
+                orientation="horizontal",
+                pad=0.05,
+                shrink=0.8,
+            )
+
+            cbar_diff.set_ticks(levels_diff)
+
+        if i == 0:
+            # Set up the titles for the left and right columns
+            left_col_full.set_title("Full field", fontsize=12, fontweight="bold")
+            right_col_diff.set_title("Difference from warmest quartile", fontsize=12)
+
+    return None
+
+
 # Define a function to plot a single column variable
 def plot_var_composites_model(
     subset_dfs_model: List[pd.DataFrame],
@@ -4195,9 +4475,9 @@ def plot_var_composites_model(
                     # Loop over the unique effective dec years
                     for l, eff_dec_year_this in enumerate(unique_effective_dec_years):
                         # Find the index of this effective dec year in the index dict this
-                        index_this = np.where(effective_dec_years_arr == eff_dec_year_this)[
-                            0
-                        ]
+                        index_this = np.where(
+                            effective_dec_years_arr == eff_dec_year_this
+                        )[0]
 
                         # Extract the subset arr this for this index
                         subset_arr_this_model[index_this, j, k] = (
@@ -4278,7 +4558,7 @@ def plot_var_composites_model(
         #         1,
         #     ]
         # )
-            
+
         # Set up wider levels for temp
         if var_name == "tas":
             levels = np.array(
@@ -4398,12 +4678,22 @@ def main():
         low_wind_df = pd.read_csv(low_wind_path)
     else:
         raise FileNotFoundError(f"File {low_wind_path} does not exist")
-    
+
     # Load in the higher wind data
     if os.path.exists(higher_wind_path):
         higher_wind_df = pd.read_csv(higher_wind_path)
     else:
         raise FileNotFoundError(f"File {higher_wind_path} does not exist")
+
+    # calculate the 10th percentile of the data_tas_c in df low wind and df higher wind
+    low_wind_10th_percentile = low_wind_df["data_tas_c"].quantile(0.1)
+    higher_wind_10th_percentile = higher_wind_df["data_tas_c"].quantile(0.1)
+
+    # Subset the dataframe to only include the rows where the data_tas_c is less than the 10th percentile
+    low_wind_df = low_wind_df[low_wind_df["data_tas_c"] < low_wind_10th_percentile]
+    higher_wind_df = higher_wind_df[
+        higher_wind_df["data_tas_c"] < higher_wind_10th_percentile
+    ]
 
     # print the columns in obs df
     print(f"Columns in obs df: {obs_df.columns}")
@@ -4778,9 +5068,7 @@ def main():
 
     # Set up the fnames for the psl low wind subset
     model_low_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-22.npy"
-    model_low_wind_psl_subset_json_fname = (
-        "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-22.json"
-    )
+    model_low_wind_psl_subset_json_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-22.json"
 
     # if the model subset file does not exist
     if not os.path.exists(
@@ -4802,12 +5090,45 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)} does not exist."
         )
-    
+
     # load the json file
     with open(
         os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname), "r"
     ) as f:
         model_low_wind_psl_subset_index_list = json.load(f)
+
+    # Set up the fnames for the psl higher wind subset
+    model_higher_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-22.npy"
+    model_higher_wind_psl_subset_json_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-22.json"
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)} does not exist."
+        )
+    
+    # load the model higher wind psl subset
+    model_higher_wind_psl_subset = np.load(
+        os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
+    )
+    # print the shape of the model higher wind psl subset
+    print(f"Shape of model higher wind psl subset: {model_higher_wind_psl_subset.shape}")
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)} does not exist."
+        )
+    
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname), "r"
+    ) as f:
+        model_higher_wind_psl_subset_index_list = json.load(f)
 
     # # print the length of the model temperature subset index list
     # # Print the length of the model temperature subset index list
@@ -5209,6 +5530,8 @@ def main():
         os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
     ]
 
+    # lats_path
+
     lats_europe = os.path.join(
         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
     )
@@ -5271,6 +5594,32 @@ def main():
     #     suptitle=suptitle,
     #     figsize=(10, 10),
     # )
+
+    # test the new function for plotting temp quartiles
+    plot_temp_quartiles(
+        subset_df_model=low_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_low_wind_psl_subset,
+        model_index_dict=model_low_wind_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="tas",
+        figsize=(10, 10),
+    )
+
+    # do the same for the higher wind
+    plot_temp_quartiles(
+        subset_df_model=higher_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_higher_wind_psl_subset,
+        model_index_dict=model_higher_wind_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="tas",
+        figsize=(10, 10),
+    )
+
+    sys.exit()
 
     # test the new function
     plot_var_composites_model(
