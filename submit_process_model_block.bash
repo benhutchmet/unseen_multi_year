@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name="process_model_block"
 #SBATCH --time=08:00:00
-#SBATCH --mem=80000
+#SBATCH --mem=100000
 #SBATCH --account=scenario
 #SBATCH --partition=standard
 #SBATCH --qos=standard

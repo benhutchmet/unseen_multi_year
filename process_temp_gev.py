@@ -2672,6 +2672,30 @@ def main():
     df_model_higher_wind = df_model[
         (df_model["data_sfcWind"] > central_lower) & (df_model["data_sfcWind"] < central_upper)
     ]
+
+    # Set up the directory which we save to
+    save_dir_dfs_transfer = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # Set up the fname
+    fname_low_wind = "model_all_DJF_days_lowest_0-10_percentile_wind_speed.csv"
+    fname_higher_wind = "model_all_DJF_days_40-60_percentile_wind_speed.csv"
+
+    # Form the full paths
+    full_path_low_wind = os.path.join(save_dir_dfs_transfer, fname_low_wind)
+    full_path_higher_wind = os.path.join(save_dir_dfs_transfer, fname_higher_wind)
+
+    # If full path low wind does not exist, save the df
+    if not os.path.exists(full_path_low_wind):
+        print(f"Saving {fname_low_wind} to {save_dir_dfs_transfer}")
+        df_model_low_wind.to_csv(full_path_low_wind)
+
+    # If full path higher wind does not exist, save the df
+    if not os.path.exists(full_path_higher_wind):
+        print(f"Saving {fname_higher_wind} to {save_dir_dfs_transfer}")
+        df_model_higher_wind.to_csv(full_path_higher_wind)
+
+    sys.exit()
+
     # # find at which percentile/qunatile the value of 5 m/s is in the data
     # # print the quantile of the wind speed
     # value = 5

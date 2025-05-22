@@ -56,6 +56,8 @@ def main():
 
     # Set up the hard coded variables
     maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind_07-05-2025.csv"
+    low_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_lowest_0-10_percentile_wind_speed.csv"
+    higher_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_40-60_percentile_wind_speed.csv"
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     subset_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
     model = "HadGEM3-GC31-MM"
@@ -98,14 +100,21 @@ def main():
     current_date = datetime.now()
 
     # Set up the output file path
+    # FIXME: Hard-coded for low wind
+    # output_file_path = os.path.join(
+    #     subset_dir,
+    #     f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_{current_date.strftime('%Y-%m-%d')}.npy",
+    # )
     output_file_path = os.path.join(
         subset_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_{current_date.strftime('%Y-%m-%d')}.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_higher_wind_40-60_{current_date.strftime('%Y-%m-%d')}.npy",
     )
 
     # set up the output file name
     # for the index list
-    output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_index_list_{current_date.strftime('%Y-%m-%d')}.json"
+    # output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_index_list_{current_date.strftime('%Y-%m-%d')}.json"
+    # FIXME: Hard-coded for low wind
+    output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_higher_wind_40-60_index_list_{current_date.strftime('%Y-%m-%d')}.json"
     output_file_path_index_list = os.path.join(
         subset_dir,
         output_file_name_index_list,
@@ -121,10 +130,28 @@ def main():
 
     # if the output file for the index list already exists, raise an error
     if os.path.exists(output_file_path_index_list):
-        print("Warning: Output file for index list already exists. Proceeding to overwrite it...")
+        print(
+            "Warning: Output file for index list already exists. Proceeding to overwrite it..."
+        )
 
     # Load the block maxima dataframe
     df = pd.read_csv(maxima_dnw_path)
+
+    # Load the low wind dataframe
+    df_low_wind = pd.read_csv(low_wind_path)
+
+    # Load the higher wind dataframe
+    df_higher_wind = pd.read_csv(higher_wind_path)
+
+    # calculate the 10th percentile of the data_tas_c in df low wind and df higher wind
+    low_wind_10th_percentile = df_low_wind["data_tas_c"].quantile(0.1)
+    higher_wind_10th_percentile = df_higher_wind["data_tas_c"].quantile(0.1)
+
+    # Subset the dataframe to only include the rows where the data_tas_c is less than the 10th percentile
+    df_low_wind = df_low_wind[df_low_wind["data_tas_c"] < low_wind_10th_percentile]
+    df_higher_wind = df_higher_wind[
+        df_higher_wind["data_tas_c"] < higher_wind_10th_percentile
+    ]
 
     # print the head of the df
     print("Head of the dataframe:")
@@ -133,6 +160,35 @@ def main():
     # print the tail of the df
     print("Tail of the dataframe:")
     print(df.tail())
+
+    # Print the shape of the df
+    print("Shape of the dataframe: ", df.shape)
+
+    # print the head of the low wind path
+    print("Head of the low wind dataframe:")
+    print(df_low_wind.head())
+
+    # Print the tail of the low wind path
+    print("Tail of the low wind dataframe:")
+    print(df_low_wind.tail())
+
+    # Print the shape of the low wind path
+    print("Shape of the low wind dataframe: ", df_low_wind.shape)
+
+    # Print the head of the higher wind path
+    print("Head of the higher wind dataframe:")
+    print(df_higher_wind.head())
+
+    # Print the tail of the higher wind path
+    print("Tail of the higher wind dataframe:")
+    print(df_higher_wind.tail())
+
+    # Print the shape of the higher wind path
+    print("Shape of the higher wind dataframe: ", df_higher_wind.shape)
+
+    # # print the time taken
+    # print("Time taken to load the dataframes: ", time.time() - start_time)
+    # sys.exit()
 
     # Set up the test file path
     test_file_path = os.path.join(
@@ -159,6 +215,10 @@ def main():
     # print the shape of the test file
     print("Shape of the test file: ", test_file.shape)
 
+    # FIXME: Hardcode to lower wind df
+    # df = df_low_wind
+    df = df_higher_wind
+
     # Set up the shape for the subset array
     subset_arr_full = np.zeros(
         (
@@ -167,6 +227,11 @@ def main():
             test_file.shape[4],
         )
     )
+
+    # print the shape of subset_arr_full
+    print("Shape of the subset array: ", subset_arr_full.shape)
+
+    # sys.exit()
 
     # Set up the dictionary to append the data to
     data_dict = {
