@@ -4370,6 +4370,8 @@ def main():
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
     obs_df_fname = "block_maxima_obs_demand_net_wind_07-05-2025.csv"
     model_df_fname = "block_maxima_model_demand_net_wind_07-05-2025.csv"
+    low_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_lowest_0-10_percentile_wind_speed.csv"
+    higher_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_40-60_percentile_wind_speed.csv"
     winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
     metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
     arrs_persist_dir = "/home/users/benhutch/unseen_multi_year/data"
@@ -4390,6 +4392,18 @@ def main():
         model_df = pd.read_csv(os.path.join(dfs_dir, model_df_fname))
     else:
         raise FileNotFoundError(f"File {model_df_fname} does not exist in {dfs_dir}")
+
+    # Load in the low wind data
+    if os.path.exists(low_wind_path):
+        low_wind_df = pd.read_csv(low_wind_path)
+    else:
+        raise FileNotFoundError(f"File {low_wind_path} does not exist")
+    
+    # Load in the higher wind data
+    if os.path.exists(higher_wind_path):
+        higher_wind_df = pd.read_csv(higher_wind_path)
+    else:
+        raise FileNotFoundError(f"File {higher_wind_path} does not exist")
 
     # print the columns in obs df
     print(f"Columns in obs df: {obs_df.columns}")
@@ -4761,6 +4775,39 @@ def main():
     # load the json file
     with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
         model_uas_subset_index_list = json.load(f)
+
+    # Set up the fnames for the psl low wind subset
+    model_low_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-22.npy"
+    model_low_wind_psl_subset_json_fname = (
+        "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-22.json"
+    )
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)} does not exist."
+        )
+
+    # load the model low wind psl subset
+    model_low_wind_psl_subset = np.load(
+        os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)} does not exist."
+        )
+    
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname), "r"
+    ) as f:
+        model_low_wind_psl_subset_index_list = json.load(f)
 
     # # print the length of the model temperature subset index list
     # # Print the length of the model temperature subset index list
