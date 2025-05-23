@@ -4471,7 +4471,7 @@ def plot_temp_quartiles(
                 left_col_full.plot(
                     [lon1_box_s, lon2_box_s, lon2_box_s, lon1_box_s, lon1_box_s],
                     [lat1_box_s, lat1_box_s, lat2_box_s, lat2_box_s, lat1_box_s],
-                    color="red",
+                    color="green",
                     linewidth=2,
                     transform=ccrs.PlateCarree(),
                 )
@@ -4627,7 +4627,7 @@ def plot_temp_quartiles(
                 right_col_diff.plot(
                     [lon1_box_s, lon2_box_s, lon2_box_s, lon1_box_s, lon1_box_s],
                     [lat1_box_s, lat1_box_s, lat2_box_s, lat2_box_s, lat1_box_s],
-                    color="red",
+                    color="green",
                     linewidth=2,
                     transform=ccrs.PlateCarree(),
                 )
@@ -6268,7 +6268,10 @@ def main():
         figsize=(10, 10),
         anoms_flag=False,
         clim_filepath=None,
-        gridbox=dicts.wind_gridbox,
+        gridbox=[
+            dicts.uk_n_box_corrected,
+            dicts.uk_s_box_corrected,
+        ]
     )
 
     # do the same for the higher wind
@@ -6283,8 +6286,13 @@ def main():
         figsize=(10, 10),
         anoms_flag=False,
         clim_filepath=None,
-        gridbox=dicts.wind_gridbox,
+        gridbox=[
+            dicts.uk_n_box_corrected,
+            dicts.uk_s_box_corrected,
+        ]
     )
+
+    sys.exit()
 
     # Plot the differences between lower wind and higher wind (full field)
     # low - high in this case
