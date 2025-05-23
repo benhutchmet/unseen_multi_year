@@ -5331,6 +5331,131 @@ def main():
     ) as f:
         model_higher_wind_psl_subset_index_list = json.load(f)
 
+    # Set up the fnames for uas/vas high wind/low wind subsets
+    # First for low wind uas and vas
+    model_low_wind_uas_subset_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
+    model_low_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
+
+    # Fnames for low wind vas
+    model_low_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-23.npy"
+    model_low_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-23.json"
+
+    # Fnames for high wind uas
+    model_higher_wind_uas_subset_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    model_higher_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
+
+    # Fnames for high wind vas
+    model_higher_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    model_higher_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)} does not exist."
+        )
+
+    # load the model low wind uas subset
+    model_low_wind_uas_subset = np.load(
+        os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname), "r"
+    ) as f:
+        model_low_wind_uas_subset_index_list = json.load(f)
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)} does not exist."
+        )
+    
+    # load the model low wind vas subset
+    model_low_wind_vas_subset = np.load(
+        os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname), "r"
+    ) as f:
+        model_low_wind_vas_subset_index_list = json.load(f)
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)} does not exist."
+        )
+
+    # load the model higher wind uas subset
+    model_higher_wind_uas_subset = np.load(
+        os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname), "r"
+    ) as f:
+        model_higher_wind_uas_subset_index_list = json.load(f)
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)} does not exist."
+        )
+    
+    # load the model higher wind vas subset
+    model_higher_wind_vas_subset = np.load(
+        os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)} does not exist."
+        )
+    
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname), "r"
+    ) as f:
+        model_higher_wind_vas_subset_index_list = json.load(f)
+
     # # print the length of the model temperature subset index list
     # # Print the length of the model temperature subset index list
     # print(f"Length of model temperature subset index list: {np.shape(model_temp_subset_index_list['init_year'])}")
@@ -5822,21 +5947,21 @@ def main():
 
     # Plot the differences between lower wind and higher wind (full field)
     # low - high in this case
-    plot_temp_quartiles(
-        subset_df_model=low_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_low_wind_psl_subset,
-        model_index_dict=model_low_wind_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="tas",
-        figsize=(10, 10),
-        anoms_flag=False,
-        clim_filepath=None,
-        second_subset_df=higher_wind_df,
-        second_subset_arr=model_higher_wind_psl_subset,
-        second_model_index_dict=model_higher_wind_psl_subset_index_list,
-    )
+    # plot_temp_quartiles(
+    #     subset_df_model=low_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_low_wind_psl_subset,
+    #     model_index_dict=model_low_wind_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="tas",
+    #     figsize=(10, 10),
+    #     anoms_flag=False,
+    #     clim_filepath=None,
+    #     second_subset_df=higher_wind_df,
+    #     second_subset_arr=model_higher_wind_psl_subset,
+    #     second_model_index_dict=model_higher_wind_psl_subset_index_list,
+    # )
 
     # # Plot temp quartiles, but for anoms
     plot_temp_quartiles(
@@ -5866,20 +5991,76 @@ def main():
         clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
     )
 
+    # plot_temp_quartiles(
+    #     subset_df_model=low_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_low_wind_psl_subset,
+    #     model_index_dict=model_low_wind_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="tas",
+    #     figsize=(10, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+    #     second_subset_df=higher_wind_df,
+    #     second_subset_arr=model_higher_wind_psl_subset,
+    #     second_model_index_dict=model_higher_wind_psl_subset_index_list,
+    # )
+
+    # Low wind, uas and vas composites first
     plot_temp_quartiles(
         subset_df_model=low_wind_df,
         tas_var_name="data_tas_c",
-        subset_arr_model=model_low_wind_psl_subset,
-        model_index_dict=model_low_wind_psl_subset_index_list,
+        subset_arr_model=model_low_wind_uas_subset,
+        model_index_dict=model_low_wind_uas_subset_index_list,
         lats_path=lats_paths[0],
         lons_path=lons_paths[0],
-        var_name="tas",
+        var_name="uas",
         figsize=(10, 10),
         anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
-        second_subset_df=higher_wind_df,
-        second_subset_arr=model_higher_wind_psl_subset,
-        second_model_index_dict=model_higher_wind_psl_subset_index_list,
+        clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
+    )
+
+    # Now for low wind vas
+    plot_temp_quartiles(
+        subset_df_model=low_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_low_wind_vas_subset,
+        model_index_dict=model_low_wind_vas_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="vas",
+        figsize=(10, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
+    )
+
+    # Now for higher wind, uas and vas composites first
+    plot_temp_quartiles(
+        subset_df_model=higher_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_higher_wind_uas_subset,
+        model_index_dict=model_higher_wind_uas_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="uas",
+        figsize=(10, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
+    )
+
+    # Now for higher wind vas
+    plot_temp_quartiles(
+        subset_df_model=higher_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_higher_wind_vas_subset,
+        model_index_dict=model_higher_wind_vas_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="vas",
+        figsize=(10, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
     )
 
     sys.exit()
