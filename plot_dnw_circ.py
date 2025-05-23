@@ -3982,6 +3982,9 @@ def plot_temp_quartiles(
     figsize: Tuple[int, int] = (8, 9),
     anoms_flag: bool = False,
     clim_filepath: str = None,
+    second_subset_df: pd.DataFrame = None,
+    second_subset_arr: np.ndarray = None,
+    second_model_index_dict: Dict[str, np.ndarray] = None,
 ):
     """
     Plots subplots with 4 rows and 2 columns. The left column shows the full
@@ -4003,6 +4006,9 @@ def plot_temp_quartiles(
         figsize (Tuple[int, int]): The figure size.
         anoms_flag (bool): Whether to plot anomalies or not.
         clim_filepath (str): The path to the climatology file.
+        second_subset_df (pd.DataFrame): The second subset dataframe for the model.
+        second_subset_arr (np.ndarray): The second subset array for the model.
+        second_model_index_dict (Dict[str, np.ndarray]): The second model index dictionary.
 
     Returns:
     ========
@@ -4185,6 +4191,71 @@ def plot_temp_quartiles(
             # Store the value in the subset_arr_this_model_full
             subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
 
+        # if the second subset df is not None
+        if second_subset_df is not None:
+            # Set up the subset arr this model
+            subset_arr_this_model_second = second_subset_arr.copy()
+
+            # Set up the cols
+            left_col_full = axes_row[0]
+            right_col_diff = axes_row[1]
+
+            # Subset the dataframe for the quartile
+            subset_df_model_this_second = second_subset_df[
+                (second_subset_df[tas_var_name] >= lower_bound)
+                & (second_subset_df[tas_var_name] < upper_bound)
+            ]
+
+            # Zero the missing days
+            missing_days = 0
+
+            # Set ip the array to store the values
+            subset_arr_this_model_full_second = np.zeros(
+                (
+                    len(subset_df_model_this_second),
+                    subset_arr_model.shape[1],
+                    subset_arr_model.shape[2],
+                )
+            )
+
+            # extract the init year array second
+            init_year_array_second = np.array(second_model_index_dict["init_year"])
+            member_array_second = np.array(second_model_index_dict["member"])
+            lead_array_second = np.array(second_model_index_dict["lead"])
+
+            # Loop over the rows in this subset df for the model
+            for j, (_, row) in tqdm(enumerate(subset_df_model_this_second.iterrows())):
+                # Extract the init year from the df
+                init_year_df = int(row["init_year"])
+                member_df = int(row["member"])
+                lead_df = int(row["lead"])
+
+                # Construct the condition for element wise comparison
+                condition_this = (
+                    (init_year_array_second == init_year_df)
+                    & (member_array_second == member_df)
+                    & (lead_array_second == lead_df)
+                )
+
+                try:
+                    # Find the index where this condition is met
+                    index_this = np.where(condition_this)[0][0]
+                except IndexError:
+                    print(
+                        f"init year {init_year_df}, member {member_df}, lead {lead_df} not found"
+                    )
+                    missing_days += 1
+
+                # Extract the corresponding value from the subset_arr_this_model
+                subset_arr_this_model_index_this = subset_arr_this_model_second[
+                    index_this, :, :
+                ]
+
+                # Store the value in the subset_arr_this_model_full
+                subset_arr_this_model_full_second[j, :, :] = (
+                    subset_arr_this_model_index_this
+                )
+
         # Print the row index
         print(f"Row index: {i}")
         print(f"Number of missing days: {missing_days}")
@@ -4192,6 +4263,15 @@ def plot_temp_quartiles(
 
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+
+        # If subset_arr_this_model_full_second is not None
+        if second_subset_arr is not None:
+            print("Quantifying differences between first and second")
+
+            subset_arr_this_model_mean = (
+                subset_arr_this_model_mean
+                - np.mean(subset_arr_this_model_full_second, axis=0)
+            )
 
         # If the anoms flag is true
         if anoms_flag:
@@ -5652,6 +5732,24 @@ def main():
         lons_path=lons_paths[0],
         var_name="tas",
         figsize=(10, 10),
+    )
+
+    # Plot the differences between lower wind and higher wind (full field)
+    # low - high in this case
+    plot_temp_quartiles(
+        subset_df_model=low_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_low_wind_psl_subset,
+        model_index_dict=model_low_wind_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="tas",
+        figsize=(10, 10),
+        anoms_flag=False,
+        clim_filepath=None,
+        second_subset_df=higher_wind_df,
+        second_subset_arr=model_higher_wind_psl_subset,
+        second_model_index_dict=model_higher_wind_psl_subset_index_list,
     )
 
     # Plot temp quartiles, but for anoms
