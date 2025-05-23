@@ -34,6 +34,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 # Import dictionaries
 import dictionaries as dicts
 
+# Local imports
+import process_dnw_gev as pdg_funcs
+
 
 # Set up a function for loading the data
 def load_obs_data(
@@ -5153,6 +5156,40 @@ def main():
     else:
         raise FileNotFoundError(f"File {higher_wind_path} does not exist")
 
+    # Check tyhe relationships of the dataframes
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=low_wind_df,
+        model_df=low_wind_df,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentile",
+        ylabel="10m wind speed",
+        title="Inverted percentiles of temp. vs 10m wind speed, low wind DJF days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
+
+    # do the same for the higher wind days
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=higher_wind_df,
+        model_df=higher_wind_df,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentile",
+        ylabel="10m wind speed",
+        title="Inverted percentiles of temp. vs 10m wind speed, higher wind DJF days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
+
     # calculate the 10th percentile of the data_tas_c in df low wind and df higher wind
     low_wind_10th_percentile = low_wind_df["data_tas_c"].quantile(0.1)
     higher_wind_10th_percentile = higher_wind_df["data_tas_c"].quantile(0.1)
@@ -6255,6 +6292,42 @@ def main():
     #     suptitle=suptitle,
     #     figsize=(10, 10),
     # )
+
+    # Check tyhe relationships of the dataframes
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=low_wind_df,
+        model_df=low_wind_df,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentile",
+        ylabel="10m wind speed",
+        title="Inverted percentiles of temp. vs 10m wind speed, low wind DJF days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
+
+    # do the same for the higher wind days
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=higher_wind_df,
+        model_df=higher_wind_df,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentile",
+        ylabel="10m wind speed",
+        title="Inverted percentiles of temp. vs 10m wind speed, higher wind DJF days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
+
+    sys.exit()
 
     # test the new function for plotting temp quartiles
     plot_temp_quartiles(

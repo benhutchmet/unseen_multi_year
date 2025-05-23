@@ -2565,22 +2565,51 @@ def main():
     # print the columns in the df model
     print(df_model.columns)
 
+    # sys.exit()
+
     # For all days, plot the percentiles of T against sfcWind
-    # plot_multi_var_perc(
-    #     obs_df=df_obs,
-    #     model_df=df_model,
-    #     x_var_name_obs="data_tas_c",
-    #     y_var_name_obs="data_sfcWind",
-    #     x_var_name_model="data_tas_c",
-    #     y_var_name_model="data_sfcWind",
-    #     xlabel="100 - temperature percentiles",
-    #     ylabel="10m Wind Speed (m/s)",
-    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
-    #     y2_var_name_model="delta_p_hpa",
-    #     y2_label="delta P N-S (hPa)",
-    #     figsize=(5, 6),
-    #     inverse_flag=True,
-    # )
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_obs,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of temperature vs 10m wind speed, all DJF days",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
+
+    # find the 10th percentile of sfcWind in the obs data
+    tenth_percentile_obs = df_obs["data_sfcWind"].quantile(0.10)
+
+    # subset the df obs to values beneath the 10th percentile
+    df_obs_low_wind = df_obs[df_obs["data_sfcWind"] < tenth_percentile_obs]
+
+    # Plot the percentiles of T against sfcWind for the low wind days
+    plot_multi_var_perc(
+        obs_df=df_obs_low_wind,
+        model_df=df_obs_low_wind,
+        x_var_name_obs="data_tas_c",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="data_tas_c",
+        y_var_name_model="data_sfcWind",
+        xlabel="100 - temperature percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of temperature vs 10m wind speed, low wind days",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=True,
+        xlims=(0, 105),
+        ylims=(3, 5),
+    )
+    
+    sys.exit()
 
     # # Plot percentiles of sfcWind against T
     # plot_multi_var_perc(

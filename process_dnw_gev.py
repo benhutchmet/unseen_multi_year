@@ -1212,6 +1212,12 @@ def plot_multi_var_perc(
                 "upper_bound": [model_upper_bound_this],
                 "n_days": [model_df_this.shape[0]],
                 f"{y_var_name_model}_mean": [model_df_this[y_var_name_model].mean()],
+                f"{y_var_name_model}_lower": [
+                    model_df_this[y_var_name_model].quantile(0.10)
+                ],
+                f"{y_var_name_model}_upper": [
+                    model_df_this[y_var_name_model].quantile(0.90)
+                ],
             }
         )
 
@@ -1220,6 +1226,12 @@ def plot_multi_var_perc(
             model_perc_df_this[f"{y2_var_name_model}_mean"] = model_df_this[
                 y2_var_name_model
             ].mean()
+            model_perc_df_this[f"{y2_var_name_model}_lower"] = model_df_this[
+                y2_var_name_model
+            ].quantile(0.10)
+            model_perc_df_this[f"{y2_var_name_model}_upper"] = model_df_this[
+                y2_var_name_model
+            ].quantile(0.90)
 
         # if there is a y2 variable, add it to the obs dataframe
         if y_var_name_model_2 is not None:
@@ -1267,6 +1279,22 @@ def plot_multi_var_perc(
             label=f"{ylabel} (5% temp bins)"
         )
 
+        # plot the lower bounds as a dashed red line
+        ax.plot(
+            100 - model_percs_5["percentile"],
+            model_percs_5[f"{y_var_name_model}_lower"],
+            color="red",
+            linestyle="--",
+        )
+
+        # plot the upper bounds as a dashed red line
+        ax.plot(
+            100 - model_percs_5["percentile"],
+            model_percs_5[f"{y_var_name_model}_upper"],
+            color="red",
+            linestyle="--",
+        )
+
         # if the y2 variable is not None, plot it
         if y_var_name_model_2 is not None:
             ax.plot(
@@ -1311,6 +1339,22 @@ def plot_multi_var_perc(
             label=f"Model {xlabel} (5%)"
         )
 
+        # plot the lower bounds as a dashed red line
+        ax.plot(
+            model_percs_5["percentile"],
+            model_percs_5[f"{y_var_name_model}_lower"],
+            color="red",
+            linestyle="--",
+        )
+
+        # plot the upper bounds as a dashed red line
+        ax.plot(
+            model_percs_5["percentile"],
+            model_percs_5[f"{y_var_name_model}_upper"],
+            color="red",
+            linestyle="--",
+        )
+
     # if y1 zero line is True
     if y1_zero_line:
         # include a red dashed zero line
@@ -1332,6 +1376,22 @@ def plot_multi_var_perc(
                 color="blue",
                 label=f"Model {y2_label} (5%)"
             )
+
+            # plot the lower bounds as a dashed red line
+            ax2.plot(
+                100 - model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_lower"],
+                color="blue",
+                linestyle="--",
+            )
+
+            # plot the upper bounds as a dashed red line
+            ax2.plot(
+                100 - model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_upper"],
+                color="blue",
+                linestyle="--",
+            )
         else:
             ax2.plot(
                 model_percs_5["percentile"],
@@ -1340,12 +1400,28 @@ def plot_multi_var_perc(
                 label=f"Model {y2_label} (5%)"
             )
 
+            # plot the lower bounds as a dashed red line
+            ax2.plot(
+                model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_lower"],
+                color="blue",
+                linestyle="--",
+            )
+
+            # plot the upper bounds as a dashed red line
+            ax2.plot(
+                model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_upper"],
+                color="blue",
+                linestyle="--",
+            )
+
         # incldue a blue dashed zero line
-        # ax2.axhline(
-        #     0,
-        #     color="blue",
-        #     linestyle="--",
-        # )
+        ax2.axhline(
+            0,
+            color="blue",
+            linestyle="--",
+        )
 
         # Set the y2 label
         ax2.set_ylabel(f"{y2_label}")
