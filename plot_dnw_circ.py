@@ -4017,8 +4017,8 @@ def plot_temp_quartiles(
 
     """
 
-    # assert that var_name is tas
-    assert var_name == "tas", "Variable name must be tas"
+    # # assert that var_name is tas
+    # assert var_name == "tas", "Variable name must be tas"
 
     # Assert that tas_var_name is one of the columns in the subset_df_model
     assert (
@@ -4049,26 +4049,47 @@ def plot_temp_quartiles(
             ]
         )
     else:
-        # Set up the cmap
-        cmap = "bwr"
+        if var_name == "tas":
+            # Set up the cmap
+            cmap = "bwr"
 
-        # Sert up the levels
-        levels = np.array(
-            [
-                1004,
-                1006,
-                1008,
-                1010,
-                1012,
-                1014,
-                1016,
-                1018,
-                1020,
-                1022,
-                1024,
-                1026,
-            ]
-        )
+            # Sert up the levels
+            levels = np.array(
+                [
+                    1004,
+                    1006,
+                    1008,
+                    1010,
+                    1012,
+                    1014,
+                    1016,
+                    1018,
+                    1020,
+                    1022,
+                    1024,
+                    1026,
+                ]
+            )
+        elif var_name in ["uas", "vas"]:
+            cmap = "PRGn"
+            levels = np.array(
+                [
+                    -5,
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ]
+            )
+        else:
+            raise ValueError(
+                f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+            )
 
     # every other tick
     levels_ticks = np.arange(
@@ -4196,9 +4217,17 @@ def plot_temp_quartiles(
             # Set up the subset arr this model
             subset_arr_this_model_second = second_subset_arr.copy()
 
-            # Set up the cols
-            left_col_full = axes_row[0]
-            right_col_diff = axes_row[1]
+            # quantify the lower and upper bounds for the quantile
+            lower_bound = np.quantile(
+                second_subset_df[tas_var_name].values, temp_quartiles[i][0]
+            )
+            upper_bound = np.quantile(
+                second_subset_df[tas_var_name].values, temp_quartiles[i][1]
+            )
+
+            # # Set up the cols
+            # left_col_full = axes_row[0]
+            # right_col_diff = axes_row[1]
 
             # Subset the dataframe for the quartile
             subset_df_model_this_second = second_subset_df[
@@ -4264,13 +4293,9 @@ def plot_temp_quartiles(
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
 
-        # If subset_arr_this_model_full_second is not None
-        if second_subset_arr is not None:
-            print("Quantifying differences between first and second")
-
-            subset_arr_this_model_mean = (
-                subset_arr_this_model_mean
-                - np.mean(subset_arr_this_model_full_second, axis=0)
+        if second_subset_df is not None:
+            subset_arr_this_model_mean_second = np.mean(
+                subset_arr_this_model_full_second, axis=0
             )
 
         # If the anoms flag is true
@@ -4280,6 +4305,43 @@ def plot_temp_quartiles(
                 subset_arr_this_model_mean - climatology_arr
             )
 
+        # If subset_arr_this_model_full_second is not None
+        if second_subset_arr is not None:
+            print("Quantifying differences between first and second")
+
+            if anoms_flag:
+                subset_arr_this_model_mean_second = (
+                    subset_arr_this_model_mean_second - climatology_arr
+                )
+
+            subset_arr_this_model_mean = (
+                subset_arr_this_model_mean
+                - subset_arr_this_model_mean_second
+            )
+
+            levels = levels_diff
+            levels_ticks = np.array(
+                [
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                ]
+            )
+
+        # if the var name is tas /psl
+        # divide by 100
+        if var_name in ["tas", "psl"]:
+            subset_arr_this_model_mean = subset_arr_this_model_mean / 100
+            if second_subset_arr is not None:
+                subset_arr_this_model_mean_second = (
+                    subset_arr_this_model_mean_second / 100
+                )
+        
         if i == 0:
             warmest_composite = subset_arr_this_model_mean
 
@@ -4287,7 +4349,7 @@ def plot_temp_quartiles(
         im_full = left_col_full.contourf(
             lons,
             lats,
-            (subset_arr_this_model_mean / 100),
+            (subset_arr_this_model_mean),
             cmap=cmap,
             transform=ccrs.PlateCarree(),
             levels=levels,
@@ -4309,11 +4371,23 @@ def plot_temp_quartiles(
             bbox=dict(facecolor="white", alpha=0.5),
         )
 
+        # Include the qunatile range in a textbox in the bottom left
+        left_col_full.text(
+            0.05,
+            0.05,
+            f"{temp_quartiles[i][0]} - {temp_quartiles[i][1]}",
+            horizontalalignment="left",
+            verticalalignment="bottom",
+            transform=left_col_full.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
         # Plot the difference on the right
         im_diff = right_col_diff.contourf(
             lons,
             lats,
-            (subset_arr_this_model_mean - warmest_composite) / 100,
+            (subset_arr_this_model_mean - warmest_composite),
             cmap=cmap,
             transform=ccrs.PlateCarree(),
             levels=levels_diff,
@@ -4330,6 +4404,18 @@ def plot_temp_quartiles(
             f"N = {len(subset_df_model_this)}",
             horizontalalignment="right",
             verticalalignment="top",
+            transform=right_col_diff.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Include the quantile range in a textbox in the bottom left
+        right_col_diff.text(
+            0.05,
+            0.05,
+            f"{temp_quartiles[i][0]} - {temp_quartiles[i][1]}",
+            horizontalalignment="left",
+            verticalalignment="bottom",
             transform=right_col_diff.transAxes,
             fontsize=12,
             bbox=dict(facecolor="white", alpha=0.5),
@@ -4360,7 +4446,7 @@ def plot_temp_quartiles(
         if i == 0:
             # Set up the titles for the left and right columns
             left_col_full.set_title("Full field", fontsize=12, fontweight="bold")
-            right_col_diff.set_title("Difference from warmest quartile", fontsize=12)
+            right_col_diff.set_title("Difference from warmest quartile", fontsize=12, fontweight="bold")
 
     return None
 
@@ -5752,7 +5838,7 @@ def main():
         second_model_index_dict=model_higher_wind_psl_subset_index_list,
     )
 
-    # Plot temp quartiles, but for anoms
+    # # Plot temp quartiles, but for anoms
     plot_temp_quartiles(
         subset_df_model=low_wind_df,
         tas_var_name="data_tas_c",
@@ -5778,6 +5864,22 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+    )
+
+    plot_temp_quartiles(
+        subset_df_model=low_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_low_wind_psl_subset,
+        model_index_dict=model_low_wind_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="tas",
+        figsize=(10, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+        second_subset_df=higher_wind_df,
+        second_subset_arr=model_higher_wind_psl_subset,
+        second_model_index_dict=model_higher_wind_psl_subset_index_list,
     )
 
     sys.exit()
