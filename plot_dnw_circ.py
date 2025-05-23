@@ -3980,6 +3980,8 @@ def plot_temp_quartiles(
     lons_path: str,
     var_name: str,
     figsize: Tuple[int, int] = (8, 9),
+    anoms_flag: bool = False,
+    clim_filepath: str = None,
 ):
     """
     Plots subplots with 4 rows and 2 columns. The left column shows the full
@@ -3999,6 +4001,8 @@ def plot_temp_quartiles(
         lons_path (str): The path to the longitude file.
         var_name (str): The name of the variable to plot.
         figsize (Tuple[int, int]): The figure size.
+        anoms_flag (bool): Whether to plot anomalies or not.
+        clim_filepath (str): The path to the climatology file.
 
     Returns:
     ========
@@ -4015,26 +4019,50 @@ def plot_temp_quartiles(
         tas_var_name in subset_df_model.columns
     ), f"Variable name {tas_var_name} not found in the subset dataframe"
 
-    # Set up the cmap
-    cmap = "bwr"
+    # if the anoms flag is true
+    if anoms_flag:
+        # Load the anomalies
+        climatology_arr = np.load(clim_filepath)
 
-    # Sert up the levels
-    levels = np.array(
-        [
-            1004,
-            1006,
-            1008,
-            1010,
-            1012,
-            1014,
-            1016,
-            1018,
-            1020,
-            1022,
-            1024,
-            1026,
-        ]
-    )
+        # Set up the levels
+        cmap = "coolwarm"
+        levels = np.array(
+            [
+                -12,
+                -10,
+                -8,
+                -6,
+                -4,
+                -2,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+            ]
+        )
+    else:
+        # Set up the cmap
+        cmap = "bwr"
+
+        # Sert up the levels
+        levels = np.array(
+            [
+                1004,
+                1006,
+                1008,
+                1010,
+                1012,
+                1014,
+                1016,
+                1018,
+                1020,
+                1022,
+                1024,
+                1026,
+            ]
+        )
 
     # every other tick
     levels_ticks = np.arange(
@@ -4164,6 +4192,13 @@ def plot_temp_quartiles(
 
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+
+        # If the anoms flag is true
+        if anoms_flag:
+            # Calculate the model anoms
+            subset_arr_this_model_mean = (
+                subset_arr_this_model_mean - climatology_arr
+            )
 
         if i == 0:
             warmest_composite = subset_arr_this_model_mean
@@ -5617,6 +5652,34 @@ def main():
         lons_path=lons_paths[0],
         var_name="tas",
         figsize=(10, 10),
+    )
+
+    # Plot temp quartiles, but for anoms
+    plot_temp_quartiles(
+        subset_df_model=low_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_low_wind_psl_subset,
+        model_index_dict=model_low_wind_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="tas",
+        figsize=(10, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+    )
+
+    # Do the same for the high wind days but for anoms
+    plot_temp_quartiles(
+        subset_df_model=higher_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_higher_wind_psl_subset,
+        model_index_dict=model_higher_wind_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="tas",
+        figsize=(10, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
     )
 
     sys.exit()
