@@ -9,7 +9,7 @@
 #SBATCH -e /home/users/benhutch/unseen_multi_year/logs/submit_process_block-%A_%a.err
 
 # Set up the usage message
-usage="Usage: sbatch submit_process_model_block.bash <variable> <region> <season>"
+usage="Usage: sbatch submit_process_model_block.bash <variable> <season> <region>"
 
 # Check the number of CLI arguments
 if [ "$#" -ne 3 ]; then
@@ -29,8 +29,8 @@ process_script="/home/users/benhutch/unseen_multi_year/process_model_block_min_m
 
 # Extract the arguments
 variable=$1
-region=$2
-season=$3
+season=$2
+region=$3
 
 # Echo the args used
 echo "Variable: ${variable}"
@@ -40,8 +40,8 @@ echo "Season: ${season}"
 # Run the script
 python ${process_script} \
     --variable ${variable} \
+    --season ${season} \
     --region ${region} \
-    --season ${season}
 
 # End of file
 echo "End of file"

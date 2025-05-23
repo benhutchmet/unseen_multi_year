@@ -107,14 +107,14 @@ def main():
     # )
     output_file_path = os.path.join(
         subset_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_higher_wind_40-60_{current_date.strftime('%Y-%m-%d')}.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_low_wind_0-10_{current_date.strftime('%Y-%m-%d')}.npy",
     )
 
     # set up the output file name
     # for the index list
     # output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_index_list_{current_date.strftime('%Y-%m-%d')}.json"
     # FIXME: Hard-coded for low wind
-    output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_higher_wind_40-60_index_list_{current_date.strftime('%Y-%m-%d')}.json"
+    output_file_name_index_list = f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960-2018_{args.season}_{temp_res}_DnW_subset_low_wind_0-10_index_list_{current_date.strftime('%Y-%m-%d')}.json"
     output_file_path_index_list = os.path.join(
         subset_dir,
         output_file_name_index_list,
@@ -193,7 +193,7 @@ def main():
     # Set up the test file path
     test_file_path = os.path.join(
         arrs_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day*.npy",
     )
 
     # Glob the test file path
@@ -216,8 +216,8 @@ def main():
     print("Shape of the test file: ", test_file.shape)
 
     # FIXME: Hardcode to lower wind df
-    # df = df_low_wind
-    df = df_higher_wind
+    df = df_low_wind
+    # df = df_higher_wind
 
     # Set up the shape for the subset array
     subset_arr_full = np.zeros(
@@ -279,7 +279,7 @@ def main():
         # set up the file to extract
         model_data_path = os.path.join(
             arrs_dir,
-            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}.npy",
+            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}*.npy",
         )
 
         # glob the model data path
