@@ -31,6 +31,9 @@ from datetime import datetime, timedelta
 from scipy.stats import pearsonr, linregress
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+# Import dictionaries
+import dictionaries as dicts
+
 
 # Set up a function for loading the data
 def load_obs_data(
@@ -3985,6 +3988,7 @@ def plot_temp_quartiles(
     second_subset_df: pd.DataFrame = None,
     second_subset_arr: np.ndarray = None,
     second_model_index_dict: Dict[str, np.ndarray] = None,
+    gridbox: dict = None,
 ):
     """
     Plots subplots with 4 rows and 2 columns. The left column shows the full
@@ -4009,6 +4013,7 @@ def plot_temp_quartiles(
         second_subset_df (pd.DataFrame): The second subset dataframe for the model.
         second_subset_arr (np.ndarray): The second subset array for the model.
         second_model_index_dict (Dict[str, np.ndarray]): The second model index dictionary.
+        gridbox (dict): The gridbox to plot.
 
     Returns:
     ========
@@ -4029,25 +4034,47 @@ def plot_temp_quartiles(
     if anoms_flag:
         # Load the anomalies
         climatology_arr = np.load(clim_filepath)
+        if var_name in ["tas", "psl"]:
+            # Set up the levels
+            cmap = "coolwarm"
+            levels = np.array(
+                [
+                    -12,
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                ]
+            )
+        elif var_name in ["uas", "vas", "sfcWind"]:
+            if var_name in ["uas", "sfcWind"]:
+                cmap = "PRGn"
+            else:
+                cmap = "BrBG"
+            levels = np.array(
+                [
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                ]
+            )
+        else:
+            raise ValueError(
+                f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+            )
 
-        # Set up the levels
-        cmap = "coolwarm"
-        levels = np.array(
-            [
-                -12,
-                -10,
-                -8,
-                -6,
-                -4,
-                -2,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
-            ]
-        )
     else:
         if var_name == "tas":
             # Set up the cmap
@@ -4070,20 +4097,22 @@ def plot_temp_quartiles(
                     1026,
                 ]
             )
-        elif var_name in ["uas", "vas"]:
-            cmap = "PRGn"
+        elif var_name in ["uas", "vas", "sfcWind"]:
+            if var_name in ["uas", "sfcWind"]:
+                cmap = "BuGn"
+            else:
+                cmap = "BrBG"
             levels = np.array(
                 [
-                    -5,
-                    -4,
-                    -3,
-                    -2,
-                    -1,
-                    1,
                     2,
                     3,
                     4,
                     5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
                 ]
             )
         else:
@@ -4095,21 +4124,58 @@ def plot_temp_quartiles(
     levels_ticks = np.arange(
         np.min(levels),
         np.max(levels) + 1,
-        4,
+        2,
     )
 
-    levels_diff = np.array(
-        [
-            -4,
-            -3,
-            -2,
-            -1,
-            1,
-            2,
-            3,
-            4,
-        ]
-    )
+    if var_name in ["psl", "tas"]:
+        levels_diff = np.array(
+            [
+                -4,
+                -3,
+                -2,
+                -1,
+                1,
+                2,
+                3,
+                4,
+            ]
+        )
+    elif var_name in ["uas", "vas", "sfcWind"]:
+        levels_diff = np.array(
+            [
+                -0.5,
+                -0.45,
+                -0.4,
+                -0.35,
+                -0.3,
+                -0.25,
+                -0.2,
+                -0.15,
+                -0.1,
+                -0.05,
+                0.05,
+                0.10,
+                0.15,
+                0.20,
+                0.25,
+                0.30,
+                0.35,
+                0.40,
+                0.45,
+                0.50,
+            ]
+        )
+
+        # set up the ticks
+        levels_diff_ticks = np.arange(
+            np.min(levels_diff),
+            np.max(levels_diff) + 1,
+            0.1,
+        )
+    else:
+        raise ValueError(
+            f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+        )
 
     # Load the lats and lons
     lats = np.load(lats_path)
@@ -4285,10 +4351,10 @@ def plot_temp_quartiles(
                     subset_arr_this_model_index_this
                 )
 
-        # Print the row index
-        print(f"Row index: {i}")
-        print(f"Number of missing days: {missing_days}")
-        print(f"Model overall N: {len(subset_df_model_this)}")
+        # # Print the row index
+        # print(f"Row index: {i}")
+        # print(f"Number of missing days: {missing_days}")
+        # print(f"Model overall N: {len(subset_df_model_this)}")
 
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
@@ -4333,6 +4399,8 @@ def plot_temp_quartiles(
                 ]
             )
 
+            levels_diffs = levels_diff_ticks
+
         # if the var name is tas /psl
         # divide by 100
         if var_name in ["tas", "psl"]:
@@ -4356,16 +4424,138 @@ def plot_temp_quartiles(
             extend="both",
         )
 
+        # if gridbox is not none
+        if gridbox is not None:
+            # if there is more than one gridbox
+            if isinstance(gridbox, list):
+                print("Calculating difference in gridbox fields")
+                
+                # Hard code the n_box and south box for delta P
+                n_box = dicts.uk_n_box_corrected
+                s_box = dicts.uk_s_box_corrected
+
+                # Extract the n_box lats and lons
+                lat1_box_n, lat2_box_n = n_box["lat1"], n_box["lat2"]
+                lon1_box_n, lon2_box_n = n_box["lon1"], n_box["lon2"]
+
+                # Extract the s_box lats and lons
+                lat1_box_s, lat2_box_s = s_box["lat1"], s_box["lat2"]
+                lon1_box_s, lon2_box_s = s_box["lon1"], s_box["lon2"]
+
+                # Find the indices of the lats which correspond to the gridbox
+                lat1_idx_n = np.argmin(np.abs(lats - lat1_box_n))
+                lat2_idx_n = np.argmin(np.abs(lats - lat2_box_n))
+
+                # Find the indices of the lons which correspond to the gridbox
+                lon1_idx_n = np.argmin(np.abs(lons - lon1_box_n))
+                lon2_idx_n = np.argmin(np.abs(lons - lon2_box_n))
+
+                # Find the indices of the lats which correspond to the gridbox
+                lat1_idx_s = np.argmin(np.abs(lats - lat1_box_s))
+                lat2_idx_s = np.argmin(np.abs(lats - lat2_box_s))
+
+                # Find the indices of the lons which correspond to the gridbox
+                lon1_idx_s = np.argmin(np.abs(lons - lon1_box_s))
+                lon2_idx_s = np.argmin(np.abs(lons - lon2_box_s))
+
+                # Add the gridbox to the plot
+                left_col_full.plot(
+                    [lon1_box_n, lon2_box_n, lon2_box_n, lon1_box_n, lon1_box_n],
+                    [lat1_box_n, lat1_box_n, lat2_box_n, lat2_box_n, lat1_box_n],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Add the gridbox to the plot
+                left_col_full.plot(
+                    [lon1_box_s, lon2_box_s, lon2_box_s, lon1_box_s, lon1_box_s],
+                    [lat1_box_s, lat1_box_s, lat2_box_s, lat2_box_s, lat1_box_s],
+                    color="red",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Calculate the mean in the gridbox
+                gridbox_mean_n = np.mean(
+                    subset_arr_this_model_mean[
+                        lat1_idx_n:lat2_idx_n + 1, lon1_idx_n:lon2_idx_n + 1
+                    ]
+                )
+
+                gridbox_mean_s = np.mean(
+                    subset_arr_this_model_mean[
+                        lat1_idx_s:lat2_idx_s + 1, lon1_idx_s:lon2_idx_s + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                left_col_full.text(
+                    0.05,
+                    0.95,
+                    f"delta P = {gridbox_mean_n - gridbox_mean_s:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=left_col_full.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+            else:
+                print("Calculating absolute value in gridbox")
+
+                # Extract the lons and lats from the gridbox
+                lat1_box, lat2_box = gridbox["lat1"], gridbox["lat2"]
+                lon1_box, lon2_box = gridbox["lon1"], gridbox["lon2"]
+
+                # Find the indices of the lats which correspond to the gridbox
+                lat1_idx = np.argmin(np.abs(lats - lat1_box))
+                lat2_idx = np.argmin(np.abs(lats - lat2_box))
+
+                # Find the indices of the lons which correspond to the gridbox
+                lon1_idx = np.argmin(np.abs(lons - lon1_box))
+                lon2_idx = np.argmin(np.abs(lons - lon2_box))
+
+                # Add the gridbox to the plot
+                left_col_full.plot(
+                    [lon1_box, lon2_box, lon2_box, lon1_box, lon1_box],
+                    [lat1_box, lat1_box, lat2_box, lat2_box, lat1_box],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Calculate the mean in the gridbox
+                gridbox_mean = np.mean(
+                    subset_arr_this_model_mean[
+                        lat1_idx:lat2_idx + 1, lon1_idx:lon2_idx + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                left_col_full.text(
+                    0.05,
+                    0.95,
+                    f"Gridbox mean = {gridbox_mean:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=left_col_full.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+
         # Add coastlines
         left_col_full.coastlines()
 
         # Include a textbox in the top right for N
+        # Include a textbox in the bottom right for N
         left_col_full.text(
-            0.95,
-            0.95,
+            0.95,  # x-coordinate (right edge)
+            0.05,  # y-coordinate (bottom edge)
             f"N = {len(subset_df_model_this)}",
             horizontalalignment="right",
-            verticalalignment="top",
+            verticalalignment="bottom",
             transform=left_col_full.transAxes,
             fontsize=12,
             bbox=dict(facecolor="white", alpha=0.5),
@@ -4388,11 +4578,88 @@ def plot_temp_quartiles(
             lons,
             lats,
             (subset_arr_this_model_mean - warmest_composite),
-            cmap=cmap,
+            cmap="PRGn",
             transform=ccrs.PlateCarree(),
             levels=levels_diff,
             extend="both",
         )
+
+        # if the gridbox is not none
+        if gridbox is not None:
+            if isinstance(gridbox, list):
+                # Calculate the difference in the gridbox fields
+                print("Calculating difference in gridbox fields")
+
+                # subset the gridbox
+                gridbox_mean_n = np.mean(
+                    (subset_arr_this_model_mean - warmest_composite)[
+                        lat1_idx_n:lat2_idx_n + 1, lon1_idx_n:lon2_idx_n + 1
+                    ]
+                )
+                gridbox_mean_s = np.mean(
+                    (subset_arr_this_model_mean - warmest_composite)[
+                        lat1_idx_s:lat2_idx_s + 1, lon1_idx_s:lon2_idx_s + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                right_col_diff.text(
+                    0.05,
+                    0.95,
+                    f"delta P = {gridbox_mean_n - gridbox_mean_s:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=right_col_diff.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+
+                # plot the gridboxes
+                right_col_diff.plot(
+                    [lon1_box_n, lon2_box_n, lon2_box_n, lon1_box_n, lon1_box_n],
+                    [lat1_box_n, lat1_box_n, lat2_box_n, lat2_box_n, lat1_box_n],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                right_col_diff.plot(
+                    [lon1_box_s, lon2_box_s, lon2_box_s, lon1_box_s, lon1_box_s],
+                    [lat1_box_s, lat1_box_s, lat2_box_s, lat2_box_s, lat1_box_s],
+                    color="red",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+            else:
+                # Add the gridbox to the plot
+                right_col_diff.plot(
+                    [lon1_box, lon2_box, lon2_box, lon1_box, lon1_box],
+                    [lat1_box, lat1_box, lat2_box, lat2_box, lat1_box],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Calculate the mean in the gridbox
+                gridbox_mean = np.mean(
+                    (subset_arr_this_model_mean - warmest_composite)[
+                        lat1_idx:lat2_idx + 1, lon1_idx:lon2_idx + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                right_col_diff.text(
+                    0.05,
+                    0.95,
+                    f"Gridbox mean = {gridbox_mean:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=right_col_diff.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
 
         # Add coastlines
         right_col_diff.coastlines()
@@ -4400,10 +4667,10 @@ def plot_temp_quartiles(
         # Include a textbox in the top right for N
         right_col_diff.text(
             0.95,
-            0.95,
+            0.05,
             f"N = {len(subset_df_model_this)}",
             horizontalalignment="right",
-            verticalalignment="top",
+            verticalalignment="bottom",
             transform=right_col_diff.transAxes,
             fontsize=12,
             bbox=dict(facecolor="white", alpha=0.5),
@@ -5348,6 +5615,20 @@ def main():
     model_higher_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
     model_higher_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
 
+    model_lower_wind_sfcWind_subset_fname = (
+        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
+    )
+    model_lower_wind_sfcWind_subset_json_fname = (
+        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
+    )
+
+    model_higher_wind_sfcWind_subset_fname = (
+        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    )
+    model_higher_wind_sfcWind_subset_json_fname = (
+        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
+    )
+
     # if the model subset file does not exist
     if not os.path.exists(
         os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
@@ -5455,6 +5736,60 @@ def main():
         os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname), "r"
     ) as f:
         model_higher_wind_vas_subset_index_list = json.load(f)
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)} does not exist."
+        )
+
+    # load the model lower wind sfcWind subset
+    model_lower_wind_sfcWind_subset = np.load(
+        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname)} does not exist."
+        )
+
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname), "r"
+    ) as f:
+        model_lower_wind_sfcWind_subset_index_list = json.load(f)
+
+    # if the model subset file does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)} does not exist."
+        )
+    
+    # load the model higher wind sfcWind subset
+    model_higher_wind_sfcWind_subset = np.load(
+        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
+    )
+
+    # if the json does not exist
+    if not os.path.exists(
+        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)
+    ):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)} does not exist."
+        )
+    
+    # load the json file
+    with open(
+        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname), "r"
+    ) as f:
+        model_higher_wind_sfcWind_subset_index_list = json.load(f)
 
     # # print the length of the model temperature subset index list
     # # Print the length of the model temperature subset index list
@@ -5931,6 +6266,9 @@ def main():
         lons_path=lons_paths[0],
         var_name="tas",
         figsize=(10, 10),
+        anoms_flag=False,
+        clim_filepath=None,
+        gridbox=dicts.wind_gridbox,
     )
 
     # do the same for the higher wind
@@ -5943,6 +6281,9 @@ def main():
         lons_path=lons_paths[0],
         var_name="tas",
         figsize=(10, 10),
+        anoms_flag=False,
+        clim_filepath=None,
+        gridbox=dicts.wind_gridbox,
     )
 
     # Plot the differences between lower wind and higher wind (full field)
@@ -5975,6 +6316,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+        gridbox=dicts.wind_gridbox,
     )
 
     # Do the same for the high wind days but for anoms
@@ -5989,6 +6331,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+        gridbox=dicts.wind_gridbox,
     )
 
     # plot_temp_quartiles(
@@ -6013,12 +6356,13 @@ def main():
         tas_var_name="data_tas_c",
         subset_arr_model=model_low_wind_uas_subset,
         model_index_dict=model_low_wind_uas_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
+        lats_path=lats_europe_uas,
+        lons_path=lons_europe_uas,
         var_name="uas",
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
+        gridbox=dicts.wind_gridbox,
     )
 
     # Now for low wind vas
@@ -6027,12 +6371,13 @@ def main():
         tas_var_name="data_tas_c",
         subset_arr_model=model_low_wind_vas_subset,
         model_index_dict=model_low_wind_vas_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
+        lats_path=lats_europe_vas,
+        lons_path=lons_europe_vas,
         var_name="vas",
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
+        gridbox=dicts.wind_gridbox,
     )
 
     # Now for higher wind, uas and vas composites first
@@ -6041,12 +6386,13 @@ def main():
         tas_var_name="data_tas_c",
         subset_arr_model=model_higher_wind_uas_subset,
         model_index_dict=model_higher_wind_uas_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
+        lats_path=lats_europe_uas,
+        lons_path=lons_europe_uas,
         var_name="uas",
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
+        gridbox=dicts.wind_gridbox,
     )
 
     # Now for higher wind vas
@@ -6055,12 +6401,43 @@ def main():
         tas_var_name="data_tas_c",
         subset_arr_model=model_higher_wind_vas_subset,
         model_index_dict=model_higher_wind_vas_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
+        lats_path=lats_europe_vas,
+        lons_path=lons_europe_vas,
         var_name="vas",
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
+        gridbox=dicts.wind_gridbox,
+    )
+
+    # Plot temp quartiels for sfcWind
+    plot_temp_quartiles(
+        subset_df_model=low_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_lower_wind_sfcWind_subset,
+        model_index_dict=model_lower_wind_sfcWind_subset_index_list,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        var_name="sfcWind",
+        figsize=(10, 10),
+        anoms_flag=False,
+        clim_filepath=None,
+        gridbox=dicts.wind_gridbox,
+    )
+
+    # Now for higher wind sfcWind
+    plot_temp_quartiles(
+        subset_df_model=higher_wind_df,
+        tas_var_name="data_tas_c",
+        subset_arr_model=model_higher_wind_sfcWind_subset,
+        model_index_dict=model_higher_wind_sfcWind_subset_index_list,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        var_name="sfcWind",
+        figsize=(10, 10),
+        anoms_flag=False,
+        clim_filepath=None,
+        gridbox=dicts.wind_gridbox,
     )
 
     sys.exit()
