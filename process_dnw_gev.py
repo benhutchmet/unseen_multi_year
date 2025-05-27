@@ -1170,6 +1170,7 @@ def plot_multi_var_perc(
     # Set up new dataframes for the observed and model percentiles
     obs_percs_5 = pd.DataFrame()
     model_percs_5 = pd.DataFrame()
+    model_percs_5_x2 = pd.DataFrame()
 
     # Loop through the percentiles
     for perc_this in percentiles_5:
@@ -1180,13 +1181,61 @@ def plot_multi_var_perc(
         else:
             upper_bound_this = (perc_this + 5) / 100  # Increment by 5%
 
+        # Set up the lower_bound_this inverse
+        lower_bound_this_inverse = 1 - upper_bound_this
+        upper_bound_this_inverse = 1 - lower_bound_this
+
         # Find the lower bound for the obs
-        obs_lower_bound_this = obs_df_copy[x_var_name_obs].quantile(lower_bound_this)
-        obs_upper_bound_this = obs_df_copy[x_var_name_obs].quantile(upper_bound_this)
+        obs_lower_bound_this = obs_df_copy[x_var_name_obs].quantile(lower_bound_this_inverse)
+        obs_upper_bound_this = obs_df_copy[x_var_name_obs].quantile(upper_bound_this_inverse)
 
         # Find the lower bound for the model
-        model_lower_bound_this = model_df_copy[x_var_name_model].quantile(lower_bound_this)
-        model_upper_bound_this = model_df_copy[x_var_name_model].quantile(upper_bound_this)
+        model_lower_bound_this = model_df_copy[x_var_name_model].quantile(lower_bound_this_inverse)
+        model_upper_bound_this = model_df_copy[x_var_name_model].quantile(upper_bound_this_inverse)
+        
+        # if x2_var_name_model is not None, find the lower and upper bounds for it
+        if x2_var_name_model is not None:
+            model_lower_bound_this_x2 = model_df_copy[x2_var_name_model].quantile(lower_bound_this)
+            model_upper_bound_this_x2 = model_df_copy[x2_var_name_model].quantile(upper_bound_this)
+
+            # Subset the dataframes to the lower and upper bounds
+            model_df_this_x2 = model_df_copy[
+                (model_df_copy[x2_var_name_model] >= model_lower_bound_this_x2)
+                & (model_df_copy[x2_var_name_model] < model_upper_bound_this_x2)
+            ]
+
+            # Set up a new dataframe for the model with x2 variable
+            model_perc_df_this = pd.DataFrame(
+                {
+                    "percentile": [perc_this],
+                    "lower_bound": [model_lower_bound_this_x2],
+                    "upper_bound": [model_upper_bound_this_x2],
+                    "n_days": [model_df_this_x2.shape[0]],
+                    f"{y_var_name_model}_mean": [model_df_this_x2[y_var_name_model].mean()],
+                    f"{y_var_name_model}_lower": [
+                        model_df_this_x2[y_var_name_model].quantile(0.10)
+                    ],
+                    f"{y_var_name_model}_upper": [
+                        model_df_this_x2[y_var_name_model].quantile(0.90)
+                    ],
+                }
+            )
+
+            # if there is an x2 variable
+            if y2_var_name_model is not None:
+                # Add the y2 variable to the model dataframe
+                model_perc_df_this[f"{y2_var_name_model}_mean"] = model_df_this_x2[
+                    y2_var_name_model
+                ].mean()
+                model_perc_df_this[f"{y2_var_name_model}_lower"] = model_df_this_x2[
+                    y2_var_name_model
+                ].quantile(0.10)
+                model_perc_df_this[f"{y2_var_name_model}_upper"] = model_df_this_x2[
+                    y2_var_name_model
+                ].quantile(0.90)
+
+            # concat to the df
+            model_percs_5_x2 = pd.concat([model_percs_5_x2, model_perc_df_this])
 
         # Subset the dataframes to the lower and upper bounds
         obs_df_this = obs_df_copy[
@@ -1300,6 +1349,30 @@ def plot_multi_var_perc(
             linestyle="--",
         )
 
+        # if the x2 variable is not None, plot it
+        if x2_var_name_model is not None:
+            ax.plot(
+                model_percs_5_x2["percentile"],
+                model_percs_5_x2[f"{y_var_name_model}_mean"],
+                color="orange",
+                label=f"Model {y_var_name_model} (5%)"
+            )
+
+            # plot the lower bounds as a dashed orange line
+            ax.plot(
+                model_percs_5_x2["percentile"],
+                model_percs_5_x2[f"{y_var_name_model}_lower"],
+                color="orange",
+                linestyle="--",
+            )
+
+            # plot the upper bounds as a dashed orange line
+            ax.plot(
+                model_percs_5_x2["percentile"],
+                model_percs_5_x2[f"{y_var_name_model}_upper"],
+                color="orange",
+                linestyle="--",
+            )
         # if the y2 variable is not None, plot it
         if y_var_name_model_2 is not None:
             ax.plot(
@@ -1359,6 +1432,31 @@ def plot_multi_var_perc(
             color="red",
             linestyle="--",
         )
+
+        # if x2_var_name_model is not None:
+        if x2_var_name_model is not None:
+            ax.plot(
+                model_percs_5_x2["percentile"],
+                model_percs_5_x2[f"{y_var_name_model}_mean"],
+                color="orange",
+                label=f"Model {y_var_name_model} (5%)"
+            )
+
+            # plot the lower bounds as a dashed orange line
+            ax.plot(
+                model_percs_5_x2["percentile"],
+                model_percs_5_x2[f"{y_var_name_model}_lower"],
+                color="orange",
+                linestyle="--",
+            )
+
+            # plot the upper bounds as a dashed orange line
+            ax.plot(
+                model_percs_5_x2["percentile"],
+                model_percs_5_x2[f"{y_var_name_model}_upper"],
+                color="orange",
+                linestyle="--",
+            )
 
     # if y1 zero line is True
     if y1_zero_line:
@@ -1420,6 +1518,30 @@ def plot_multi_var_perc(
                 color="blue",
                 linestyle="--",
             )
+
+            if x2_var_name_model is not None:
+                ax2.plot(
+                    model_percs_5_x2["percentile"],
+                    model_percs_5_x2[f"{y2_var_name_model}_mean"],
+                    color="green",
+                    label=f"Model {y2_label} (5%)"
+                )
+
+                # plot the lower bounds as a dashed orange line
+                ax2.plot(
+                    model_percs_5_x2["percentile"],
+                    model_percs_5_x2[f"{y2_var_name_model}_lower"],
+                    color="green",
+                    linestyle="--",
+                )
+
+                # plot the upper bounds as a dashed orange line
+                ax2.plot(
+                    model_percs_5_x2["percentile"],
+                    model_percs_5_x2[f"{y2_var_name_model}_upper"],
+                    color="green",
+                    linestyle="--",
+                )
 
         # incldue a blue dashed zero line
         ax2.axhline(

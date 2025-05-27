@@ -2678,6 +2678,26 @@ def main():
     # print the head and tail of this df
     print(df_obs_copy.head())
     print(df_obs_copy.tail())
+
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     x2_var_name_model="elec_demand_5yrRmean_nohols",
+    # )
+
+    # sys.exit()
     
     # # plot the percentiles of demand against wind speed
     # plot_multi_var_perc(
@@ -2756,6 +2776,44 @@ def main():
 
     # drop the rows which are nans in the  elec_demand_5yrRmean_nohols column
     df_obs_copy.dropna(subset=["elec_demand_5yrRmean_nohols"], inplace=True)
+
+    plot_multi_var_perc(
+            obs_df=df_obs_copy,
+            model_df=df_obs_copy,
+            x_var_name_obs="data_tas_c",
+            y_var_name_obs="data_sfcWind",
+            x_var_name_model="data_tas_c",
+            y_var_name_model="data_sfcWind",
+            xlabel="100 - temperature percentiles",
+            ylabel="10m Wind Speed (m/s)",
+            title="Percentiles of temperature vs 10m wind speed, all DJF days",
+            y2_var_name_model="delta_p_index",
+            y2_label="Delta P N-S Index (hPa)",
+            figsize=(5, 6),
+            inverse_flag=False,
+            xlims=(80, 105),
+            x2_var_name_model="elec_demand_5yrRmean_nohols",
+        )
+
+    plot_multi_var_perc(
+            obs_df=df_obs_copy,
+            model_df=df_obs_copy,
+            x_var_name_obs="data_tas_c",
+            y_var_name_obs="data_sfcWind",
+            x_var_name_model="data_tas_c",
+            y_var_name_model="data_sfcWind",
+            xlabel="100 - temperature percentiles",
+            ylabel="10m Wind Speed (m/s)",
+            title="Percentiles of temperature vs 10m wind speed, all DJF days",
+            y2_var_name_model="data_tas_c",
+            y2_label="Temperature (C)",
+            figsize=(5, 6),
+            inverse_flag=False,
+            xlims=(80, 105),
+            x2_var_name_model="elec_demand_5yrRmean_nohols",
+        )
+    
+    sys.exit()
 
     # # plot the percentiles of demand against wind speed
     # plot_multi_var_perc(
