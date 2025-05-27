@@ -6327,7 +6327,7 @@ def main():
         inverse_flag=True,
     )
 
-    sys.exit()
+    # sys.exit()
 
     # test the new function for plotting temp quartiles
     plot_temp_quartiles(
@@ -6365,7 +6365,7 @@ def main():
         ]
     )
 
-    sys.exit()
+    # sys.exit()
 
     # Plot the differences between lower wind and higher wind (full field)
     # low - high in this case
@@ -6397,7 +6397,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # Do the same for the high wind days but for anoms
@@ -6412,7 +6412,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # plot_temp_quartiles(
@@ -6443,7 +6443,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # Now for low wind vas
@@ -6458,7 +6458,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # Now for higher wind, uas and vas composites first
@@ -6473,7 +6473,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # Now for higher wind vas
@@ -6488,7 +6488,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=True,
         clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # Plot temp quartiels for sfcWind
@@ -6503,7 +6503,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=False,
         clim_filepath=None,
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     # Now for higher wind sfcWind
@@ -6518,7 +6518,7 @@ def main():
         figsize=(10, 10),
         anoms_flag=False,
         clim_filepath=None,
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_subset,
     )
 
     sys.exit()

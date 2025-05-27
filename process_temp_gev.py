@@ -1972,6 +1972,9 @@ def main():
     # Start the timer
     start_time = time.time()
 
+    # set iup the delta p filepath
+    delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+
     # # # Set up the test path
     # arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     # test_fname = "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_20250507_124217.npy"
@@ -2354,18 +2357,6 @@ def main():
     # rename the obs_mean column in the df obs as data_sfcWind
     df_obs.rename(columns={"obs_mean": "data_sfcWind"}, inplace=True)
 
-    # print the head of df model
-    print(df_model.head())
-
-    # print the tail of df model
-    print(df_model.tail())
-
-    # print the head of df obs
-    print(df_obs.head())
-
-    # print the tail of df obs
-    print(df_obs.tail())
-
     # extract the unique leads in df model
     unique_leads = df_model["lead"].unique()
 
@@ -2440,6 +2431,50 @@ def main():
     # Do the same for df obs
     df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
 
+    # print the head of df model
+    print(df_model.head())
+
+    # print the tail of df model
+    print(df_model.tail())
+
+    # print the head of df obs
+    print(df_obs.head())
+
+    # print the tail of df obs
+    print(df_obs.tail())
+
+    # load in the delta p file
+    if os.path.exists(delta_p_fpath):
+        df_delta_p = pd.read_csv(delta_p_fpath)
+
+    # convert df delta p time to datetime
+    df_delta_p["time"] = pd.to_datetime(
+        df_delta_p["time"]
+    )
+
+    # print the type of trhe time column in df delta p
+    print(f"Type of time column in df_delta_p: {type(df_delta_p['time'].iloc[0])}")
+
+    # print the tyupe of the time colum in df obs
+    print(f"Type of time column in df_obs: {type(df_obs['time'].iloc[0])}")
+
+    df_obs = df_obs.merge(
+            df_delta_p,
+            on=["time"],
+            suffixes=("", "delta_p"),
+        )
+    
+    # print the head of df obs
+    print(df_obs.head())
+
+    # print the tail of df obs
+    print(df_obs.tail())
+
+    # divide delta p by 100
+    df_obs["delta_p_index"] = df_obs["delta_p_index"] / 100
+    
+    # sys.exit()
+
     # Subset the model wind data to the common winter years
     # df_model_wind = df_model_wind[
     #     df_model_wind["effective_dec_year"].isin(common_wyears)
@@ -2481,7 +2516,7 @@ def main():
         df=df_obs,
         time_name="effective_dec_year",
         min_max_var_name="data_tas_c",
-        new_df_cols=["time", "data_sfcWind"],
+        new_df_cols=["time", "data_sfcWind", "delta_p_index"],
         process_min=True,
     )
 
@@ -2493,7 +2528,7 @@ def main():
         df=df_obs,
         time_name="effective_dec_year",
         min_max_var_name="data_sfcWind",
-        new_df_cols=["time", "data_tas_c"],
+        new_df_cols=["time", "data_tas_c", "delta_p_index"],
         process_min=True,
     )
 
@@ -2578,8 +2613,8 @@ def main():
         xlabel="100 - temperature percentiles",
         ylabel="10m Wind Speed (m/s)",
         title="Percentiles of temperature vs 10m wind speed, all DJF days",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
+        y2_var_name_model="delta_p_index",
+        y2_label="Delta P N-S Index (hPa)",
         figsize=(5, 6),
         inverse_flag=True,
     )
@@ -2601,14 +2636,336 @@ def main():
         xlabel="100 - temperature percentiles",
         ylabel="10m Wind Speed (m/s)",
         title="Percentiles of temperature vs 10m wind speed, low wind days",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
+        y2_var_name_model="delta_p_index",
+        y2_label="delta P N-S Index (hPa)",
         figsize=(5, 6),
         inverse_flag=True,
         xlims=(0, 105),
         ylims=(3, 5),
     )
+
+
+    # Set up the path to hazel demand data
+    hazel_path = "/home/users/benhutch/NGrid_demand/csv_files/gas_electricity_demand_data.csv"
+
+    # import the hazel data
+    if os.path.exists(hazel_path):
+        df_hazel = pd.read_csv(hazel_path)
+
+    df_hazel["date"] = pd.to_datetime(df_hazel["date"])
+
+    # Set this as the index
+    df_hazel.set_index("date", inplace=True)
+
+    # Create a copy of the df_obs
+    df_obs_copy = df_obs.copy()
+
+    # Set date as the index
+    df_obs_copy.set_index("time", inplace=True)
+
+    # find the min and max date in hazel df
+    min_date_hazel = df_hazel.index.min()
+    max_date_hazel = df_hazel.index.max()
+
+    # limit the df_obs_copy to the min and max date in hazel df
+    df_obs_copy = df_obs_copy[
+        (df_obs_copy.index >= min_date_hazel) & (df_obs_copy.index <= max_date_hazel)
+    ]
+
+    # join the two dataframes
+    df_obs_copy = df_obs_copy.join(df_hazel, how="inner")
+
+    # print the head and tail of this df
+    print(df_obs_copy.head())
+    print(df_obs_copy.tail())
     
+    # # plot the percentiles of demand against wind speed
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(4, 12),
+    #     y2_lims=(-40, 20),
+    # )
+
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(4, 12),
+    #     y2_lims=(-5, 11),
+    # )
+
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     ylims=(4, 12),
+    #     y2_lims=(-40, 20),
+    # )
+
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     ylims=(4, 12),
+    #     y2_lims=(-5, 11),
+    # )
+
+    # drop the rows which are nans in the  elec_demand_5yrRmean_nohols column
+    df_obs_copy.dropna(subset=["elec_demand_5yrRmean_nohols"], inplace=True)
+
+    # # plot the percentiles of demand against wind speed
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     xlims=(75, 100),
+    #     ylims=(4, 12),
+    #     y2_lims=(-40, 20),
+    # )
+
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     xlims=(75, 100),
+    #     ylims=(4, 12),
+    #     y2_lims=(-5, 11),
+    # )
+
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     xlims=(75, 100),
+    #     ylims=(4, 12),
+    #     y2_lims=(-40, 20),
+    # )
+
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_copy,
+    #     model_df=df_obs_copy,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     xlims=(75, 100),
+    #     ylims=(4, 12),
+    #     y2_lims=(-5, 11),
+    # )
+
+    # Find the 80th percentile value of elec_demand_5yrRmean_nohols
+    eighty_percentile_demand = df_obs_copy["elec_demand_5yrRmean_nohols"].quantile(0.80)
+
+    # Subset the df_obs_copy to values above the 80th percentile
+    df_obs_high_demand = df_obs_copy[df_obs_copy["elec_demand_5yrRmean_nohols"] > eighty_percentile_demand]
+
+    # Plot the percentiles of demand against wind speed for the high demand days
+    plot_multi_var_perc(
+        obs_df=df_obs_high_demand,
+        model_df=df_obs_high_demand,
+        x_var_name_obs="elec_demand_5yrRmean_nohols",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="elec_demand_5yrRmean_nohols",
+        y_var_name_model="data_sfcWind",
+        xlabel="demand percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of demand vs 10m wind speed, all DJF days",
+        y2_var_name_model="delta_p_index",
+        y2_label="Delta P N-S Index (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        ylims=(4, 12),
+        y2_lims=(-40, 20),
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs_high_demand,
+        model_df=df_obs_high_demand,
+        x_var_name_obs="elec_demand_5yrRmean_nohols",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="elec_demand_5yrRmean_nohols",
+        y_var_name_model="data_sfcWind",
+        xlabel="demand percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of demand vs 10m wind speed, all DJF days",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        ylims=(4, 12),
+        y2_lims=(-5, 11),
+    )
+
+    # Find the median value of temperature for high demand
+    median_temp_high_demand = df_obs_high_demand["data_tas_c"].quantile(0.20)
+
+    # Split the df_obs_high_demand into two parts based on the median temperature
+    df_obs_high_demand_below_median = df_obs_high_demand[
+        df_obs_high_demand["data_tas_c"] < median_temp_high_demand
+    ]
+    df_obs_high_demand_above_median = df_obs_high_demand[
+        df_obs_high_demand["data_tas_c"] >= median_temp_high_demand
+    ]
+
+    # Plot the percentiles of demand against wind speed for the high demand days below median temperature
+    plot_multi_var_perc(
+        obs_df=df_obs_high_demand_below_median,
+        model_df=df_obs_high_demand_below_median,
+        x_var_name_obs="elec_demand_5yrRmean_nohols",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="elec_demand_5yrRmean_nohols",
+        y_var_name_model="data_sfcWind",
+        xlabel="demand percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of demand vs 10m wind speed, below median temperature",
+        y2_var_name_model="delta_p_index",
+        y2_label="Delta P N-S Index (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        ylims=(1, 12),
+        y2_lims=(-40, 20),
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs_high_demand_below_median,
+        model_df=df_obs_high_demand_below_median,
+        x_var_name_obs="elec_demand_5yrRmean_nohols",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="elec_demand_5yrRmean_nohols",
+        y_var_name_model="data_sfcWind",
+        xlabel="demand percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of demand vs 10m wind speed, below median temperature",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        ylims=(1, 12),
+        y2_lims=(-5, 11),
+    )
+
+    # sys.exit()
+
+    # Plot the percentiles of demand against wind speed for the high demand days above median temperature
+    plot_multi_var_perc(
+        obs_df=df_obs_high_demand_above_median,
+        model_df=df_obs_high_demand_above_median,
+        x_var_name_obs="elec_demand_5yrRmean_nohols",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="elec_demand_5yrRmean_nohols",
+        y_var_name_model="data_sfcWind",
+        xlabel="demand percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of demand vs 10m wind speed, above median temperature",
+        y2_var_name_model="delta_p_index",
+        y2_label="Delta P N-S Index (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        ylims=(4, 12),
+        y2_lims=(-40, 20),
+    )
+
+    plot_multi_var_perc(
+        obs_df=df_obs_high_demand_above_median,
+        model_df=df_obs_high_demand_above_median,
+        x_var_name_obs="elec_demand_5yrRmean_nohols",
+        y_var_name_obs="data_sfcWind",
+        x_var_name_model="elec_demand_5yrRmean_nohols",
+        y_var_name_model="data_sfcWind",
+        xlabel="demand percentiles",
+        ylabel="10m Wind Speed (m/s)",
+        title="Percentiles of demand vs 10m wind speed, above median temperature",
+        y2_var_name_model="data_tas_c",
+        y2_label="Temperature (C)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        ylims=(4, 12),
+        y2_lims=(-5, 11),
+    )
+
     sys.exit()
 
     # # Plot percentiles of sfcWind against T

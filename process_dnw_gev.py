@@ -1120,6 +1120,8 @@ def plot_multi_var_perc(
     y1_zero_line = False,
     xlims: tuple[float, float] = None,
     ylims: tuple[float, float] = None,
+    y2_lims: tuple[float, float] = None,
+    x2_var_name_model: str = None,
 ):
     """
     Plots the relationship between variables as percentiles. E.g., binned by
@@ -1163,7 +1165,7 @@ def plot_multi_var_perc(
     model_df_copy = model_df.copy()
 
     # Hard code the percentiles in increments of 5
-    percentiles_5 = np.arange(0, 95, 1)  # 0, 5, 10, ..., 95
+    percentiles_5 = np.arange(0, 99 + 1, 1)  # 0, 5, 10, ..., 95
 
     # Set up new dataframes for the observed and model percentiles
     obs_percs_5 = pd.DataFrame()
@@ -1173,7 +1175,10 @@ def plot_multi_var_perc(
     for perc_this in percentiles_5:
         # Find the lower and upper bound
         lower_bound_this = perc_this / 100
-        upper_bound_this = (perc_this + 5) / 100  # Increment by 5%
+        if perc_this + 5 >= 100:
+            upper_bound_this = 1.0
+        else:
+            upper_bound_this = (perc_this + 5) / 100  # Increment by 5%
 
         # Find the lower bound for the obs
         obs_lower_bound_this = obs_df_copy[x_var_name_obs].quantile(lower_bound_this)
@@ -1435,6 +1440,11 @@ def plot_multi_var_perc(
     if ylims is not None:
         # Set the ylims
         ax.set_ylim(ylims)
+
+    # if y2_lims is not None
+    if y2_lims is not None:
+        # Set the y2lims
+        ax2.set_ylim(y2_lims)
 
     # Set the x and y labels
     ax.set_xlabel(f"{xlabel} percentile")

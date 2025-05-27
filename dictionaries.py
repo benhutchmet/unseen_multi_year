@@ -18,6 +18,14 @@ uk_n_box_corrected = {"lon1": -27, "lon2": 21, "lat1": 57, "lat2": 70}
 
 uk_s_box_corrected = {"lon1": -27, "lon2": 21, "lat1": 38, "lat2": 51}
 
+# wind gridbox subset
+wind_gridbox_subset = {
+    "lon1": -6,
+    "lon2": 2,
+    "lat1": 51, # top of south delta P gridbox
+    "lat2": 57, # bottom of north delta P gridbox
+}
+
 # Set up the path to the obs
 obs_path = "/home/users/benhutch/ERA5/surface_wind_ERA5.nc"
 
