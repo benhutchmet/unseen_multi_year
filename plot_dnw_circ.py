@@ -5141,6 +5141,11 @@ def plot_temp_demand_quartiles_obs(
     anoms_flag: bool = False,
     clim_arr_obs: np.ndarray = None,
     gridbox: Optional[Dict[str, float]] = None,
+    second_subset_df_obs: Optional[pd.DataFrame] = None,
+    second_quartiles_var_name: Optional[str] = None,
+    second_subset_arr_obs: Optional[np.ndarray] = None,
+    second_dates_list_obs: Optional[List[str]] = None,
+    second_quartiles: Optional[List[Tuple[float, float]]] = None,
 ):
     """
     Plots subplots for the composites of different quartiles of a variable.
@@ -5161,6 +5166,12 @@ def plot_temp_demand_quartiles_obs(
         anoms_flag (bool): Whether to calculate anomalies or not.
         clim_arr_obs (np.ndarray): The climatology array for the observations.
         gridbox (Optional[Dict[str, float]]): The gridbox to plot.
+        second_subset_df_obs (Optional[pd.DataFrame]): The second subset dataframe for the observations.
+        second_quartiles_var_name (Optional[str]): The variable name for the second quartiles.
+        second_subset_arr_obs (Optional[np.ndarray]): The second subset array for the observations.
+        second_dates_list_obs (Optional[List[str]]): The second list of dates for the observations.
+        second_quartiles (Optional[List[Tuple[float, float]]]): The second list of quartiles to plot.
+
 
     Returns:
     ========
@@ -5222,7 +5233,7 @@ def plot_temp_demand_quartiles_obs(
             )
 
     else:
-        if var_name in ["psl"]:
+        if var_name in ["tas", "psl"]:
             # Set up the cmap
             cmap = "bwr"
 
@@ -5245,9 +5256,9 @@ def plot_temp_demand_quartiles_obs(
             )
         elif var_name in ["uas", "vas", "sfcWind"]:
             if var_name in ["uas", "sfcWind"]:
-                cmap = "BuGn"
+                cmap = "PRGn"
             else:
-                cmap = "BrBG"
+                cmap = "PrGn"
             levels = np.array(
                 [
                     2,
@@ -5311,17 +5322,17 @@ def plot_temp_demand_quartiles_obs(
                 0.50,
             ]
         )
-
-        # set up the ticks
-        levels_diff_ticks = np.arange(
-            np.min(levels_diff),
-            np.max(levels_diff) + 1,
-            0.1,
-        )
     else:
         raise ValueError(
             f"Variable name {var_name} not recognised. Must be tas, uas or vas."
         )
+
+    # set up the ticks
+    levels_diff_ticks = np.arange(
+        np.min(levels_diff),
+        np.max(levels_diff) + 1,
+        0.1,
+    )
 
     nrows = len(quartiles)
 
@@ -5442,10 +5453,154 @@ def plot_temp_demand_quartiles_obs(
         # Take the mean of this
         subset_arr_this_obs_mean = np.mean(subset_arr_this_obs_quartile, axis=0)
 
+        # if the second subset df obs is not none
+        if second_subset_df_obs is not None:
+            print("Calculating second subset df obs")
+            # Set up a copy of the obs arr here
+            subset_arr_this_obs_second = second_subset_arr_obs.copy()
+
+            # Set up the upper and lower quartile
+            quartiles_this_second = second_quartiles[i]
+
+            upper_quartile_second = max(
+                quartiles_this_second
+            )  # Largest value in the tuple
+            lower_quartile_second = min(quartiles_this_second)
+
+            # Quantify the lower and upper bouns of the quartile
+            lower_bound_this_second = np.quantile(
+                second_subset_df_obs[second_quartiles_var_name].values,
+                lower_quartile_second,
+            )
+            upper_bound_this_second = np.quantile(
+                second_subset_df_obs[second_quartiles_var_name].values,
+                upper_quartile_second,
+            )
+
+            # Set up the subset df for this quartile
+            subset_df_obs_this_quartile_second = second_subset_df_obs[
+                (
+                    second_subset_df_obs[second_quartiles_var_name]
+                    >= lower_bound_this_second
+                )
+                & (
+                    second_subset_df_obs[second_quartiles_var_name]
+                    < upper_bound_this_second
+                )
+            ].copy()
+
+            # Extract the dates for this subset
+            dates_obs_this_quartile_second = subset_df_obs_this_quartile_second[
+                "time"
+            ].values
+
+            # Formate these as datetimes
+            dates_obs_this_quartile_second_dt = [
+                datetime.strptime(date, "%Y-%m-%d")
+                for date in dates_obs_this_quartile_second
+            ]
+
+            # If var_name is psl
+            if var_name == "psl":
+                subset_dates_cf = []
+                # format the subset dates to extract
+                for date in dates_obs_this_quartile_second_dt:
+                    date_this_cf = cftime.DatetimeGregorian(
+                        date.year, date.month, date.day, hour=11, calendar="gregorian"
+                    )
+                    subset_dates_cf.append(date_this_cf)
+            elif var_name == "tas":
+                # format the subset dates
+                subset_dates_cf = []
+                # format the subset dates to extract
+                for date in dates_obs_this_quartile_second_dt:
+                    date_this_cf = cftime.DatetimeProlepticGregorian(
+                        date.year,
+                        date.month,
+                        date.day,
+                        hour=0,
+                        calendar="proleptic_gregorian",
+                    )
+                    subset_dates_cf.append(date_this_cf)
+            elif var_name in ["uas", "vas", "sfcWind"]:
+                # format the subset dates
+                subset_dates_cf = []
+                # format the subset dates to extract
+                for date in dates_obs_this_quartile_second_dt:
+                    date_this_cf = cftime.DatetimeProlepticGregorian(
+                        date.year,
+                        date.month,
+                        date.day,
+                        hour=0,
+                        calendar="proleptic_gregorian",
+                    )
+                    subset_dates_cf.append(date_this_cf)
+            else:
+                raise ValueError(
+                    f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+                )
+
+            # Set up an empty list for the indices of these dates
+            indices_dates_obs_this_quartile_second = []
+
+            # Loop over the dates in the subset dates
+            for date_this in subset_dates_cf:
+                index_this = np.where(np.array(second_dates_list_obs) == date_this)[0][
+                    0
+                ]
+                indices_dates_obs_this_quartile_second.append(index_this)
+
+            # Apply these indices to the subset_arr_this_obs
+            subset_arr_this_obs_quartile_second = subset_arr_this_obs_second[
+                indices_dates_obs_this_quartile_second, :, :
+            ]
+
+            # Take the mean of this
+            subset_arr_this_obs_mean_second = np.mean(
+                subset_arr_this_obs_quartile_second, axis=0
+            )
+
         # if the anoms flag is true
         if anoms_flag:
             # Calculate the anomalies
             subset_arr_this_obs_mean = subset_arr_this_obs_mean - clim_arr_obs
+
+        # If subset_arr_this_model_full_second is not None
+        if second_subset_df_obs is not None:
+            print("Quantifying differences between first and second")
+
+            if anoms_flag:
+                subset_arr_this_obs_mean_second = (
+                    subset_arr_this_obs_mean_second - clim_arr_obs
+                )
+            if var_name == "psl":
+                subset_arr_this_obs_mean_diff = (
+                    subset_arr_this_obs_mean / 100 - subset_arr_this_obs_mean_second / 100
+                )
+            else:
+                subset_arr_this_obs_mean_diff = (
+                    subset_arr_this_obs_mean - subset_arr_this_obs_mean_second
+                )
+
+            # levels = levels_diff
+            levels_ticks = np.array(
+                [
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                ]
+            )
+
+            levels_diffs = np.arange(
+                np.min(levels_diff),
+                np.max(levels_diff) + 1,
+                0.1,
+            )
 
         # if the var names is psl
         if var_name == "psl":
@@ -5456,16 +5611,43 @@ def plot_temp_demand_quartiles_obs(
         if i == 0:
             diff_composite = subset_arr_this_obs_mean
 
-        # Plot the full field on the left
-        im_full = left_col_full.contourf(
-            lons,
-            lats,
-            subset_arr_this_obs_mean,
-            cmap=cmap,
-            transform=ccrs.PlateCarree(),
-            levels=levels,
-            extend="both",
+        # print the min, max and mean of subset_arr_this_obs_mean
+        print(
+            f"Min: {np.min(subset_arr_this_obs_mean):.2f}, "
+            f"Max: {np.max(subset_arr_this_obs_mean):.2f}, "
+            f"Mean: {np.mean(subset_arr_this_obs_mean):.2f}"
         )
+
+        if second_subset_df_obs is not None:
+            print("plotting the difference between the first and second quartile")
+            
+            print(
+            f"Min: {np.min(subset_arr_this_obs_mean_diff):.2f}, "
+            f"Max: {np.max(subset_arr_this_obs_mean_diff):.2f}, "
+            f"Mean: {np.mean(subset_arr_this_obs_mean_diff):.2f}"
+            )
+            
+            # Plot the full field on the left
+            im_full = left_col_full.contourf(
+                lons,
+                lats,
+                subset_arr_this_obs_mean_diff,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels_diff,
+                extend="both",
+            )
+        else:
+            # Plot the full field on the left
+            im_full = left_col_full.contourf(
+                lons,
+                lats,
+                subset_arr_this_obs_mean,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
 
         # if gridbox is not none
         if gridbox is not None:
@@ -5474,8 +5656,10 @@ def plot_temp_demand_quartiles_obs(
                 print("Calculating difference in gridbox fields")
 
                 # Hard code the n_box and south box for delta P
-                n_box = dicts.uk_n_box_corrected
-                s_box = dicts.uk_s_box_corrected
+                # n_box = dicts.uk_n_box_corrected
+                # s_box = dicts.uk_s_box_corrected
+                n_box = dicts.azores_grid_corrected
+                s_box = dicts.iceland_grid_corrected
 
                 # Extract the n_box lats and lons
                 lat1_box_n, lat2_box_n = n_box["lat1"], n_box["lat2"]
@@ -5615,16 +5799,35 @@ def plot_temp_demand_quartiles_obs(
             bbox=dict(facecolor="white", alpha=0.5),
         )
 
-        # Plot the difference on the right
-        im_diff = right_col_diff.contourf(
-            lons,
-            lats,
-            (subset_arr_this_obs_mean - diff_composite),
-            cmap="PRGn",
-            transform=ccrs.PlateCarree(),
-            levels=levels_diff,
-            extend="both",
-        )
+        if second_subset_df_obs is not None:
+            # print the min, max and mean of subset_arr_this_obs_mean_second
+            print(
+                f"Min: {np.min(subset_arr_this_obs_mean_second):.2f}, "
+                f"Max: {np.max(subset_arr_this_obs_mean_second):.2f}, "
+                f"Mean: {np.mean(subset_arr_this_obs_mean_second):.2f}"
+            )
+
+            # Plot the difference on the right
+            im_diff = right_col_diff.contourf(
+                lons,
+                lats,
+                (subset_arr_this_obs_mean_second / 100),
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
+        else:
+            # Plot the difference on the right
+            im_diff = right_col_diff.contourf(
+                lons,
+                lats,
+                (subset_arr_this_obs_mean - diff_composite),
+                cmap="PRGn",
+                transform=ccrs.PlateCarree(),
+                levels=levels_diff,
+                extend="both",
+            )
 
         # if the gridbox is not none
         if gridbox is not None:
@@ -5732,15 +5935,26 @@ def plot_temp_demand_quartiles_obs(
 
         # if i is the final index of nrows, then set up the cbars
         if i == nrows - 1:
-            cbar_full = fig.colorbar(
-                im_full,
-                ax=left_col_full,
-                orientation="horizontal",
-                pad=0.05,
-                shrink=0.8,
-            )
+            if second_subset_df_obs is not None:
+                cbar_full = fig.colorbar(
+                    im_full,
+                    ax=left_col_full,
+                    orientation="horizontal",
+                    pad=0.05,
+                    shrink=0.8,
+                )
 
-            cbar_full.set_ticks(levels_ticks)
+                cbar_full.set_ticks(levels_diff_ticks)
+            else:
+                cbar_full = fig.colorbar(
+                    im_full,
+                    ax=left_col_full,
+                    orientation="horizontal",
+                    pad=0.05,
+                    shrink=0.8,
+                )
+
+                cbar_full.set_ticks(levels_ticks)
 
             cbar_diff = fig.colorbar(
                 im_diff,
@@ -6771,6 +6985,15 @@ def main():
     # print the columsn in obs_df_high_demand
     print(f"Columns in obs_df_high_demand: {obs_df_low_temp.columns}")
 
+    # Load in the data for high demand
+    obs_psl_subset_high_demand = np.load(
+        "/home/users/benhutch/unseen_multi_year/data/ERA5_psl_NA_1960-2018_DJF_day_2025-05-28.npy"
+    )
+    obs_psl_dates_list_high_demand = np.load(
+        "/home/users/benhutch/unseen_multi_year/data/ERA5_psl_NA_1960-2018_DJF_day_times_2025-05-28.npy",
+        allow_pickle=True,
+    )
+
     # Now test the new function
     plot_temp_demand_quartiles_obs(
         subset_df_obs=obs_df_low_temp,
@@ -6782,18 +7005,83 @@ def main():
             (0, 0.25),
         ],
         subset_arr_obs=obs_psl_subset,
-        dates_list_obs= obs_psl_dates_list,
+        dates_list_obs=obs_psl_dates_list,
         var_name="psl",
         lats_path=lats_paths[0],
         lons_path=lons_paths[0],
-        figsize=(10, 10),
-        anoms_flag=False,
-        clim_arr_obs=None,
+        figsize=(8, 10),
+        anoms_flag=True,
+        clim_arr_obs= obs_psl_clim,
         gridbox=[
-            dicts.uk_n_box_corrected,
-            dicts.uk_s_box_corrected,
+            dicts.azores_grid_corrected,
+            dicts.iceland_grid_corrected,
         ],
     )
+
+    # plot_temp_demand_quartiles_obs(
+    #     subset_df_obs=obs_df_low_temp,
+    #     quartiles_var_name="data_tas_c",
+    #     quartiles=[
+    #         (0.75, 1.0),
+    #         (0.5, 0.75),
+    #         (0.25, 0.5),
+    #         (0, 0.25),
+    #     ],
+    #     subset_arr_obs=obs_psl_subset,
+    #     dates_list_obs=obs_psl_dates_list,
+    #     var_name="psl",
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     figsize=(8, 10),
+    #     anoms_flag=False,
+    #     clim_arr_obs=None,
+    #     gridbox=dicts.uk_s_box_corrected,
+    # )
+
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_high_demand,
+        quartiles_var_name="elec_demand_5yrRmean_nohols",
+        quartiles=[
+            (0, 0.25),
+            (0.25, 0.5),
+            (0.5, 0.75),
+            (0.75, 1.0),
+        ],
+        subset_arr_obs=obs_psl_subset_high_demand,
+        dates_list_obs=obs_psl_dates_list_high_demand,
+        var_name="psl",
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        figsize=(8, 10),
+        anoms_flag=True,
+        clim_arr_obs=obs_psl_clim,
+        gridbox=[
+            dicts.azores_grid_corrected,
+            dicts.iceland_grid_corrected,
+        ],
+    )
+
+    # plot_temp_demand_quartiles_obs(
+    #     subset_df_obs=obs_df_high_demand,
+    #     quartiles_var_name="elec_demand_5yrRmean_nohols",
+    #     quartiles=[
+    #         (0, 0.25),
+    #         (0.25, 0.5),
+    #         (0.5, 0.75),
+    #         (0.75, 1.0),
+    #     ],
+    #     subset_arr_obs=obs_psl_subset_high_demand,
+    #     dates_list_obs=obs_psl_dates_list_high_demand,
+    #     var_name="psl",
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     figsize=(8, 10),
+    #     anoms_flag=False,
+    #     clim_arr_obs=None,
+    #     gridbox=dicts.uk_s_box_corrected,
+    # )
+
+    sys.exit()
 
     lats_europe_tas = os.path.join(
         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
@@ -6813,10 +7101,10 @@ def main():
             (0, 0.25),
         ],
         subset_arr_obs=obs_temp_subset,
-        dates_list_obs= obs_temp_dates_list,
+        dates_list_obs=obs_temp_dates_list,
         var_name="tas",
         lats_path=lats_europe_tas,
-        lons_path= lons_europe_tas,
+        lons_path=lons_europe_tas,
         figsize=(6, 10),
         anoms_flag=True,
         clim_arr_obs=obs_tas_clim,
@@ -6834,7 +7122,7 @@ def main():
             (0, 0.25),
         ],
         subset_arr_obs=obs_wind_subset,
-        dates_list_obs= obs_wind_dates_list,
+        dates_list_obs=obs_wind_dates_list,
         var_name="sfcWind",
         lats_path=os.path.join(
             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
@@ -6848,6 +7136,123 @@ def main():
         gridbox=dicts.wind_gridbox,
     )
 
+    # Plot the differences for psl
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_high_demand,
+        quartiles_var_name="elec_demand_5yrRmean_nohols",
+        quartiles=[
+            (0.0, 0.25),
+            (0.25, 0.5),
+            (0.5, 0.75),
+            (0.75, 1.0),
+        ],
+        subset_arr_obs=obs_psl_subset_high_demand,
+        dates_list_obs=obs_psl_dates_list_high_demand,
+        var_name="psl",
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        figsize=(10, 10),
+        anoms_flag=False,
+        clim_arr_obs=None,
+        gridbox=[
+            dicts.uk_n_box_corrected,
+            dicts.uk_s_box_corrected,
+        ],
+        second_subset_df_obs=obs_df_low_temp,
+        second_quartiles_var_name="data_tas_c",
+        second_subset_arr_obs=obs_psl_subset,
+        second_dates_list_obs=obs_psl_dates_list,
+        second_quartiles=[
+            (0.75, 1.0),
+            (0.5, 0.75),
+            (0.25, 0.5),
+            (0, 0.25),
+        ],
+    )
+
+    # Load in the data for high demand for tas
+    obs_temp_subset_high_demand = np.load(
+        "/home/users/benhutch/unseen_multi_year/data/ERA5_tas_Europe_1960-2018_DJF_day_dtr_2025-05-28.npy"
+    )
+    obs_temp_dates_list_high_demand = np.load(
+        "/home/users/benhutch/unseen_multi_year/data/ERA5_tas_Europe_1960-2018_DJF_day_times_dtr_2025-05-28.npy",
+        allow_pickle=True,
+    )
+
+    # Plot the differences for tas
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_high_demand,
+        quartiles_var_name="elec_demand_5yrRmean_nohols",
+        quartiles=[
+            (0.0, 0.25),
+            (0.25, 0.5),
+            (0.5, 0.75),
+            (0.75, 1.0),
+        ],
+        subset_arr_obs=obs_temp_subset_high_demand,
+        dates_list_obs=obs_temp_dates_list_high_demand,
+        var_name="tas",
+        lats_path=lats_europe_tas,
+        lons_path=lons_europe_tas,
+        figsize=(6, 10),
+        anoms_flag=False,
+        clim_arr_obs=None,
+        gridbox=dicts.wind_gridbox,
+        second_subset_df_obs=obs_df_low_temp,
+        second_quartiles_var_name="data_tas_c",
+        second_subset_arr_obs=obs_temp_subset,
+        second_dates_list_obs=obs_temp_dates_list,
+        second_quartiles=[
+            (0.75, 1.0),
+            (0.5, 0.75),
+            (0.25, 0.5),
+            (0, 0.25),
+        ],
+    )
+
+    # Load in the data for high demand for wind 
+    obs_wind_subset_high_demand = np.load(
+        "/home/users/benhutch/unseen_multi_year/data/ERA5_sfcWind_Europe_1960-2018_DJF_day_2025-05-28.npy"
+    )
+    obs_wind_dates_list_high_demand = np.load(
+        "/home/users/benhutch/unseen_multi_year/data/ERA5_sfcWind_Europe_1960-2018_DJF_day_times_2025-05-28.npy",
+        allow_pickle=True,
+    )
+
+    # Plot the differences for wind
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_high_demand,
+        quartiles_var_name="elec_demand_5yrRmean_nohols",
+        quartiles=[
+            (0.0, 0.25),
+            (0.25, 0.5),
+            (0.5, 0.75),
+            (0.75, 1.0),
+        ],
+        subset_arr_obs=obs_wind_subset_high_demand,
+        dates_list_obs=obs_wind_dates_list_high_demand,
+        var_name="sfcWind",
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+        ),
+        figsize=(6, 10),
+        anoms_flag=False,
+        clim_arr_obs=None,
+        gridbox=dicts.wind_gridbox,
+        second_subset_df_obs=obs_df_low_temp,
+        second_quartiles_var_name="data_tas_c",
+        second_subset_arr_obs=obs_wind_subset,
+        second_dates_list_obs=obs_wind_dates_list,
+        second_quartiles=[
+            (0.75, 1.0),
+            (0.5, 0.75),
+            (0.25, 0.5),
+            (0, 0.25),
+        ],
+    )
 
     sys.exit()
 

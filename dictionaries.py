@@ -34,4 +34,11 @@ regrid_hadgem_obs_path = "/home/users/benhutch/ERA5/surface_wind_ERA5_regrid_Had
 # Set up the gws base dir
 gws_base = "/gws/nopw/j04/canari/users/benhutch"
 
-# Create a nested dictionary of the data_paths for each model and variable
+# Define the dimensions for the gridbox for the azores
+azores_grid_corrected = {"lon1": -28, "lon2": -20, "lat1": 36, "lat2": 40}
+
+# Define the dimensions for the gridbox for iceland
+iceland_grid = {"lon1": 155, "lon2": 164, "lat1": 63, "lat2": 70}
+
+# Define the dimensions for the gridbox for the azores
+iceland_grid_corrected = {"lon1": -25, "lon2": -16, "lat1": 63, "lat2": 70}
