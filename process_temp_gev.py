@@ -2777,6 +2777,59 @@ def main():
     # drop the rows which are nans in the  elec_demand_5yrRmean_nohols column
     df_obs_copy.dropna(subset=["elec_demand_5yrRmean_nohols"], inplace=True)
 
+    # Find the 90th percentile value of demand
+    ninety_percentile_demand = df_obs_copy["elec_demand_5yrRmean_nohols"].quantile(0.90)
+
+    # subset the df obs copy to high demand
+    df_obs_high_demand = df_obs_copy[
+        df_obs_copy["elec_demand_5yrRmean_nohols"] >= ninety_percentile_demand
+    ]
+
+    # Finbd the 10th percentile of temperature
+    tenth_percentile_temp = df_obs_copy["data_tas_c"].quantile(0.10)
+
+    # subset the df obs copy to low temperature
+    df_obs_low_temp = df_obs_copy[
+        df_obs_copy["data_tas_c"] <= tenth_percentile_temp
+    ]
+
+    # print the shape of df obs high demand
+    print(f"Shape of df_obs_high_demand: {df_obs_high_demand.shape}")
+
+    # print the shape of df obs low temp
+    print(f"Shape of df_obs_low_temp: {df_obs_low_temp.shape}")
+
+    # print the head of df obs high demand
+    print(df_obs_high_demand.head())
+    print(df_obs_high_demand.tail())
+
+    # print the head of df obs low temp
+    print(df_obs_low_temp.head())
+    print(df_obs_low_temp.tail())
+
+    # Set up the directory in which to save theese
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # Set up the fnames
+    fname_high_demand = "df_obs_high_demand_2025-05-28.csv"
+    fname_low_temp = "df_obs_low_temp_2025-05-28.csv"
+
+    # if the save dir does not exist, create it
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # if the full paths do not exist
+    if not os.path.exists(os.path.join(save_dir, fname_high_demand)):
+        print(f"Saving {fname_high_demand} to {save_dir}")
+        df_obs_high_demand.to_csv(os.path.join(save_dir, fname_high_demand))
+
+    if not os.path.exists(os.path.join(save_dir, fname_low_temp)):
+        print(f"Saving {fname_low_temp} to {save_dir}")
+        df_obs_low_temp.to_csv(os.path.join(save_dir, fname_low_temp))
+
+    sys.exit()
+
+
     plot_multi_var_perc(
             obs_df=df_obs_copy,
             model_df=df_obs_copy,

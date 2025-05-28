@@ -5128,6 +5128,9 @@ def main():
     arrs_persist_dir = "/home/users/benhutch/unseen_multi_year/data"
     subset_model_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
     model_clim_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_clim/"
+    obs_df_high_demand_path = "/home/users/benhutch/unseen_multi_year/dfs/df_obs_high_demand_2025-05-28.csv"
+    obs_df_low_temp_path = "/home/users/benhutch/unseen_multi_year/dfs/df_obs_low_temp_2025-05-28.csv"
+
     season = "DJF"
     time_freq = "day"
     len_winter_days = 5324
@@ -5155,7 +5158,41 @@ def main():
         higher_wind_df = pd.read_csv(higher_wind_path)
     else:
         raise FileNotFoundError(f"File {higher_wind_path} does not exist")
+    
+    # if the high demand path exists then load the data
+    if os.path.exists(obs_df_high_demand_path):
+        obs_df_high_demand = pd.read_csv(obs_df_high_demand_path)
 
+        # reset the index
+        obs_df_high_demand.reset_index(drop=True, inplace=True)
+
+        # rename "Unnamed: 0" as "time"
+        if "Unnamed: 0" in obs_df_high_demand.columns:
+            obs_df_high_demand.rename(columns={"Unnamed: 0": "time"}, inplace=True)
+    else:
+        raise FileNotFoundError(f"File {obs_df_high_demand_path} does not exist")
+    
+    # if the low temp path exists then load the data
+    if os.path.exists(obs_df_low_temp_path):
+        obs_df_low_temp = pd.read_csv(obs_df_low_temp_path)
+
+        # reset the index
+        obs_df_low_temp.reset_index(drop=True, inplace=True)
+
+        # rename "Unnamed: 0" as "time"
+        if "Unnamed: 0" in obs_df_low_temp.columns:
+            obs_df_low_temp.rename(columns={"Unnamed: 0": "time"}, inplace=True)
+    else:
+        raise FileNotFoundError(f"File {obs_df_low_temp_path} does not exist")
+    
+    # print the head of df)obs) high demand
+    print("Head of obs df high demand:")
+    print(obs_df_high_demand.head())
+
+    # print the head of df)obs) low temp
+    print("Head of obs df low temp:")
+    print(obs_df_low_temp.head())
+    
     # Check tyhe relationships of the dataframes
     pdg_funcs.plot_multi_var_perc(
         obs_df=low_wind_df,
@@ -5262,8 +5299,8 @@ def main():
 
     # extract the current date
     # NOTE: Hardcode the current date for now
-    current_date = "2025-05-08"
-    # current_date = datetime.now().strftime("%Y-%m-%d")
+    # current_date = "2025-05-08"
+    current_date = datetime.now().strftime("%Y-%m-%d")
 
     # Set up fnames for the psl data
     psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
@@ -5294,7 +5331,7 @@ def main():
     ) and not os.path.exists(os.path.join(arrs_persist_dir, psl_times_fname)):
         # Call the function to load the obs data
         psl_subset, psl_dates_list = extract_obs_data(
-            obs_df=obs_df,
+            obs_df=obs_df_high_demand,
             variable="psl",
             region="NA",
             time_freq=time_freq,
@@ -5321,7 +5358,7 @@ def main():
     ) and not os.path.exists(os.path.join(arrs_persist_dir, temp_times_fname)):
         # Call the function to load the obs data
         temp_subset, temp_dates_list = extract_obs_data(
-            obs_df=obs_df,
+            obs_df=obs_df_high_demand,
             variable="tas",
             region="Europe",
             time_freq=time_freq,
@@ -5348,7 +5385,7 @@ def main():
     ) and not os.path.exists(os.path.join(arrs_persist_dir, wind_times_fname)):
         # Call the function to load the obs data
         wind_subset, wind_dates_list = extract_obs_data(
-            obs_df=obs_df,
+            obs_df=obs_df_high_demand,
             variable="sfcWind",
             region="Europe",
             time_freq=time_freq,
@@ -5384,7 +5421,7 @@ def main():
     # print the values of psl dates list
     print(f"PSL dates list: {obs_psl_dates_list}")
 
-    # sys.exit()
+    sys.exit()
 
     # load the temperature data
     obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
