@@ -26,7 +26,7 @@ import cartopy.io.shapereader as shpreader
 
 # Specific imports
 from tqdm import tqdm
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 from datetime import datetime, timedelta
 from scipy.stats import pearsonr, linregress
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -1146,7 +1146,10 @@ def plot_composites(
                 )
                 subset_dates_cf.append(date_this_cf)
 
+            # Set up the cmap
             cmap = "bwr"
+
+            # Sert up the levels
             levels = np.array(
                 [
                     -20,
@@ -1547,22 +1550,34 @@ def plot_mslp_composites(
 
     """
 
+    # print the mion and max of the first obs psl subset arr
+    print(f"Min of first obs psl subset arr: {np.min(subset_arrs_obs[0])}")
+    print(f"Max of first obs psl subset arr: {np.max(subset_arrs_obs[0])}")
+    print(f"Mean of first obs psl subset arr: {np.mean(subset_arrs_obs[0])}")
+
+    # print the mion and max of the first model psl subset arr
+    print(f"Min of first model psl subset arr: {np.min(subset_arrs_model[0])}")
+    print(f"Max of first model psl subset arr: {np.max(subset_arrs_model[0])}")
+    print(f"Mean of first model psl subset arr: {np.mean(subset_arrs_model[0])}")
+
     # hardcode the cmap and levels for psl
     cmap = "coolwarm"
+
+    # Sert up the levels
     levels = np.array(
         [
-            -12,
-            -10,
-            -8,
-            -6,
-            -4,
-            -2,
-            2,
-            4,
-            6,
-            8,
-            10,
-            12,
+            1004,
+            1006,
+            1008,
+            1010,
+            1012,
+            1014,
+            1016,
+            1018,
+            1020,
+            1022,
+            1024,
+            1026,
         ]
     )
     ticks = levels
@@ -4370,9 +4385,7 @@ def plot_temp_quartiles(
         # If the anoms flag is true
         if anoms_flag:
             # Calculate the model anoms
-            subset_arr_this_model_mean = (
-                subset_arr_this_model_mean - climatology_arr
-            )
+            subset_arr_this_model_mean = subset_arr_this_model_mean - climatology_arr
 
         # If subset_arr_this_model_full_second is not None
         if second_subset_arr is not None:
@@ -4384,8 +4397,7 @@ def plot_temp_quartiles(
                 )
 
             subset_arr_this_model_mean = (
-                subset_arr_this_model_mean
-                - subset_arr_this_model_mean_second
+                subset_arr_this_model_mean - subset_arr_this_model_mean_second
             )
 
             levels = levels_diff
@@ -4412,7 +4424,7 @@ def plot_temp_quartiles(
                 subset_arr_this_model_mean_second = (
                     subset_arr_this_model_mean_second / 100
                 )
-        
+
         if i == 0:
             warmest_composite = subset_arr_this_model_mean
 
@@ -4432,7 +4444,7 @@ def plot_temp_quartiles(
             # if there is more than one gridbox
             if isinstance(gridbox, list):
                 print("Calculating difference in gridbox fields")
-                
+
                 # Hard code the n_box and south box for delta P
                 n_box = dicts.uk_n_box_corrected
                 s_box = dicts.uk_s_box_corrected
@@ -4482,13 +4494,13 @@ def plot_temp_quartiles(
                 # Calculate the mean in the gridbox
                 gridbox_mean_n = np.mean(
                     subset_arr_this_model_mean[
-                        lat1_idx_n:lat2_idx_n + 1, lon1_idx_n:lon2_idx_n + 1
+                        lat1_idx_n : lat2_idx_n + 1, lon1_idx_n : lon2_idx_n + 1
                     ]
                 )
 
                 gridbox_mean_s = np.mean(
                     subset_arr_this_model_mean[
-                        lat1_idx_s:lat2_idx_s + 1, lon1_idx_s:lon2_idx_s + 1
+                        lat1_idx_s : lat2_idx_s + 1, lon1_idx_s : lon2_idx_s + 1
                     ]
                 )
 
@@ -4531,7 +4543,7 @@ def plot_temp_quartiles(
                 # Calculate the mean in the gridbox
                 gridbox_mean = np.mean(
                     subset_arr_this_model_mean[
-                        lat1_idx:lat2_idx + 1, lon1_idx:lon2_idx + 1
+                        lat1_idx : lat2_idx + 1, lon1_idx : lon2_idx + 1
                     ]
                 )
 
@@ -4596,12 +4608,12 @@ def plot_temp_quartiles(
                 # subset the gridbox
                 gridbox_mean_n = np.mean(
                     (subset_arr_this_model_mean - warmest_composite)[
-                        lat1_idx_n:lat2_idx_n + 1, lon1_idx_n:lon2_idx_n + 1
+                        lat1_idx_n : lat2_idx_n + 1, lon1_idx_n : lon2_idx_n + 1
                     ]
                 )
                 gridbox_mean_s = np.mean(
                     (subset_arr_this_model_mean - warmest_composite)[
-                        lat1_idx_s:lat2_idx_s + 1, lon1_idx_s:lon2_idx_s + 1
+                        lat1_idx_s : lat2_idx_s + 1, lon1_idx_s : lon2_idx_s + 1
                     ]
                 )
 
@@ -4647,7 +4659,7 @@ def plot_temp_quartiles(
                 # Calculate the mean in the gridbox
                 gridbox_mean = np.mean(
                     (subset_arr_this_model_mean - warmest_composite)[
-                        lat1_idx:lat2_idx + 1, lon1_idx:lon2_idx + 1
+                        lat1_idx : lat2_idx + 1, lon1_idx : lon2_idx + 1
                     ]
                 )
 
@@ -4716,7 +4728,9 @@ def plot_temp_quartiles(
         if i == 0:
             # Set up the titles for the left and right columns
             left_col_full.set_title("Full field", fontsize=12, fontweight="bold")
-            right_col_diff.set_title("Difference from warmest quartile", fontsize=12, fontweight="bold")
+            right_col_diff.set_title(
+                "Difference from warmest quartile", fontsize=12, fontweight="bold"
+            )
 
     return None
 
@@ -5113,6 +5127,638 @@ def plot_var_composites_model(
     return None
 
 
+# Define a function for plotting the temp/demand quartiles for the obs
+def plot_temp_demand_quartiles_obs(
+    subset_df_obs: pd.DataFrame,
+    quartiles_var_name: str,
+    quartiles: List[Tuple[float, float]],
+    subset_arr_obs: np.ndarray,
+    dates_list_obs: List[str],
+    var_name: str,
+    lats_path: str,
+    lons_path: str,
+    figsize: Tuple[int, int] = (10, 6),
+    anoms_flag: bool = False,
+    clim_arr_obs: np.ndarray = None,
+    gridbox: Optional[Dict[str, float]] = None,
+):
+    """
+    Plots subplots for the composites of different quartiles of a variable.
+    E.g., could be decreasing temperature or increasing electricity demand.
+
+    Args:
+    =====
+
+        subset_df_obs (pd.DataFrame): The subset dataframe for the observations.
+        quartiles_var_name (str): The variable name for the quartiles.
+        quartiles (List[Tuple[float, float]]): The list of quartiles to plot.
+        subset_arr_obs (np.ndarray): The subset array for the observations.
+        dates_list_obs (List[str]): The list of dates for the observations.
+        var_name (str): The name of the variable to plot.
+        lats_path (str): The path to the latitude file.
+        lons_path (str): The path to the longitude file.
+        figsize (Tuple[int, int]): The figure size.
+        anoms_flag (bool): Whether to calculate anomalies or not.
+        clim_arr_obs (np.ndarray): The climatology array for the observations.
+        gridbox (Optional[Dict[str, float]]): The gridbox to plot.
+
+    Returns:
+    ========
+
+        None
+
+    """
+
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # if the anoms flag is true
+    if anoms_flag:
+        # Load the anomalies
+        climatology_arr = clim_arr_obs
+        if var_name in ["tas", "psl"]:
+            # Set up the levels
+            cmap = "coolwarm"
+            levels = np.array(
+                [
+                    -12,
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                ]
+            )
+        elif var_name in ["uas", "vas", "sfcWind"]:
+            if var_name in ["uas", "sfcWind"]:
+                cmap = "PRGn"
+            else:
+                cmap = "BrBG"
+            levels = np.array(
+                [
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                ]
+            )
+        else:
+            raise ValueError(
+                f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+            )
+
+    else:
+        if var_name == "tas":
+            # Set up the cmap
+            cmap = "bwr"
+
+            # Sert up the levels
+            levels = np.array(
+                [
+                    1004,
+                    1006,
+                    1008,
+                    1010,
+                    1012,
+                    1014,
+                    1016,
+                    1018,
+                    1020,
+                    1022,
+                    1024,
+                    1026,
+                ]
+            )
+        elif var_name in ["uas", "vas", "sfcWind"]:
+            if var_name in ["uas", "sfcWind"]:
+                cmap = "BuGn"
+            else:
+                cmap = "BrBG"
+            levels = np.array(
+                [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                ]
+            )
+        else:
+            raise ValueError(
+                f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+            )
+
+    # every other tick
+    levels_ticks = np.arange(
+        np.min(levels),
+        np.max(levels) + 1,
+        2,
+    )
+
+    if var_name in ["psl", "tas"]:
+        levels_diff = np.array(
+            [
+                -4,
+                -3,
+                -2,
+                -1,
+                1,
+                2,
+                3,
+                4,
+            ]
+        )
+    elif var_name in ["uas", "vas", "sfcWind"]:
+        levels_diff = np.array(
+            [
+                -0.5,
+                -0.45,
+                -0.4,
+                -0.35,
+                -0.3,
+                -0.25,
+                -0.2,
+                -0.15,
+                -0.1,
+                -0.05,
+                0.05,
+                0.10,
+                0.15,
+                0.20,
+                0.25,
+                0.30,
+                0.35,
+                0.40,
+                0.45,
+                0.50,
+            ]
+        )
+
+        # set up the ticks
+        levels_diff_ticks = np.arange(
+            np.min(levels_diff),
+            np.max(levels_diff) + 1,
+            0.1,
+        )
+    else:
+        raise ValueError(
+            f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+        )
+
+    nrows = len(quartiles)
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        ncols=2,
+        nrows=nrows,
+        figsize=figsize,
+        layout="constrained",
+        subplot_kw={"projection": ccrs.PlateCarree()},
+    )
+
+    # Dynamically set up the axes in rows
+    axes_rows = [[axs[i, 0], axs[i, 1]] for i in range(nrows)]
+
+    # Loop over the axes rows
+    for i, (left_col_full, right_col_diff) in enumerate(axes_rows):
+        # Set up a copy of the obs arr here
+        subset_arr_this_obs = subset_arr_obs.copy()
+
+        # extract the highest value of the quartiles as the upper bound
+        quartiles_this = quartiles[i]
+
+        # Set up the upper and lower quartile
+        # Dynamically set up the upper and lower quartile
+        upper_quartile = max(quartiles_this)  # Largest value in the tuple
+        lower_quartile = min(quartiles_this)
+
+        # Quantify the lower and upper bouns of the quartile
+        lower_bound_this = np.quantile(
+            subset_df_obs[quartiles_var_name].values,
+            lower_quartile,
+        )
+        upper_bound_this = np.quantile(
+            subset_df_obs[quartiles_var_name].values,
+            upper_quartile,
+        )
+
+        # Set up the subset df for this quartile
+        subset_df_obs_this_quartile = subset_df_obs[
+            (subset_df_obs[quartiles_var_name] >= lower_bound_this)
+            & (subset_df_obs[quartiles_var_name] < upper_bound_this)
+        ].copy()
+
+        # Set up the array to store the values
+        subset_arr_this_obs_full = np.zeros(
+            (
+                len(subset_df_obs_this_quartile),
+                subset_arr_this_obs.shape[1],
+                subset_arr_this_obs.shape[2],
+            )
+        )
+
+        # Extract the dates for this subset
+        dates_obs_this_quartile = subset_df_obs_this_quartile["time"].values
+
+        # Formate these as datetimes
+        dates_obs_this_quartile_dt = [
+            datetime.strptime(date, "%Y-%m-%d") for date in dates_obs_this_quartile
+        ]
+
+        # If var_name is psl
+        if var_name == "psl":
+            subset_dates_cf = []
+            # format the subset dates to extract
+            for date in dates_obs_this_quartile_dt:
+                date_this_cf = cftime.DatetimeGregorian(
+                    date.year, date.month, date.day, hour=11, calendar="gregorian"
+                )
+                subset_dates_cf.append(date_this_cf)
+        elif var_name == "tas":
+            # format the subset dates
+            subset_dates_cf = []
+            # format the subset dates to extract
+            for date in dates_obs_this_quartile_dt:
+                date_this_cf = cftime.DatetimeProlepticGregorian(
+                    date.year,
+                    date.month,
+                    date.day,
+                    hour=0,
+                    calendar="proleptic_gregorian",
+                )
+                subset_dates_cf.append(date_this_cf)
+        elif var_name in ["uas", "vas", "sfcWind"]:
+            # format the subset dates
+            subset_dates_cf = []
+            # format the subset dates to extract
+            for date in dates_obs_this_quartile_dt:
+                date_this_cf = cftime.DatetimeProlepticGregorian(
+                    date.year,
+                    date.month,
+                    date.day,
+                    hour=0,
+                    calendar="proleptic_gregorian",
+                )
+                subset_dates_cf.append(date_this_cf)
+        else:
+            raise ValueError(
+                f"Variable name {var_name} not recognised. Must be tas, uas or vas."
+            )
+
+        # Set up an empty list for the indices of these dates
+        indices_dates_obs_this_quartile = []
+
+        # Loop over the dates in the subset dates
+        for date_this in subset_dates_cf:
+            index_this = np.where(np.array(dates_list_obs) == date_this)[0][0]
+            indices_dates_obs_this_quartile.append(index_this)
+
+        # Apply these indices to the subset_arr_this_obs
+        subset_arr_this_obs_quartile = subset_arr_this_obs[
+            indices_dates_obs_this_quartile, :, :
+        ]
+
+        # Get the N obs this
+        N_obs_this = subset_arr_this_obs_quartile.shape[0]
+
+        # Take the mean of this
+        subset_arr_this_obs_mean = np.mean(subset_arr_this_obs_quartile, axis=0)
+
+        # if the anoms flag is true
+        if anoms_flag:
+            # Calculate the anomalies
+            subset_arr_this_obs_mean = subset_arr_this_obs_mean - clim_arr_obs
+
+        # if the var names is psl
+        if var_name == "psl":
+            # Convert the psl to hPa
+            subset_arr_this_obs_mean = subset_arr_this_obs_mean / 100.0
+
+        # if i == 0, then set up the warmest composite
+        if i == 0:
+            diff_composite = subset_arr_this_obs_mean
+
+        # Plot the full field on the left
+        im_full = left_col_full.contourf(
+            lons,
+            lats,
+            subset_arr_this_obs_mean,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            levels=levels,
+            extend="both",
+        )
+
+        # if gridbox is not none
+        if gridbox is not None:
+            # if there is more than one gridbox
+            if isinstance(gridbox, list):
+                print("Calculating difference in gridbox fields")
+
+                # Hard code the n_box and south box for delta P
+                n_box = dicts.uk_n_box_corrected
+                s_box = dicts.uk_s_box_corrected
+
+                # Extract the n_box lats and lons
+                lat1_box_n, lat2_box_n = n_box["lat1"], n_box["lat2"]
+                lon1_box_n, lon2_box_n = n_box["lon1"], n_box["lon2"]
+
+                # Extract the s_box lats and lons
+                lat1_box_s, lat2_box_s = s_box["lat1"], s_box["lat2"]
+                lon1_box_s, lon2_box_s = s_box["lon1"], s_box["lon2"]
+
+                # Find the indices of the lats which correspond to the gridbox
+                lat1_idx_n = np.argmin(np.abs(lats - lat1_box_n))
+                lat2_idx_n = np.argmin(np.abs(lats - lat2_box_n))
+
+                # Find the indices of the lons which correspond to the gridbox
+                lon1_idx_n = np.argmin(np.abs(lons - lon1_box_n))
+                lon2_idx_n = np.argmin(np.abs(lons - lon2_box_n))
+
+                # Find the indices of the lats which correspond to the gridbox
+                lat1_idx_s = np.argmin(np.abs(lats - lat1_box_s))
+                lat2_idx_s = np.argmin(np.abs(lats - lat2_box_s))
+
+                # Find the indices of the lons which correspond to the gridbox
+                lon1_idx_s = np.argmin(np.abs(lons - lon1_box_s))
+                lon2_idx_s = np.argmin(np.abs(lons - lon2_box_s))
+
+                # Add the gridbox to the plot
+                left_col_full.plot(
+                    [lon1_box_n, lon2_box_n, lon2_box_n, lon1_box_n, lon1_box_n],
+                    [lat1_box_n, lat1_box_n, lat2_box_n, lat2_box_n, lat1_box_n],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Add the gridbox to the plot
+                left_col_full.plot(
+                    [lon1_box_s, lon2_box_s, lon2_box_s, lon1_box_s, lon1_box_s],
+                    [lat1_box_s, lat1_box_s, lat2_box_s, lat2_box_s, lat1_box_s],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Calculate the mean in the gridbox
+                gridbox_mean_n = np.mean(
+                    subset_arr_this_obs_mean[
+                        lat1_idx_n : lat2_idx_n + 1, lon1_idx_n : lon2_idx_n + 1
+                    ]
+                )
+
+                gridbox_mean_s = np.mean(
+                    subset_arr_this_obs_mean[
+                        lat1_idx_s : lat2_idx_s + 1, lon1_idx_s : lon2_idx_s + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                left_col_full.text(
+                    0.05,
+                    0.95,
+                    f"delta P = {gridbox_mean_n - gridbox_mean_s:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=left_col_full.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+            else:
+                print("Calculating absolute value in gridbox")
+
+                # Extract the lons and lats from the gridbox
+                lat1_box, lat2_box = gridbox["lat1"], gridbox["lat2"]
+                lon1_box, lon2_box = gridbox["lon1"], gridbox["lon2"]
+
+                # Find the indices of the lats which correspond to the gridbox
+                lat1_idx = np.argmin(np.abs(lats - lat1_box))
+                lat2_idx = np.argmin(np.abs(lats - lat2_box))
+
+                # Find the indices of the lons which correspond to the gridbox
+                lon1_idx = np.argmin(np.abs(lons - lon1_box))
+                lon2_idx = np.argmin(np.abs(lons - lon2_box))
+
+                # Add the gridbox to the plot
+                left_col_full.plot(
+                    [lon1_box, lon2_box, lon2_box, lon1_box, lon1_box],
+                    [lat1_box, lat1_box, lat2_box, lat2_box, lat1_box],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Calculate the mean in the gridbox
+                gridbox_mean = np.mean(
+                    subset_arr_this_obs_mean[
+                        lat1_idx : lat2_idx + 1, lon1_idx : lon2_idx + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                left_col_full.text(
+                    0.05,
+                    0.95,
+                    f"Gridbox mean = {gridbox_mean:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=left_col_full.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+
+        # add coastlines to the left plot
+        left_col_full.coastlines()
+
+        # Include a textbox in the bottom right for N
+        left_col_full.text(
+            0.95,  # x-coordinate (right edge)
+            0.05,  # y-coordinate (bottom edge)
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=left_col_full.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Include the qunatile range in a textbox in the bottom left
+        left_col_full.text(
+            0.05,
+            0.05,
+            f"{lower_quartile:.2f} - {upper_quartile:.2f}",
+            horizontalalignment="left",
+            verticalalignment="bottom",
+            transform=left_col_full.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Plot the difference on the right
+        im_diff = right_col_diff.contourf(
+            lons,
+            lats,
+            (subset_arr_this_obs_mean - diff_composite),
+            cmap="PRGn",
+            transform=ccrs.PlateCarree(),
+            levels=levels_diff,
+            extend="both",
+        )
+
+        # if the gridbox is not none
+        if gridbox is not None:
+            if isinstance(gridbox, list):
+                # Calculate the difference in the gridbox fields
+                print("Calculating difference in gridbox fields")
+
+                # subset the gridbox
+                gridbox_mean_n = np.mean(
+                    (subset_arr_this_obs_mean - diff_composite)[
+                        lat1_idx_n : lat2_idx_n + 1, lon1_idx_n : lon2_idx_n + 1
+                    ]
+                )
+                gridbox_mean_s = np.mean(
+                    (subset_arr_this_obs_mean - diff_composite)[
+                        lat1_idx_s : lat2_idx_s + 1, lon1_idx_s : lon2_idx_s + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                right_col_diff.text(
+                    0.05,
+                    0.95,
+                    f"delta P = {gridbox_mean_n - gridbox_mean_s:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=right_col_diff.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+
+                # plot the gridboxes
+                right_col_diff.plot(
+                    [lon1_box_n, lon2_box_n, lon2_box_n, lon1_box_n, lon1_box_n],
+                    [lat1_box_n, lat1_box_n, lat2_box_n, lat2_box_n, lat1_box_n],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                right_col_diff.plot(
+                    [lon1_box_s, lon2_box_s, lon2_box_s, lon1_box_s, lon1_box_s],
+                    [lat1_box_s, lat1_box_s, lat2_box_s, lat2_box_s, lat1_box_s],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+            else:
+                # Add the gridbox to the plot
+                right_col_diff.plot(
+                    [lon1_box, lon2_box, lon2_box, lon1_box, lon1_box],
+                    [lat1_box, lat1_box, lat2_box, lat2_box, lat1_box],
+                    color="green",
+                    linewidth=2,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                # Calculate the mean in the gridbox
+                gridbox_mean = np.mean(
+                    (subset_arr_this_obs_mean - diff_composite)[
+                        lat1_idx : lat2_idx + 1, lon1_idx : lon2_idx + 1
+                    ]
+                )
+
+                # Include a textbox in the top left for the gridbox mean
+                # to two S.F.
+                right_col_diff.text(
+                    0.05,
+                    0.95,
+                    f"Gridbox mean = {gridbox_mean:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=right_col_diff.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+
+        # add coastlines to the right plot
+        right_col_diff.coastlines()
+
+        # Include a textbox in the bottom right for N
+        right_col_diff.text(
+            0.95,  # x-coordinate (right edge)
+            0.05,  # y-coordinate (bottom edge)
+            f"N = {N_obs_this}",
+            horizontalalignment="right",
+            verticalalignment="bottom",
+            transform=right_col_diff.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # Include the quantile range in a textbox in the bottom left
+        right_col_diff.text(
+            0.05,
+            0.05,
+            f"{lower_quartile:.2f} - {upper_quartile:.2f}",
+            horizontalalignment="left",
+            verticalalignment="bottom",
+            transform=right_col_diff.transAxes,
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.5),
+        )
+
+        # if i is the final index of nrows, then set up the cbars
+        if i == nrows - 1:
+            cbar_full = fig.colorbar(
+                im_full,
+                ax=left_col_full,
+                orientation="horizontal",
+                pad=0.05,
+                shrink=0.8,
+            )
+
+            cbar_full.set_ticks(levels_ticks)
+
+            cbar_diff = fig.colorbar(
+                im_diff,
+                ax=right_col_diff,
+                orientation="horizontal",
+                pad=0.05,
+                shrink=0.8,
+            )
+
+            cbar_diff.set_ticks(levels_diff)
+
+        if i == 0:
+            # Set up the titles for the left and right columns
+            left_col_full.set_title("Full field", fontsize=12, fontweight="bold")
+            right_col_diff.set_title(
+                "Difference from warmest quartile", fontsize=12, fontweight="bold"
+            )
+
+    return None
+
+
 # Define the main function
 def main():
     start_time = time.time()
@@ -5128,8 +5774,12 @@ def main():
     arrs_persist_dir = "/home/users/benhutch/unseen_multi_year/data"
     subset_model_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
     model_clim_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_clim/"
-    obs_df_high_demand_path = "/home/users/benhutch/unseen_multi_year/dfs/df_obs_high_demand_2025-05-28.csv"
-    obs_df_low_temp_path = "/home/users/benhutch/unseen_multi_year/dfs/df_obs_low_temp_2025-05-28.csv"
+    obs_df_high_demand_path = (
+        "/home/users/benhutch/unseen_multi_year/dfs/df_obs_high_demand_2025-05-28.csv"
+    )
+    obs_df_low_temp_path = (
+        "/home/users/benhutch/unseen_multi_year/dfs/df_obs_low_temp_2025-05-28.csv"
+    )
 
     season = "DJF"
     time_freq = "day"
@@ -5158,7 +5808,7 @@ def main():
         higher_wind_df = pd.read_csv(higher_wind_path)
     else:
         raise FileNotFoundError(f"File {higher_wind_path} does not exist")
-    
+
     # if the high demand path exists then load the data
     if os.path.exists(obs_df_high_demand_path):
         obs_df_high_demand = pd.read_csv(obs_df_high_demand_path)
@@ -5171,7 +5821,7 @@ def main():
             obs_df_high_demand.rename(columns={"Unnamed: 0": "time"}, inplace=True)
     else:
         raise FileNotFoundError(f"File {obs_df_high_demand_path} does not exist")
-    
+
     # if the low temp path exists then load the data
     if os.path.exists(obs_df_low_temp_path):
         obs_df_low_temp = pd.read_csv(obs_df_low_temp_path)
@@ -5184,7 +5834,7 @@ def main():
             obs_df_low_temp.rename(columns={"Unnamed: 0": "time"}, inplace=True)
     else:
         raise FileNotFoundError(f"File {obs_df_low_temp_path} does not exist")
-    
+
     # print the head of df)obs) high demand
     print("Head of obs df high demand:")
     print(obs_df_high_demand.head())
@@ -5192,7 +5842,7 @@ def main():
     # print the head of df)obs) low temp
     print("Head of obs df low temp:")
     print(obs_df_low_temp.head())
-    
+
     # Check tyhe relationships of the dataframes
     pdg_funcs.plot_multi_var_perc(
         obs_df=low_wind_df,
@@ -5421,7 +6071,7 @@ def main():
     # print the values of psl dates list
     print(f"PSL dates list: {obs_psl_dates_list}")
 
-    sys.exit()
+    # sys.exit()
 
     # load the temperature data
     obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
@@ -5650,13 +6300,15 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)} does not exist."
         )
-    
+
     # load the model higher wind psl subset
     model_higher_wind_psl_subset = np.load(
         os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
     )
     # print the shape of the model higher wind psl subset
-    print(f"Shape of model higher wind psl subset: {model_higher_wind_psl_subset.shape}")
+    print(
+        f"Shape of model higher wind psl subset: {model_higher_wind_psl_subset.shape}"
+    )
 
     # if the json does not exist
     if not os.path.exists(
@@ -5665,7 +6317,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)} does not exist."
         )
-    
+
     # load the json file
     with open(
         os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname), "r"
@@ -5678,7 +6330,9 @@ def main():
     model_low_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
 
     # Fnames for low wind vas
-    model_low_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-23.npy"
+    model_low_wind_vas_subset_fname = (
+        "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-23.npy"
+    )
     model_low_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-23.json"
 
     # Fnames for high wind uas
@@ -5689,19 +6343,11 @@ def main():
     model_higher_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
     model_higher_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
 
-    model_lower_wind_sfcWind_subset_fname = (
-        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
-    )
-    model_lower_wind_sfcWind_subset_json_fname = (
-        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
-    )
+    model_lower_wind_sfcWind_subset_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
+    model_lower_wind_sfcWind_subset_json_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
 
-    model_higher_wind_sfcWind_subset_fname = (
-        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
-    )
-    model_higher_wind_sfcWind_subset_json_fname = (
-        "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
-    )
+    model_higher_wind_sfcWind_subset_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    model_higher_wind_sfcWind_subset_json_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
 
     # if the model subset file does not exist
     if not os.path.exists(
@@ -5737,7 +6383,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)} does not exist."
         )
-    
+
     # load the model low wind vas subset
     model_low_wind_vas_subset = np.load(
         os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
@@ -5791,7 +6437,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)} does not exist."
         )
-    
+
     # load the model higher wind vas subset
     model_higher_wind_vas_subset = np.load(
         os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
@@ -5804,7 +6450,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)} does not exist."
         )
-    
+
     # load the json file
     with open(
         os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname), "r"
@@ -5845,7 +6491,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)} does not exist."
         )
-    
+
     # load the model higher wind sfcWind subset
     model_higher_wind_sfcWind_subset = np.load(
         os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
@@ -5858,7 +6504,7 @@ def main():
         raise FileNotFoundError(
             f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)} does not exist."
         )
-    
+
     # load the json file
     with open(
         os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname), "r"
@@ -5981,47 +6627,144 @@ def main():
 
     # plot the composites
     # plot the composites f`or all of the winter days
-    # plot_composites(
-    #     subset_df=obs_df_subset_yellow,
-    #     subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-    #     dates_lists=[
-    #         obs_psl_dates_list,
-    #         obs_temp_dates_list,
-    #         obs_wind_dates_list,
-    #     ],
-    #     variables=["psl", "tas", "sfcWind"],
-    #     lats_paths=[
-    #         os.path.join(
-    #             metadata_dir,
-    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-    #         ),
-    #         os.path.join(
-    #             metadata_dir,
-    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-    #         ),
-    #         os.path.join(
-    #             metadata_dir,
-    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-    #         ),
-    #     ],
-    #     lons_paths=[
-    #         os.path.join(
-    #             metadata_dir,
-    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-    #         ),
-    #         os.path.join(
-    #             metadata_dir,
-    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-    #         ),
-    #         os.path.join(
-    #             metadata_dir,
-    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-    #         ),
-    #     ],
-    #     suptitle="All obs DnW max",
-    #     figsize=(12, 6),
-    # )
+    plot_composites(
+        subset_df=obs_df_high_demand,
+        subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        dates_lists=[
+            obs_psl_dates_list,
+            obs_temp_dates_list,
+            obs_wind_dates_list,
+        ],
+        variables=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+            ),
+            os.path.join(
+                metadata_dir,
+                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+            ),
+        ],
+        suptitle="All obs high demand",
+        figsize=(12, 6),
+    )
+
+    # Set up the subset dfs model
+    subset_dfs_model = [
+        model_df_subset_grey,
+        model_df_subset_yellow,
+        model_df_subset_red,
+    ]
+
+    # Set up the subset arrs model
+    subset_arrs_model = [
+        model_psl_subset,
+        model_psl_subset,
+        model_psl_subset,
+    ]
+
+    # Set up the clim arrs model
+    clim_arrs_model = [
+        model_psl_clim,
+        model_psl_clim,
+        model_psl_clim,
+    ]
+
+    # set up zeros like model psl clim
+    model_psl_clim_zeros = np.zeros_like(model_psl_clim)
+
+    clim_arrs_model_zeros = [
+        model_psl_clim_zeros,
+        model_psl_clim_zeros,
+        model_psl_clim_zeros,
+    ]
+
+    # Set up zeros like obs psl clim
+    obs_psl_clim_zeros = np.zeros_like(obs_psl_clim)
+
+    clim_arrs_obs_zeros = [
+        obs_psl_clim_zeros,
+        obs_psl_clim_zeros,
+        obs_psl_clim_zeros,
+    ]
+
+    # Set up the clim arrs obs
+    clim_arrs_obs = [
+        obs_psl_clim,
+        obs_psl_clim,
+        obs_psl_clim,
+    ]
+
+    # Set up the dates lists obs
+    dates_lists_obs = [
+        obs_psl_dates_list,
+        obs_psl_dates_list,
+        obs_psl_dates_list,
+    ]
+
+    # Set up the model index dicts
+    model_index_dicts = [
+        model_psl_subset_index_list,
+        model_psl_subset_index_list,
+        model_psl_subset_index_list,
+    ]
+
+    # Set up the lats path
+    lats_paths = [
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+    ]
+
+    # Set up the lons path
+    lons_paths = [
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+    ]
+
+    # Set up the suptitle
+    suptitle = (
+        "ERA5 and HadGEM3-GC31-MM DnW max MSLP anoms, relative to 1960-2018 climatology"
+    )
+
+    # # Now test the new function
+    plot_mslp_composites(
+        subset_dfs_obs=[obs_df_high_demand, obs_df_high_demand, obs_df_high_demand],
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_obs=[obs_psl_subset, obs_psl_subset, obs_psl_subset],
+        subset_arrs_model=subset_arrs_model,
+        clim_arrs_obs=clim_arrs_obs_zeros,
+        clim_arrs_model=clim_arrs_model_zeros,
+        dates_lists_obs=dates_lists_obs,
+        model_index_dicts=model_index_dicts,
+        lats_paths=lats_paths,
+        lons_paths=lons_paths,
+        suptitle=suptitle,
+        figsize=(8, 9),
+    )
+
+    sys.exit()
 
     # # plot the composite
     # # plot the composites for all of the winter days
@@ -6299,20 +7042,22 @@ def main():
     figsize = (12, 6)
 
     # # Now test the new function
-    # plot_mslp_composites(
-    #     subset_dfs_obs=subset_dfs_obs,
-    #     subset_dfs_model=subset_dfs_model,
-    #     subset_arrs_obs=subset_arrs_obs,
-    #     subset_arrs_model=subset_arrs_model,
-    #     clim_arrs_obs=clim_arrs_obs,
-    #     clim_arrs_model=clim_arrs_model,
-    #     dates_lists_obs=dates_lists_obs,
-    #     model_index_dicts=model_index_dicts,
-    #     lats_paths=lats_paths,
-    #     lons_paths=lons_paths,
-    #     suptitle=suptitle,
-    #     figsize=(8, 9),
-    # )
+    plot_mslp_composites(
+        subset_dfs_obs=subset_dfs_obs,
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_obs=subset_arrs_obs,
+        subset_arrs_model=subset_arrs_model,
+        clim_arrs_obs=clim_arrs_obs,
+        clim_arrs_model=clim_arrs_model,
+        dates_lists_obs=dates_lists_obs,
+        model_index_dicts=model_index_dicts,
+        lats_paths=lats_paths,
+        lons_paths=lons_paths,
+        suptitle=suptitle,
+        figsize=(8, 9),
+    )
+
+    sys.exit()
 
     # # plot the wind composites
     # plot_wind_composites(
@@ -6381,7 +7126,7 @@ def main():
         gridbox=[
             dicts.uk_n_box_corrected,
             dicts.uk_s_box_corrected,
-        ]
+        ],
     )
 
     # do the same for the higher wind
@@ -6399,7 +7144,7 @@ def main():
         gridbox=[
             dicts.uk_n_box_corrected,
             dicts.uk_s_box_corrected,
-        ]
+        ],
     )
 
     # sys.exit()
