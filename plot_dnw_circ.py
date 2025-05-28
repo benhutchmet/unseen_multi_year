@@ -5169,6 +5169,9 @@ def plot_temp_demand_quartiles_obs(
 
     """
 
+    # Print the columns of the subset df obs
+    print(f"Columns of subset df obs: {subset_df_obs.columns.tolist()}")
+
     # Load the lats and lons
     lats = np.load(lats_path)
     lons = np.load(lons_path)
@@ -5219,7 +5222,7 @@ def plot_temp_demand_quartiles_obs(
             )
 
     else:
-        if var_name == "tas":
+        if var_name in ["psl"]:
             # Set up the cmap
             cmap = "bwr"
 
@@ -5951,6 +5954,7 @@ def main():
     # NOTE: Hardcode the current date for now
     # current_date = "2025-05-08"
     current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = f"{current_date}_cold_temps"
 
     # Set up fnames for the psl data
     psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
@@ -5981,7 +5985,7 @@ def main():
     ) and not os.path.exists(os.path.join(arrs_persist_dir, psl_times_fname)):
         # Call the function to load the obs data
         psl_subset, psl_dates_list = extract_obs_data(
-            obs_df=obs_df_high_demand,
+            obs_df=obs_df_low_temp,
             variable="psl",
             region="NA",
             time_freq=time_freq,
@@ -6008,7 +6012,7 @@ def main():
     ) and not os.path.exists(os.path.join(arrs_persist_dir, temp_times_fname)):
         # Call the function to load the obs data
         temp_subset, temp_dates_list = extract_obs_data(
-            obs_df=obs_df_high_demand,
+            obs_df=obs_df_low_temp,
             variable="tas",
             region="Europe",
             time_freq=time_freq,
@@ -6035,7 +6039,7 @@ def main():
     ) and not os.path.exists(os.path.join(arrs_persist_dir, wind_times_fname)):
         # Call the function to load the obs data
         wind_subset, wind_dates_list = extract_obs_data(
-            obs_df=obs_df_high_demand,
+            obs_df=obs_df_low_temp,
             variable="sfcWind",
             region="Europe",
             time_freq=time_freq,
@@ -6628,7 +6632,7 @@ def main():
     # plot the composites
     # plot the composites f`or all of the winter days
     plot_composites(
-        subset_df=obs_df_high_demand,
+        subset_df=obs_df_low_temp,
         subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
         clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
         dates_lists=[
@@ -6665,7 +6669,7 @@ def main():
                 "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
             ),
         ],
-        suptitle="All obs high demand",
+        suptitle="All obs low temp",
         figsize=(12, 6),
     )
 
@@ -6750,7 +6754,7 @@ def main():
 
     # # Now test the new function
     plot_mslp_composites(
-        subset_dfs_obs=[obs_df_high_demand, obs_df_high_demand, obs_df_high_demand],
+        subset_dfs_obs=[obs_df_low_temp, obs_df_low_temp, obs_df_low_temp],
         subset_dfs_model=subset_dfs_model,
         subset_arrs_obs=[obs_psl_subset, obs_psl_subset, obs_psl_subset],
         subset_arrs_model=subset_arrs_model,
@@ -6763,6 +6767,87 @@ def main():
         suptitle=suptitle,
         figsize=(8, 9),
     )
+
+    # print the columsn in obs_df_high_demand
+    print(f"Columns in obs_df_high_demand: {obs_df_low_temp.columns}")
+
+    # Now test the new function
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_low_temp,
+        quartiles_var_name="data_tas_c",
+        quartiles=[
+            (0.75, 1.0),
+            (0.5, 0.75),
+            (0.25, 0.5),
+            (0, 0.25),
+        ],
+        subset_arr_obs=obs_psl_subset,
+        dates_list_obs= obs_psl_dates_list,
+        var_name="psl",
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        figsize=(10, 10),
+        anoms_flag=False,
+        clim_arr_obs=None,
+        gridbox=[
+            dicts.uk_n_box_corrected,
+            dicts.uk_s_box_corrected,
+        ],
+    )
+
+    lats_europe_tas = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    )
+    lons_europe_tas = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    )
+
+    # Do the same for temperature anoms
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_low_temp,
+        quartiles_var_name="data_tas_c",
+        quartiles=[
+            (0.75, 1.0),
+            (0.5, 0.75),
+            (0.25, 0.5),
+            (0, 0.25),
+        ],
+        subset_arr_obs=obs_temp_subset,
+        dates_list_obs= obs_temp_dates_list,
+        var_name="tas",
+        lats_path=lats_europe_tas,
+        lons_path= lons_europe_tas,
+        figsize=(6, 10),
+        anoms_flag=True,
+        clim_arr_obs=obs_tas_clim,
+        gridbox=dicts.wind_gridbox,
+    )
+
+    # DO the same for wind anoms
+    plot_temp_demand_quartiles_obs(
+        subset_df_obs=obs_df_low_temp,
+        quartiles_var_name="data_tas_c",
+        quartiles=[
+            (0.75, 1.0),
+            (0.5, 0.75),
+            (0.25, 0.5),
+            (0, 0.25),
+        ],
+        subset_arr_obs=obs_wind_subset,
+        dates_list_obs= obs_wind_dates_list,
+        var_name="sfcWind",
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+        ),
+        figsize=(6, 10),
+        anoms_flag=True,
+        clim_arr_obs=obs_wind_clim,
+        gridbox=dicts.wind_gridbox,
+    )
+
 
     sys.exit()
 
