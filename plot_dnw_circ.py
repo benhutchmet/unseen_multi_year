@@ -4446,8 +4446,8 @@ def plot_temp_quartiles(
                 print("Calculating difference in gridbox fields")
 
                 # Hard code the n_box and south box for delta P
-                n_box = dicts.uk_n_box_corrected
-                s_box = dicts.uk_s_box_corrected
+                n_box = gridbox[0]
+                s_box = gridbox[1]
 
                 # Extract the n_box lats and lons
                 lat1_box_n, lat2_box_n = n_box["lat1"], n_box["lat2"]
@@ -5658,8 +5658,9 @@ def plot_temp_demand_quartiles_obs(
                 # Hard code the n_box and south box for delta P
                 # n_box = dicts.uk_n_box_corrected
                 # s_box = dicts.uk_s_box_corrected
-                n_box = dicts.azores_grid_corrected
-                s_box = dicts.iceland_grid_corrected
+                # extract the lat 1 from the two gridboxes
+                n_box = gridbox[0]
+                s_box = gridbox[1]
 
                 # Extract the n_box lats and lons
                 lat1_box_n, lat2_box_n = n_box["lat1"], n_box["lat2"]
@@ -6167,8 +6168,9 @@ def main():
     # extract the current date
     # NOTE: Hardcode the current date for now
     # current_date = "2025-05-08"
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    current_date = f"{current_date}_cold_temps"
+    # current_date = datetime.now().strftime("%Y-%m-%d")
+    # current_date = f"{current_date}_cold_temps"
+    current_date= "2025-05-28_cold_temps"
 
     # Set up fnames for the psl data
     psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
@@ -7010,11 +7012,11 @@ def main():
         lats_path=lats_paths[0],
         lons_path=lons_paths[0],
         figsize=(8, 10),
-        anoms_flag=True,
-        clim_arr_obs= obs_psl_clim,
+        anoms_flag=False,
+        clim_arr_obs=None,
         gridbox=[
-            dicts.azores_grid_corrected,
-            dicts.iceland_grid_corrected,
+            dicts.uk_n_box_tight,
+            dicts.uk_s_box_tight,
         ],
     )
 
@@ -7053,11 +7055,11 @@ def main():
         lats_path=lats_paths[0],
         lons_path=lons_paths[0],
         figsize=(8, 10),
-        anoms_flag=True,
-        clim_arr_obs=obs_psl_clim,
+        anoms_flag=False,
+        clim_arr_obs=None,
         gridbox=[
-            dicts.azores_grid_corrected,
-            dicts.iceland_grid_corrected,
+            dicts.uk_n_box_tight,
+            dicts.uk_s_box_tight,
         ],
     )
 
@@ -7081,7 +7083,7 @@ def main():
     #     gridbox=dicts.uk_s_box_corrected,
     # )
 
-    sys.exit()
+    # sys.exit()
 
     lats_europe_tas = os.path.join(
         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
@@ -7108,7 +7110,7 @@ def main():
         figsize=(6, 10),
         anoms_flag=True,
         clim_arr_obs=obs_tas_clim,
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_south,
     )
 
     # DO the same for wind anoms
@@ -7133,42 +7135,42 @@ def main():
         figsize=(6, 10),
         anoms_flag=True,
         clim_arr_obs=obs_wind_clim,
-        gridbox=dicts.wind_gridbox,
+        gridbox=dicts.wind_gridbox_south,
     )
 
-    # Plot the differences for psl
-    plot_temp_demand_quartiles_obs(
-        subset_df_obs=obs_df_high_demand,
-        quartiles_var_name="elec_demand_5yrRmean_nohols",
-        quartiles=[
-            (0.0, 0.25),
-            (0.25, 0.5),
-            (0.5, 0.75),
-            (0.75, 1.0),
-        ],
-        subset_arr_obs=obs_psl_subset_high_demand,
-        dates_list_obs=obs_psl_dates_list_high_demand,
-        var_name="psl",
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        figsize=(10, 10),
-        anoms_flag=False,
-        clim_arr_obs=None,
-        gridbox=[
-            dicts.uk_n_box_corrected,
-            dicts.uk_s_box_corrected,
-        ],
-        second_subset_df_obs=obs_df_low_temp,
-        second_quartiles_var_name="data_tas_c",
-        second_subset_arr_obs=obs_psl_subset,
-        second_dates_list_obs=obs_psl_dates_list,
-        second_quartiles=[
-            (0.75, 1.0),
-            (0.5, 0.75),
-            (0.25, 0.5),
-            (0, 0.25),
-        ],
-    )
+    # # Plot the differences for psl
+    # plot_temp_demand_quartiles_obs(
+    #     subset_df_obs=obs_df_high_demand,
+    #     quartiles_var_name="elec_demand_5yrRmean_nohols",
+    #     quartiles=[
+    #         (0.0, 0.25),
+    #         (0.25, 0.5),
+    #         (0.5, 0.75),
+    #         (0.75, 1.0),
+    #     ],
+    #     subset_arr_obs=obs_psl_subset_high_demand,
+    #     dates_list_obs=obs_psl_dates_list_high_demand,
+    #     var_name="psl",
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     figsize=(10, 10),
+    #     anoms_flag=False,
+    #     clim_arr_obs=None,
+    #     gridbox=[
+    #         dicts.uk_n_box_corrected,
+    #         dicts.uk_s_box_corrected,
+    #     ],
+    #     second_subset_df_obs=obs_df_low_temp,
+    #     second_quartiles_var_name="data_tas_c",
+    #     second_subset_arr_obs=obs_psl_subset,
+    #     second_dates_list_obs=obs_psl_dates_list,
+    #     second_quartiles=[
+    #         (0.75, 1.0),
+    #         (0.5, 0.75),
+    #         (0.25, 0.5),
+    #         (0, 0.25),
+    #     ],
+    # )
 
     # Load in the data for high demand for tas
     obs_temp_subset_high_demand = np.load(
@@ -7195,19 +7197,9 @@ def main():
         lats_path=lats_europe_tas,
         lons_path=lons_europe_tas,
         figsize=(6, 10),
-        anoms_flag=False,
-        clim_arr_obs=None,
-        gridbox=dicts.wind_gridbox,
-        second_subset_df_obs=obs_df_low_temp,
-        second_quartiles_var_name="data_tas_c",
-        second_subset_arr_obs=obs_temp_subset,
-        second_dates_list_obs=obs_temp_dates_list,
-        second_quartiles=[
-            (0.75, 1.0),
-            (0.5, 0.75),
-            (0.25, 0.5),
-            (0, 0.25),
-        ],
+        anoms_flag=True,
+        clim_arr_obs=obs_tas_clim,
+        gridbox=dicts.wind_gridbox_south,
     )
 
     # Load in the data for high demand for wind 
@@ -7239,19 +7231,9 @@ def main():
             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
         ),
         figsize=(6, 10),
-        anoms_flag=False,
-        clim_arr_obs=None,
-        gridbox=dicts.wind_gridbox,
-        second_subset_df_obs=obs_df_low_temp,
-        second_quartiles_var_name="data_tas_c",
-        second_subset_arr_obs=obs_wind_subset,
-        second_dates_list_obs=obs_wind_dates_list,
-        second_quartiles=[
-            (0.75, 1.0),
-            (0.5, 0.75),
-            (0.25, 0.5),
-            (0, 0.25),
-        ],
+        anoms_flag=True,
+        clim_arr_obs=obs_wind_clim,
+        gridbox=dicts.wind_gridbox_south,
     )
 
     sys.exit()
