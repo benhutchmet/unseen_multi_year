@@ -1181,17 +1181,17 @@ def plot_multi_var_perc(
         else:
             upper_bound_this = (perc_this + 5) / 100  # Increment by 5%
 
-        # Set up the lower_bound_this inverse
-        lower_bound_this_inverse = 1 - upper_bound_this
-        upper_bound_this_inverse = 1 - lower_bound_this
+        # # Set up the lower_bound_this inverse
+        # lower_bound_this_inverse = 1 - upper_bound_this
+        # upper_bound_this_inverse = 1 - lower_bound_this
 
         # Find the lower bound for the obs
-        obs_lower_bound_this = obs_df_copy[x_var_name_obs].quantile(lower_bound_this_inverse)
-        obs_upper_bound_this = obs_df_copy[x_var_name_obs].quantile(upper_bound_this_inverse)
+        obs_lower_bound_this = obs_df_copy[x_var_name_obs].quantile(lower_bound_this)
+        obs_upper_bound_this = obs_df_copy[x_var_name_obs].quantile(upper_bound_this)
 
         # Find the lower bound for the model
-        model_lower_bound_this = model_df_copy[x_var_name_model].quantile(lower_bound_this_inverse)
-        model_upper_bound_this = model_df_copy[x_var_name_model].quantile(upper_bound_this_inverse)
+        model_lower_bound_this = model_df_copy[x_var_name_model].quantile(lower_bound_this)
+        model_upper_bound_this = model_df_copy[x_var_name_model].quantile(upper_bound_this)
         
         # if x2_var_name_model is not None, find the lower and upper bounds for it
         if x2_var_name_model is not None:
