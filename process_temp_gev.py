@@ -1973,7 +1973,7 @@ def main():
     start_time = time.time()
 
     # set iup the delta p filepath
-    delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+    # delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
 
     # # # Set up the test path
     # arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"

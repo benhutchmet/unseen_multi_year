@@ -6042,7 +6042,8 @@ def main():
     obs_df_low_temp_path = (
         "/home/users/benhutch/unseen_multi_year/dfs/df_obs_low_temp_2025-05-28.csv"
     )
-
+    delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+    
     season = "DJF"
     time_freq = "day"
     len_winter_days = 5324
@@ -6097,13 +6098,101 @@ def main():
     else:
         raise FileNotFoundError(f"File {obs_df_low_temp_path} does not exist")
 
-    # print the head of df)obs) high demand
-    print("Head of obs df high demand:")
-    print(obs_df_high_demand.head())
+    # Set up the directory in which to store the dfs
+    dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
 
-    # print the head of df)obs) low temp
-    print("Head of obs df low temp:")
-    print(obs_df_low_temp.head())
+    # Set up the years test
+    test_years = np.arange(1960, 2018 + 1, 1)
+    members = np.arange(1, 10 + 1, 1)
+
+    # Set up a list to store the missing fnames
+    missing_fnames = []
+    missing_fname_years = []
+
+    # Set up an empty dataframe
+    df_delta_p_full = pd.DataFrame()
+    df_uas_full = pd.DataFrame()
+    df_vas_full = pd.DataFrame()
+
+    # Loop over the years
+    for year in test_years:
+        for member in members:
+            # Set up the test fname
+            test_fname = (
+                f"HadGEM3-GC31-MM_dcppA-hindcast_psl_delta_p_{year}_{member}_day.csv"
+            )
+
+            # Set up the test fname for the uas and vas
+            test_fname_uas = f"HadGEM3-GC31-MM_dcppA-hindcast_uas_UK_wind_box_{year}_{member}_day.csv"
+            test_fname_vas = f"HadGEM3-GC31-MM_dcppA-hindcast_vas_UK_wind_box_{year}_{member}_day.csv"
+
+            # Set up thge output dir
+            # Set up the new base dir
+            base_dir_new = "/home/users/benhutch/unseen_data/saved_dfs"
+
+            # Set up the new output directory
+            new_output_dir = os.path.join(
+                base_dir_new,
+                "delta_p",
+                str(year),
+            )
+
+            # Cehck if the file exists
+            if os.path.exists(os.path.join(new_output_dir, test_fname)):
+                # Load the df
+                df_delta_p_this = pd.read_csv(os.path.join(new_output_dir, test_fname))
+
+                # concat the df to the full df
+                df_delta_p_full = pd.concat([df_delta_p_full, df_delta_p_this])
+            else:
+                missing_fnames.append(test_fname)
+                missing_fname_years.append(year)
+
+            # Check if the uas file exists
+            if os.path.exists(os.path.join(new_output_dir, test_fname_uas)):
+                # Load the df
+                df_uas_this = pd.read_csv(os.path.join(new_output_dir, test_fname_uas))
+
+                # concat the df to the full df
+                df_uas_full = pd.concat([df_uas_full, df_uas_this])
+            else:
+                missing_fnames.append(test_fname_uas)
+                missing_fname_years.append(year)
+
+            # Check if the vas file exists
+            if os.path.exists(os.path.join(new_output_dir, test_fname_vas)):
+                # Load the df
+                df_vas_this = pd.read_csv(os.path.join(new_output_dir, test_fname_vas))
+
+                # concat the df to the full df
+                df_vas_full = pd.concat([df_vas_full, df_vas_this])
+            else:
+                missing_fnames.append(test_fname_vas)
+                missing_fname_years.append(year)
+
+    # create a new column for delta_p_hpa as the difference between
+    # "data_n" and "data_s"
+    df_delta_p_full["delta_p_hpa"] = (
+        df_delta_p_full["data_n"] - df_delta_p_full["data_s"]
+    ) / 100
+
+    # merge the delta p with the model df
+    model_df = model_df.merge(
+        df_delta_p_full,
+        on=["init_year", "member", "lead"],
+        suffixes=("", ""),
+    )
+
+    # print the columns of the low wind df
+    print(f"Columns in low wind df: {low_wind_df.columns}")
+
+    # print the columns of the high wind df
+    print(f"Columns in higher wind df: {higher_wind_df.columns}")
+
+    # print the columns of the model df
+    print(f"Columns in model df: {model_df.columns}")
+
+    sys.exit()
 
     # Check tyhe relationships of the dataframes
     pdg_funcs.plot_multi_var_perc(
