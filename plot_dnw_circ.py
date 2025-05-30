@@ -6192,41 +6192,41 @@ def main():
     # print the columns of the model df
     print(f"Columns in model df: {model_df.columns}")
 
-    sys.exit()
+    # sys.exit()
 
-    # Check tyhe relationships of the dataframes
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=low_wind_df,
-        model_df=low_wind_df,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - temperature percentile",
-        ylabel="10m wind speed",
-        title="Inverted percentiles of temp. vs 10m wind speed, low wind DJF days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # Check tyhe relationships of the dataframes
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=low_wind_df,
+    #     model_df=low_wind_df,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentile",
+    #     ylabel="10m wind speed",
+    #     title="Inverted percentiles of temp. vs 10m wind speed, low wind DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    # do the same for the higher wind days
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=higher_wind_df,
-        model_df=higher_wind_df,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - temperature percentile",
-        ylabel="10m wind speed",
-        title="Inverted percentiles of temp. vs 10m wind speed, higher wind DJF days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # do the same for the higher wind days
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=higher_wind_df,
+    #     model_df=higher_wind_df,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentile",
+    #     ylabel="10m wind speed",
+    #     title="Inverted percentiles of temp. vs 10m wind speed, higher wind DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
     # calculate the 10th percentile of the data_tas_c in df low wind and df higher wind
     low_wind_10th_percentile = low_wind_df["data_tas_c"].quantile(0.1)
@@ -7710,6 +7710,23 @@ def main():
         title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
         y2_var_name_model="data_sfcWind_drift_bc_dt",
         y2_label="10m wind speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=False,
+    )
+
+    # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=obs_df,
+        model_df=model_df,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="demand_net_wind_bc_max",
+        y_var_name_model="demand_net_wind_bc_max",
+        xlabel="Demand net wind percentiles",
+        ylabel="Demand net wind (GW)",
+        title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
         figsize=(5, 6),
         inverse_flag=False,
     )
