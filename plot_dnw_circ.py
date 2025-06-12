@@ -4869,20 +4869,21 @@ def plot_var_composites_model(
         )
     elif var_name == "psl":
         cmap = "coolwarm"
+        # Sert up the levels
         levels = np.array(
             [
-                -12,
-                -10,
-                -8,
-                -6,
-                -4,
-                -2,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
+                1004,
+                1006,
+                1008,
+                1010,
+                1012,
+                1014,
+                1016,
+                1018,
+                1020,
+                1022,
+                1024,
+                1026,
             ]
         )
     else:
