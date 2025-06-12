@@ -5065,8 +5065,14 @@ def plot_var_composites_model(
 
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
-        # Calculate the model anoms
-        anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
+        
+        # if the variable is not psl
+        if var_name != "psl":
+            # Calculate the model anoms
+            anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
+        else:
+            # If the variable is psl, then do not calculate anomalies
+            anoms_this_model = subset_arr_this_model_mean
 
         # # # if i == 0
         # if i == 0:
