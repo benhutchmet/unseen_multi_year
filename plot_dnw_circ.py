@@ -4931,9 +4931,9 @@ def plot_var_composites_model(
 
     # Set up the names
     names_list = [
-        "Block max days",
-        "Extreme days",
-        "Unseen days",
+        "Low DnW days",
+        "High DnW days",
+        "Peak DnW days",
     ]
 
     # Flatten the axes
@@ -5068,11 +5068,11 @@ def plot_var_composites_model(
         # Calculate the model anoms
         anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
 
-        # # if i == 0
-        if i == 0:
-            anoms_this_model_first = anoms_this_model
-        else:
-            anoms_this_model = anoms_this_model - anoms_this_model_first
+        # # # if i == 0
+        # if i == 0:
+        #     anoms_this_model_first = anoms_this_model
+        # else:
+        #     anoms_this_model = anoms_this_model - anoms_this_model_first
 
         # # Set up a new
         # levels = np.array(
@@ -6938,36 +6938,48 @@ def main():
 
     # find the 80th percentile of the demand net wind max
     # for the obs
-    obs_dnw_80th = obs_df["demand_net_wind_max"].quantile(0.80)
+    obs_dnw_5th = obs_df["demand_net_wind_max"].quantile(0.05)
+
+    # do the same for the model
+    model_dnw_5th = model_df["demand_net_wind_bc_max_bc"].quantile(0.05)
 
     # Find the maximum of the demand net wind max for the obs
-    obs_dnw_max = obs_df["demand_net_wind_max"].max()
+    obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
+
+    # Find the maximum of the demand net wind max for the model
+    model_dnw_95th = model_df["demand_net_wind_bc_max_bc"].quantile(0.95)
+
+    # find the 99th percentile of the demand net wind max
+    obs_dnw_99th = obs_df["demand_net_wind_max"].quantile(0.99)
+
+    # do the same for the model
+    model_dnw_99th = model_df["demand_net_wind_bc_max_bc"].quantile(0.99)
 
     # subset the model df to grey points
     model_df_subset_grey = model_df[
-        model_df["demand_net_wind_bc_max_bc"] < obs_dnw_80th
+        model_df["demand_net_wind_bc_max_bc"] < model_dnw_5th
     ]
 
     # do the same for the obs
-    obs_df_subset_grey = obs_df[obs_df["demand_net_wind_max"] < obs_dnw_80th]
+    obs_df_subset_grey = obs_df[obs_df["demand_net_wind_max"] < obs_dnw_5th]
 
     # subset the model df to yellow points
     model_df_subset_yellow = model_df[
-        (model_df["demand_net_wind_bc_max_bc"] >= obs_dnw_80th)
-        & (model_df["demand_net_wind_bc_max_bc"] < obs_dnw_max)
+        (model_df["demand_net_wind_bc_max_bc"] >= model_dnw_95th)
+        & (model_df["demand_net_wind_bc_max_bc"] < model_dnw_99th)
     ]
 
     # do the same for the obs
     obs_df_subset_yellow = obs_df[
-        (obs_df["demand_net_wind_max"] >= obs_dnw_80th)
-        & (obs_df["demand_net_wind_max"] < obs_dnw_max)
+        (obs_df["demand_net_wind_max"] >= obs_dnw_95th)
+        & (obs_df["demand_net_wind_max"] < obs_dnw_99th)
     ]
 
     # subset the model df to red points
-    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max_bc"] >= obs_dnw_max]
+    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max_bc"] >= model_dnw_99th]
 
     # do the same for the obs
-    obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_max]
+    obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_99th]
 
     # print the shape of moel df subset red
     print(f"Shape of model df subset red: {model_df_subset_red.shape}")
@@ -6978,49 +6990,49 @@ def main():
     # print the values of obs df subset red
     print(f"Obs df subset red: {obs_df_subset_red}")
 
-    # plot the composites
-    # plot the composites f`or all of the winter days
-    plot_composites(
-        subset_df=obs_df_low_temp,
-        subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        dates_lists=[
-            obs_psl_dates_list,
-            obs_temp_dates_list,
-            obs_wind_dates_list,
-        ],
-        variables=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
-            ),
-            os.path.join(
-                metadata_dir,
-                "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
-            ),
-        ],
-        suptitle="All obs low temp",
-        figsize=(12, 6),
-    )
+    # # plot the composites
+    # # plot the composites f`or all of the winter days
+    # plot_composites(
+    #     subset_df=obs_df_low_temp,
+    #     subset_arrs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     clim_arrs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     dates_lists=[
+    #         obs_psl_dates_list,
+    #         obs_temp_dates_list,
+    #         obs_wind_dates_list,
+    #     ],
+    #     variables=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy",
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #         os.path.join(
+    #             metadata_dir,
+    #             "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy",
+    #         ),
+    #     ],
+    #     suptitle="All obs low temp",
+    #     figsize=(12, 6),
+    # )
 
     # Set up the subset dfs model
     subset_dfs_model = [
@@ -7697,142 +7709,149 @@ def main():
     #     inverse_flag=True,
     # )
 
-    # do the same for the higher wind days
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=obs_df,
-        model_df=model_df,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="demand_net_wind_bc_max",
-        y_var_name_model="data_tas_c_drift_bc_dt",
-        xlabel="Demand net wind percentiles",
-        ylabel="Temperature (C)",
-        title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
-        y2_var_name_model="data_sfcWind_drift_bc_dt",
-        y2_label="10m wind speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=False,
-    )
+    # # do the same for the higher wind days
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=obs_df,
+    #     model_df=model_df,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="demand_net_wind_bc_max",
+    #     y_var_name_model="data_tas_c_drift_bc_dt",
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Temperature (°C)",
+    #     title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
+    #     legend_y1="Temperature (°C)",
+    #     legend_y2="10m wind speed (m/s)",
+    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
+    #     y2_label="10m wind speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     y1_zero_line=True,
+    # )
 
-    # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=obs_df,
-        model_df=model_df,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="demand_net_wind_bc_max",
-        y_var_name_model="demand_net_wind_bc_max",
-        xlabel="Demand net wind percentiles",
-        ylabel="Demand net wind (GW)",
-        title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-    )
+    # sys.exit()
 
-    sys.exit()
+    # # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=obs_df,
+    #     model_df=model_df,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="demand_net_wind_bc_max",
+    #     y_var_name_model="demand_net_wind_bc_max",
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Demand net wind (GW)",
+    #     title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
+    #     legend_y1="Demand net wind (GW)",
+    #     legend_y2="10m wind speed (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    # )
+
+    # sys.exit()
 
     # print the collumns in the model df
     print(f"Columns in model df: {model_df.columns}")
 
-    # test the new function for plotting temp quartiles
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max_bc",
-        subset_arr_model=model_psl_subset,
-        model_index_dict=model_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="psl",
-        figsize=(8, 10),
-        anoms_flag=False,
-        clim_filepath=None,
-        gridbox=[
-            dicts.uk_n_box_tight,
-            dicts.uk_s_box_tight,
-        ],
-        quartiles=[
-            (0.0, 0.25),
-            (0.25, 0.5),
-            (0.5, 0.75),
-            (0.75, 1.0),
-        ]
-    )
+    # # test the new function for plotting temp quartiles
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max_bc",
+    #     subset_arr_model=model_psl_subset,
+    #     model_index_dict=model_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="psl",
+    #     figsize=(8, 10),
+    #     anoms_flag=False,
+    #     clim_filepath=None,
+    #     gridbox=[
+    #         dicts.uk_n_box_tight,
+    #         dicts.uk_s_box_tight,
+    #     ],
+    #     quartiles=[
+    #         (0.0, 0.25),
+    #         (0.25, 0.5),
+    #         (0.5, 0.75),
+    #         (0.75, 1.0),
+    #     ]
+    # )
 
-    # do the same for the higher wind
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max_bc",
-        subset_arr_model=model_psl_subset,
-        model_index_dict=model_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="psl",
-        figsize=(8, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(
-            model_clim_dir, psl_clim_fname
-        ),
-        gridbox=[
-            dicts.uk_n_box_tight,
-            dicts.uk_s_box_tight,
-        ],
-        quartiles=[
-                (0.0, 0.25),
-                (0.25, 0.5),
-                (0.5, 0.75),
-                (0.75, 1.0),
-            ]
-    )
+    # # do the same for the higher wind
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max_bc",
+    #     subset_arr_model=model_psl_subset,
+    #     model_index_dict=model_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="psl",
+    #     figsize=(8, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(
+    #         model_clim_dir, psl_clim_fname
+    #     ),
+    #     gridbox=[
+    #         dicts.uk_n_box_tight,
+    #         dicts.uk_s_box_tight,
+    #     ],
+    #     quartiles=[
+    #             (0.0, 0.25),
+    #             (0.25, 0.5),
+    #             (0.5, 0.75),
+    #             (0.75, 1.0),
+    #         ]
+    # )
 
-    # Do the same for temperature
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max_bc",
-        subset_arr_model=model_temp_subset,
-        model_index_dict=model_temp_subset_index_list,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        var_name="tas",
-        figsize=(6, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, tas_clim_fname),
-        gridbox=dicts.wind_gridbox_south,
-        quartiles=[
-            (0.0, 0.25),
-            (0.25, 0.5),
-            (0.5, 0.75),
-            (0.75, 1.0),
-        ]
-    )
+    # # Do the same for temperature
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max_bc",
+    #     subset_arr_model=model_temp_subset,
+    #     model_index_dict=model_temp_subset_index_list,
+    #     lats_path=lats_europe,
+    #     lons_path=lons_europe,
+    #     var_name="tas",
+    #     figsize=(6, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, tas_clim_fname),
+    #     gridbox=dicts.wind_gridbox_south,
+    #     quartiles=[
+    #         (0.0, 0.25),
+    #         (0.25, 0.5),
+    #         (0.5, 0.75),
+    #         (0.75, 1.0),
+    #     ]
+    # )
 
-    # Do the same for wind speed
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max_bc",
-        subset_arr_model=model_wind_subset,
-        model_index_dict=model_wind_subset_index_list,
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-        ),
-        var_name="sfcWind",
-        figsize=(6, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, sfcWind_clim_fname),
-        gridbox=dicts.wind_gridbox_south,
-        quartiles=[
-            (0.0, 0.25),
-            (0.25, 0.5),
-            (0.5, 0.75),
-            (0.75, 1.0),
-        ]
-    )
+    # # Do the same for wind speed
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max_bc",
+    #     subset_arr_model=model_wind_subset,
+    #     model_index_dict=model_wind_subset_index_list,
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #     ),
+    #     var_name="sfcWind",
+    #     figsize=(6, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, sfcWind_clim_fname),
+    #     gridbox=dicts.wind_gridbox_south,
+    #     quartiles=[
+    #         (0.0, 0.25),
+    #         (0.25, 0.5),
+    #         (0.5, 0.75),
+    #         (0.75, 1.0),
+    #     ]
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Plot the differences between lower wind and higher wind (full field)
     # low - high in this case
@@ -7853,35 +7872,6 @@ def main():
     # )
 
     # # Plot temp quartiles, but for anoms
-    plot_temp_quartiles(
-        subset_df_model=low_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_low_wind_psl_subset,
-        model_index_dict=model_low_wind_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="tas",
-        figsize=(10, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
-        gridbox=dicts.wind_gridbox_subset,
-    )
-
-    # Do the same for the high wind days but for anoms
-    plot_temp_quartiles(
-        subset_df_model=higher_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_higher_wind_psl_subset,
-        model_index_dict=model_higher_wind_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="tas",
-        figsize=(10, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
-        gridbox=dicts.wind_gridbox_subset,
-    )
-
     # plot_temp_quartiles(
     #     subset_df_model=low_wind_df,
     #     tas_var_name="data_tas_c",
@@ -7893,102 +7883,131 @@ def main():
     #     figsize=(10, 10),
     #     anoms_flag=True,
     #     clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
-    #     second_subset_df=higher_wind_df,
-    #     second_subset_arr=model_higher_wind_psl_subset,
-    #     second_model_index_dict=model_higher_wind_psl_subset_index_list,
+    #     gridbox=dicts.wind_gridbox_subset,
     # )
 
-    # Low wind, uas and vas composites first
-    plot_temp_quartiles(
-        subset_df_model=low_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_low_wind_uas_subset,
-        model_index_dict=model_low_wind_uas_subset_index_list,
-        lats_path=lats_europe_uas,
-        lons_path=lons_europe_uas,
-        var_name="uas",
-        figsize=(10, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
-        gridbox=dicts.wind_gridbox_subset,
-    )
+    # # Do the same for the high wind days but for anoms
+    # plot_temp_quartiles(
+    #     subset_df_model=higher_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_higher_wind_psl_subset,
+    #     model_index_dict=model_higher_wind_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="tas",
+    #     figsize=(10, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
 
-    # Now for low wind vas
-    plot_temp_quartiles(
-        subset_df_model=low_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_low_wind_vas_subset,
-        model_index_dict=model_low_wind_vas_subset_index_list,
-        lats_path=lats_europe_vas,
-        lons_path=lons_europe_vas,
-        var_name="vas",
-        figsize=(10, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
-        gridbox=dicts.wind_gridbox_subset,
-    )
+    # # plot_temp_quartiles(
+    # #     subset_df_model=low_wind_df,
+    # #     tas_var_name="data_tas_c",
+    # #     subset_arr_model=model_low_wind_psl_subset,
+    # #     model_index_dict=model_low_wind_psl_subset_index_list,
+    # #     lats_path=lats_paths[0],
+    # #     lons_path=lons_paths[0],
+    # #     var_name="tas",
+    # #     figsize=(10, 10),
+    # #     anoms_flag=True,
+    # #     clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+    # #     second_subset_df=higher_wind_df,
+    # #     second_subset_arr=model_higher_wind_psl_subset,
+    # #     second_model_index_dict=model_higher_wind_psl_subset_index_list,
+    # # )
 
-    # Now for higher wind, uas and vas composites first
-    plot_temp_quartiles(
-        subset_df_model=higher_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_higher_wind_uas_subset,
-        model_index_dict=model_higher_wind_uas_subset_index_list,
-        lats_path=lats_europe_uas,
-        lons_path=lons_europe_uas,
-        var_name="uas",
-        figsize=(10, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
-        gridbox=dicts.wind_gridbox_subset,
-    )
+    # # Low wind, uas and vas composites first
+    # plot_temp_quartiles(
+    #     subset_df_model=low_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_low_wind_uas_subset,
+    #     model_index_dict=model_low_wind_uas_subset_index_list,
+    #     lats_path=lats_europe_uas,
+    #     lons_path=lons_europe_uas,
+    #     var_name="uas",
+    #     figsize=(10, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
 
-    # Now for higher wind vas
-    plot_temp_quartiles(
-        subset_df_model=higher_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_higher_wind_vas_subset,
-        model_index_dict=model_higher_wind_vas_subset_index_list,
-        lats_path=lats_europe_vas,
-        lons_path=lons_europe_vas,
-        var_name="vas",
-        figsize=(10, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
-        gridbox=dicts.wind_gridbox_subset,
-    )
+    # # Now for low wind vas
+    # plot_temp_quartiles(
+    #     subset_df_model=low_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_low_wind_vas_subset,
+    #     model_index_dict=model_low_wind_vas_subset_index_list,
+    #     lats_path=lats_europe_vas,
+    #     lons_path=lons_europe_vas,
+    #     var_name="vas",
+    #     figsize=(10, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
 
-    # Plot temp quartiels for sfcWind
-    plot_temp_quartiles(
-        subset_df_model=low_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_lower_wind_sfcWind_subset,
-        model_index_dict=model_lower_wind_sfcWind_subset_index_list,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        var_name="sfcWind",
-        figsize=(10, 10),
-        anoms_flag=False,
-        clim_filepath=None,
-        gridbox=dicts.wind_gridbox_subset,
-    )
+    # # Now for higher wind, uas and vas composites first
+    # plot_temp_quartiles(
+    #     subset_df_model=higher_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_higher_wind_uas_subset,
+    #     model_index_dict=model_higher_wind_uas_subset_index_list,
+    #     lats_path=lats_europe_uas,
+    #     lons_path=lons_europe_uas,
+    #     var_name="uas",
+    #     figsize=(10, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, uas_clim_fname),
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
 
-    # Now for higher wind sfcWind
-    plot_temp_quartiles(
-        subset_df_model=higher_wind_df,
-        tas_var_name="data_tas_c",
-        subset_arr_model=model_higher_wind_sfcWind_subset,
-        model_index_dict=model_higher_wind_sfcWind_subset_index_list,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        var_name="sfcWind",
-        figsize=(10, 10),
-        anoms_flag=False,
-        clim_filepath=None,
-        gridbox=dicts.wind_gridbox_subset,
-    )
+    # # Now for higher wind vas
+    # plot_temp_quartiles(
+    #     subset_df_model=higher_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_higher_wind_vas_subset,
+    #     model_index_dict=model_higher_wind_vas_subset_index_list,
+    #     lats_path=lats_europe_vas,
+    #     lons_path=lons_europe_vas,
+    #     var_name="vas",
+    #     figsize=(10, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, vas_clim_fname),
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
 
-    sys.exit()
+    # # Plot temp quartiels for sfcWind
+    # plot_temp_quartiles(
+    #     subset_df_model=low_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_lower_wind_sfcWind_subset,
+    #     model_index_dict=model_lower_wind_sfcWind_subset_index_list,
+    #     lats_path=lats_europe,
+    #     lons_path=lons_europe,
+    #     var_name="sfcWind",
+    #     figsize=(10, 10),
+    #     anoms_flag=False,
+    #     clim_filepath=None,
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
+
+    # # Now for higher wind sfcWind
+    # plot_temp_quartiles(
+    #     subset_df_model=higher_wind_df,
+    #     tas_var_name="data_tas_c",
+    #     subset_arr_model=model_higher_wind_sfcWind_subset,
+    #     model_index_dict=model_higher_wind_sfcWind_subset_index_list,
+    #     lats_path=lats_europe,
+    #     lons_path=lons_europe,
+    #     var_name="sfcWind",
+    #     figsize=(10, 10),
+    #     anoms_flag=False,
+    #     clim_filepath=None,
+    #     gridbox=dicts.wind_gridbox_subset,
+    # )
+
+    # sys.exit()
 
     # test the new function
     plot_var_composites_model(
@@ -8001,6 +8020,8 @@ def main():
         var_name="vas",
         figsize=(10, 10),
     )
+
+    # sys.exit()
 
     # test the new function
     plot_var_composites_model(

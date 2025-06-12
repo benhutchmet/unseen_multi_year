@@ -1111,6 +1111,8 @@ def plot_multi_var_perc(
     xlabel: str,
     ylabel: str,
     title: str,
+    legend_y1: str = None,
+    legend_y2: str = None,
     y_var_name_model_2: str = None,
     ylabel_2: str = None,
     y2_var_name_model: str = None,
@@ -1330,7 +1332,7 @@ def plot_multi_var_perc(
             100 - model_percs_5["percentile"],
             model_percs_5[f"{y_var_name_model}_mean"],
             color="red",
-            label=f"{ylabel} (5% temp bins)"
+            label=f"{legend_y1}",
         )
 
         # plot the lower bounds as a dashed red line
@@ -1355,7 +1357,7 @@ def plot_multi_var_perc(
                 model_percs_5_x2["percentile"],
                 model_percs_5_x2[f"{y_var_name_model}_mean"],
                 color="orange",
-                label=f"Model {y_var_name_model} (5%)"
+                label=f"{legend_y1}",
             )
 
             # plot the lower bounds as a dashed orange line
@@ -1380,7 +1382,7 @@ def plot_multi_var_perc(
                 model_percs_5[f"{y_var_name_model_2}_mean"],
                 color="red",
                 linestyle="--",
-                label=f"{ylabel_2} (5% temp bins)"
+                label=f"{legend_y2}",
             )
 
         # Plot the 5% percentiles for temperature for wind speed
@@ -1406,7 +1408,7 @@ def plot_multi_var_perc(
                 model_percs_5[f"{y_var_name_model_2}_mean"],
                 color="red",
                 linestyle="--",
-                label=f"{ylabel_2} (5% temp bins)"
+                label=f"{legend_y1}",
             )
 
         # Do the same for the model
@@ -1414,7 +1416,7 @@ def plot_multi_var_perc(
             model_percs_5["percentile"],
             model_percs_5[f"{y_var_name_model}_mean"],
             color="red",
-            label=f"Model {xlabel} (5%)"
+            label=f"{legend_y1}",
         )
 
         # plot the lower bounds as a dashed red line
@@ -1439,7 +1441,7 @@ def plot_multi_var_perc(
                 model_percs_5_x2["percentile"],
                 model_percs_5_x2[f"{y_var_name_model}_mean"],
                 color="orange",
-                label=f"Model {y_var_name_model} (5%)"
+                label=f"{legend_y2}",
             )
 
             # plot the lower bounds as a dashed orange line
@@ -1477,7 +1479,7 @@ def plot_multi_var_perc(
                 100 - model_percs_5["percentile"],
                 model_percs_5[f"{y2_var_name_model}_mean"],
                 color="blue",
-                label=f"Model {y2_label} (5%)"
+                label=f"{legend_y2}",
             )
 
             # plot the lower bounds as a dashed red line
@@ -1500,7 +1502,7 @@ def plot_multi_var_perc(
                 model_percs_5["percentile"],
                 model_percs_5[f"{y2_var_name_model}_mean"],
                 color="blue",
-                label=f"Model {y2_label} (5%)"
+                label=f"{legend_y2}",
             )
 
             # plot the lower bounds as a dashed red line
@@ -1524,7 +1526,7 @@ def plot_multi_var_perc(
                     model_percs_5_x2["percentile"],
                     model_percs_5_x2[f"{y2_var_name_model}_mean"],
                     color="green",
-                    label=f"Model {y2_label} (5%)"
+                    label=f"{legend_y2}",
                 )
 
                 # plot the lower bounds as a dashed orange line
@@ -1544,14 +1546,18 @@ def plot_multi_var_perc(
                 )
 
         # incldue a blue dashed zero line
-        ax2.axhline(
-            0,
-            color="blue",
-            linestyle="--",
-        )
+        # ax2.axhline(
+        #     0,
+        #     color="blue",
+        #     linestyle="--",
+        # )
 
         # Set the y2 label
-        ax2.set_ylabel(f"{y2_label}")
+        ax2.set_ylabel(f"{y2_label}", fontsize=12, color="blue")
+
+        # make sure the ticks/labels are also blue
+        ax2.tick_params(axis="y", labelcolor="blue")
+        ax2.spines["right"].set_color("blue")
 
     # if xlims is not none
     if xlims is not None:
@@ -1569,8 +1575,12 @@ def plot_multi_var_perc(
         ax2.set_ylim(y2_lims)
 
     # Set the x and y labels
-    ax.set_xlabel(f"{xlabel} percentile")
-    ax.set_ylabel(f"{ylabel}")
+    ax.set_xlabel(f"{xlabel}", fontsize=12)
+    ax.set_ylabel(f"{ylabel}", fontsize=12, color="red")
+
+    # Make sure the ticks and labels are also red
+    ax.tick_params(axis="y", labelcolor="red")
+    ax.spines["left"].set_color("red")
 
     # Include gridlines
     ax.grid()
