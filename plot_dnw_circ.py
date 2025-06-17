@@ -4868,22 +4868,22 @@ def plot_var_composites_model(
             ]
         )
     elif var_name == "psl":
+         # Set up the levels
         cmap = "coolwarm"
-        # Sert up the levels
         levels = np.array(
             [
-                1004,
-                1006,
-                1008,
-                1010,
-                1012,
-                1014,
-                1016,
-                1018,
-                1020,
-                1022,
-                1024,
-                1026,
+                -12,
+                -10,
+                -8,
+                -6,
+                -4,
+                -2,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
             ]
         )
     else:
@@ -5073,7 +5073,7 @@ def plot_var_composites_model(
             anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
         else:
             # If the variable is psl, then do not calculate anomalies
-            anoms_this_model = subset_arr_this_model_mean
+            anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
 
         # # # if i == 0
         # if i == 0:
@@ -7717,148 +7717,142 @@ def main():
     # )
 
     # # do the same for the higher wind days
-    # pdg_funcs.plot_multi_var_perc(
-    #     obs_df=obs_df,
-    #     model_df=model_df,
-    #     x_var_name_obs="data_c_dt",
-    #     y_var_name_obs="data_sfcWind_dt",
-    #     x_var_name_model="demand_net_wind_bc_max",
-    #     y_var_name_model="data_tas_c_drift_bc_dt",
-    #     xlabel="Demand net wind percentiles",
-    #     ylabel="Temperature (°C)",
-    #     title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
-    #     legend_y1="Temperature (°C)",
-    #     legend_y2="10m wind speed (m/s)",
-    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
-    #     y2_label="10m wind speed (m/s)",
-    #     figsize=(5, 6),
-    #     inverse_flag=False,
-    #     y1_zero_line=True,
-    # )
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=obs_df,
+        model_df=model_df,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="demand_net_wind_bc_max",
+        y_var_name_model="data_tas_c_drift_bc_dt",
+        xlabel="Demand net wind percentiles",
+        ylabel="Temperature (°C)",
+        title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
+        legend_y1="Temperature (°C)",
+        legend_y2="10m wind speed (m/s)",
+        y2_var_name_model="data_sfcWind_drift_bc_dt",
+        y2_label="10m wind speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        y1_zero_line=True,
+        xlims=(80.0, 105.0),
+    )
 
     # sys.exit()
 
     # # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
-    # pdg_funcs.plot_multi_var_perc(
-    #     obs_df=obs_df,
-    #     model_df=model_df,
-    #     x_var_name_obs="data_c_dt",
-    #     y_var_name_obs="data_sfcWind_dt",
-    #     x_var_name_model="demand_net_wind_bc_max",
-    #     y_var_name_model="demand_net_wind_bc_max",
-    #     xlabel="Demand net wind percentiles",
-    #     ylabel="Demand net wind (GW)",
-    #     title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
-    #     legend_y1="Demand net wind (GW)",
-    #     legend_y2="10m wind speed (m/s)",
-    #     y2_var_name_model="delta_p_hpa",
-    #     y2_label="delta P N-S (hPa)",
-    #     figsize=(5, 6),
-    #     inverse_flag=False,
-    # )
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=obs_df,
+        model_df=model_df,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="demand_net_wind_bc_max",
+        y_var_name_model="demand_net_wind_bc_max",
+        xlabel="Demand net wind percentiles",
+        ylabel="Demand net wind (GW)",
+        title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
+        legend_y1="Demand net wind (GW)",
+        legend_y2="10m wind speed (m/s)",
+        y2_var_name_model="delta_p_hpa",
+        y2_label="delta P N-S (hPa)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        xlims=(80.0, 105.0),
+    )
 
-    # sys.exit()
+    sys.exit()
+
+    # set up the quartiles
+    quartiles = [
+        (0.80, 0.85),
+        (0.85, 0.90),
+        (0.90, 0.95),
+        (0.95, 1.0),
+    ]
 
     # print the collumns in the model df
     print(f"Columns in model df: {model_df.columns}")
 
-    # # test the new function for plotting temp quartiles
-    # plot_temp_quartiles(
-    #     subset_df_model=model_df,
-    #     tas_var_name="demand_net_wind_bc_max_bc",
-    #     subset_arr_model=model_psl_subset,
-    #     model_index_dict=model_psl_subset_index_list,
-    #     lats_path=lats_paths[0],
-    #     lons_path=lons_paths[0],
-    #     var_name="psl",
-    #     figsize=(8, 10),
-    #     anoms_flag=False,
-    #     clim_filepath=None,
-    #     gridbox=[
-    #         dicts.uk_n_box_tight,
-    #         dicts.uk_s_box_tight,
-    #     ],
-    #     quartiles=[
-    #         (0.0, 0.25),
-    #         (0.25, 0.5),
-    #         (0.5, 0.75),
-    #         (0.75, 1.0),
-    #     ]
-    # )
-
-    # # do the same for the higher wind
-    # plot_temp_quartiles(
-    #     subset_df_model=model_df,
-    #     tas_var_name="demand_net_wind_bc_max_bc",
-    #     subset_arr_model=model_psl_subset,
-    #     model_index_dict=model_psl_subset_index_list,
-    #     lats_path=lats_paths[0],
-    #     lons_path=lons_paths[0],
-    #     var_name="psl",
-    #     figsize=(8, 10),
-    #     anoms_flag=True,
-    #     clim_filepath=os.path.join(
-    #         model_clim_dir, psl_clim_fname
-    #     ),
-    #     gridbox=[
-    #         dicts.uk_n_box_tight,
-    #         dicts.uk_s_box_tight,
-    #     ],
-    #     quartiles=[
-    #             (0.0, 0.25),
-    #             (0.25, 0.5),
-    #             (0.5, 0.75),
-    #             (0.75, 1.0),
-    #         ]
-    # )
-
-    # # Do the same for temperature
-    # plot_temp_quartiles(
-    #     subset_df_model=model_df,
-    #     tas_var_name="demand_net_wind_bc_max_bc",
-    #     subset_arr_model=model_temp_subset,
-    #     model_index_dict=model_temp_subset_index_list,
-    #     lats_path=lats_europe,
-    #     lons_path=lons_europe,
-    #     var_name="tas",
-    #     figsize=(6, 10),
-    #     anoms_flag=True,
-    #     clim_filepath=os.path.join(model_clim_dir, tas_clim_fname),
-    #     gridbox=dicts.wind_gridbox_south,
-    #     quartiles=[
-    #         (0.0, 0.25),
-    #         (0.25, 0.5),
-    #         (0.5, 0.75),
-    #         (0.75, 1.0),
-    #     ]
-    # )
-
-    # # Do the same for wind speed
-    # plot_temp_quartiles(
-    #     subset_df_model=model_df,
-    #     tas_var_name="demand_net_wind_bc_max_bc",
-    #     subset_arr_model=model_wind_subset,
-    #     model_index_dict=model_wind_subset_index_list,
-    #     lats_path=os.path.join(
-    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-    #     ),
-    #     lons_path=os.path.join(
-    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-    #     ),
-    #     var_name="sfcWind",
-    #     figsize=(6, 10),
-    #     anoms_flag=True,
-    #     clim_filepath=os.path.join(model_clim_dir, sfcWind_clim_fname),
-    #     gridbox=dicts.wind_gridbox_south,
-    #     quartiles=[
-    #         (0.0, 0.25),
-    #         (0.25, 0.5),
-    #         (0.5, 0.75),
-    #         (0.75, 1.0),
-    #     ]
-    # )
+    # test the new function for plotting temp quartiles
+    plot_temp_quartiles(
+        subset_df_model=model_df,
+        tas_var_name="demand_net_wind_bc_max",
+        subset_arr_model=model_psl_subset,
+        model_index_dict=model_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="psl",
+        figsize=(8, 10),
+        anoms_flag=False,
+        clim_filepath=None,
+        gridbox=[
+            dicts.uk_n_box_tight,
+            dicts.uk_s_box_tight,
+        ],
+        quartiles=quartiles,
+    )
 
     # sys.exit()
+
+    # # do the same for the higher wind
+    plot_temp_quartiles(
+        subset_df_model=model_df,
+        tas_var_name="demand_net_wind_bc_max",
+        subset_arr_model=model_psl_subset,
+        model_index_dict=model_psl_subset_index_list,
+        lats_path=lats_paths[0],
+        lons_path=lons_paths[0],
+        var_name="psl",
+        figsize=(8, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(
+            model_clim_dir, psl_clim_fname
+        ),
+        gridbox=[
+            dicts.uk_n_box_tight,
+            dicts.uk_s_box_tight,
+        ],
+        quartiles=quartiles,
+    )
+
+    # # Do the same for temperature
+    plot_temp_quartiles(
+        subset_df_model=model_df,
+        tas_var_name="demand_net_wind_bc_max",
+        subset_arr_model=model_temp_subset,
+        model_index_dict=model_temp_subset_index_list,
+        lats_path=lats_europe,
+        lons_path=lons_europe,
+        var_name="tas",
+        figsize=(6, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, tas_clim_fname),
+        gridbox=dicts.wind_gridbox_south,
+        quartiles=quartiles,
+    )
+
+    # sys.exit()
+
+    # # Do the same for wind speed
+    plot_temp_quartiles(
+        subset_df_model=model_df,
+        tas_var_name="demand_net_wind_bc_max_bc",
+        subset_arr_model=model_wind_subset,
+        model_index_dict=model_wind_subset_index_list,
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+        ),
+        var_name="sfcWind",
+        figsize=(6, 10),
+        anoms_flag=True,
+        clim_filepath=os.path.join(model_clim_dir, sfcWind_clim_fname),
+        gridbox=dicts.wind_gridbox_south,
+        quartiles=quartiles,
+    )
+
+    sys.exit()
 
     # Plot the differences between lower wind and higher wind (full field)
     # low - high in this case
