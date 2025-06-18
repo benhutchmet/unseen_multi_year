@@ -1098,70 +1098,79 @@ def temp_to_demand(
     )
 
     # Set up the range of hdd_coefs
-    hdd_coeffs = np.linspace(0.60, 0.90 + 0.01, num=1000)
+    hdd_coeffs = np.linspace(0.60, 0.90, num=1000)
 
     # print the min and max of hdd coeffs
     print(f"Min HDD coeff: {hdd_coeffs.min():.2f}")
     print(f"Max HDD coeff: {hdd_coeffs.max():.2f}")
 
-    # Set up a figure
-    fig = plt.figure(figsize=(6, 6))
-
-    # For the model data, plot HDD on the x-axis and demand on the y-axis
-    plt.scatter(
-        model_df_copy["hdd"],
-        model_df_copy[f"{model_temp_col}_UK_demand"],
-        color="red",
-        alpha=0.5,
-        label="Model HDD vs Demand",
-    )
-
-    # Plot the fit used in the model data
-    plt.plot(
-        model_df_copy["hdd"],
-        (time_coeff_uk * demand_year)
-        + (hdd_coeff_uk * model_df_copy["hdd"])
-        + (cdd_coeff_uk * model_df_copy["cdd"]),
-        color="black",
-        linestyle="--",
-        label="Model fit",
-    )
-
-    # loop over and plot the fit usin all of the hdd coeffs
+    # loop over the hdd coeffs and calculate the demand
     for hdd_coeff in hdd_coeffs:
-        plt.plot(
-            model_df_copy["hdd"],
+        # Calculate the demand using the hdd coeff
+        model_df_copy[f"{model_temp_col}_UK_demand_{hdd_coeff}"] = (
             (time_coeff_uk * demand_year)
             + (hdd_coeff * model_df_copy["hdd"])
-            + (cdd_coeff_uk * model_df_copy["cdd"]),
-            color="grey",
-            alpha=0.01,
+            + (cdd_coeff_uk * model_df_copy["cdd"])
         )
 
-    # Include the coefficients in a textbox in the bottom right of the plot
-    plt.text(
-        0.95,
-        0.05,
-        f"Model coefficients:\n"
-        f"Time: {time_coeff_uk:.2f}\n"
-        f"HDD: {hdd_coeff_uk:.2f}\n"
-        f"CDD: {cdd_coeff_uk:.2f}",
-        transform=fig.transFigure,
-        fontsize=10,
-        verticalalignment="bottom",
-        horizontalalignment="right",
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.5),
-    )
+    # # Set up a figure
+    # fig = plt.figure(figsize=(6, 6))
 
-    # include a legend in the top left
-    plt.legend(
-        loc="upper left",
-        fontsize=10,
-    )
+    # # For the model data, plot HDD on the x-axis and demand on the y-axis
+    # plt.scatter(
+    #     model_df_copy["hdd"],
+    #     model_df_copy[f"{model_temp_col}_UK_demand"],
+    #     color="red",
+    #     alpha=0.5,
+    #     label="Model HDD vs Demand",
+    # )
 
-    # include labels and title
-    plt.xlabel("HDD (C)", fontsize=12)
-    plt.ylabel("Electricity demand (GW)", fontsize=12)
+    # # Plot the fit used in the model data
+    # plt.plot(
+    #     model_df_copy["hdd"],
+    #     (time_coeff_uk * demand_year)
+    #     + (hdd_coeff_uk * model_df_copy["hdd"])
+    #     + (cdd_coeff_uk * model_df_copy["cdd"]),
+    #     color="black",
+    #     linestyle="--",
+    #     label="Model fit",
+    # )
+
+    # # loop over and plot the fit usin all of the hdd coeffs
+    # for hdd_coeff in hdd_coeffs:
+    #     plt.plot(
+    #         model_df_copy["hdd"],
+    #         (time_coeff_uk * demand_year)
+    #         + (hdd_coeff * model_df_copy["hdd"])
+    #         + (cdd_coeff_uk * model_df_copy["cdd"]),
+    #         color="grey",
+    #         alpha=0.01,
+    #     )
+
+    # # Include the coefficients in a textbox in the bottom right of the plot
+    # plt.text(
+    #     0.95,
+    #     0.05,
+    #     f"Model coefficients:\n"
+    #     f"Time: {time_coeff_uk:.2f}\n"
+    #     f"HDD: {hdd_coeff_uk:.2f}\n"
+    #     f"CDD: {cdd_coeff_uk:.2f}",
+    #     transform=fig.transFigure,
+    #     fontsize=10,
+    #     verticalalignment="bottom",
+    #     horizontalalignment="right",
+    #     bbox=dict(boxstyle="round", facecolor="white", alpha=0.5),
+    # )
+
+    # # include a legend in the top left
+    # plt.legend(
+    #     loc="upper left",
+    #     fontsize=10,
+    # )
+
+    # # include labels and title
+    # plt.xlabel("HDD (C)", fontsize=12)
+    # plt.ylabel("Electricity demand (GW)", fontsize=12)
 
     return obs_df_copy, model_df_copy
 
@@ -2502,6 +2511,17 @@ def main():
         model_temp_col="data_tas_c_drift_bc_dt",
     )
 
+    # print the head of the df_model djf
+    print(df_model_djf.head())
+    # print the tail of the df_model djf
+    print(df_model_djf.tail())
+
+    # print the shape of the df
+    print(f"Shape of df_model_djf: {df_model_djf.shape}")
+
+    sys.exit()
+
+
     # convert the temperature tyo demand for non bias corrected T data
     df_obs, df_model_djf = temp_to_demand(
         obs_df=df_obs,
@@ -2510,7 +2530,6 @@ def main():
         model_temp_col="data_tas_c_dt",
     )
 
-    sys.exit()
 
     # do the same for temperature
     # convert the temperature tyo demand for bias corrected T data
