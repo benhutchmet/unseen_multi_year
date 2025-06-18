@@ -42,7 +42,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -1095,6 +1095,50 @@ def temp_to_demand(
         (time_coeff_uk * demand_year)
         + (hdd_coeff_uk * model_df_copy["hdd"])
         + (cdd_coeff_uk * model_df_copy["cdd"])
+    )
+
+    # Set up a figure
+    fig = plt.figure(figsize=(6, 6))
+
+    # For the model data, plot HDD on the x-axis and demand on the y-axis
+    plt.scatter(
+        model_df_copy["hdd"],
+        model_df_copy[f"{model_temp_col}_UK_demand"],
+        color="red",
+        alpha=0.5,
+        label="Model HDD vs Demand",
+    )
+
+    # Plot the fit used in the model data
+    plt.plot(
+        model_df_copy["hdd"],
+        (time_coeff_uk * demand_year)
+        + (hdd_coeff_uk * model_df_copy["hdd"])
+        + (cdd_coeff_uk * model_df_copy["cdd"]),
+        color="black",
+        linestyle="--",
+        label="Model fit",
+    )
+
+    # Include the coefficients in a textbox in the bottom right of the plot
+    plt.text(
+        0.95,
+        0.05,
+        f"Model coefficients:\n"
+        f"Time: {time_coeff_uk:.2f}\n"
+        f"HDD: {hdd_coeff_uk:.2f}\n"
+        f"CDD: {cdd_coeff_uk:.2f}",
+        transform=fig.transFigure,
+        fontsize=10,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.5),
+    )
+
+    # include a legend in the top left
+    plt.legend(
+        loc="upper left",
+        fontsize=10,
     )
 
     return obs_df_copy, model_df_copy
@@ -2443,6 +2487,8 @@ def main():
         obs_temp_col="data_c_dt",
         model_temp_col="data_tas_c_dt",
     )
+
+    sys.exit()
 
     # do the same for temperature
     # convert the temperature tyo demand for bias corrected T data
