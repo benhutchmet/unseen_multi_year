@@ -2511,17 +2511,6 @@ def main():
         model_temp_col="data_tas_c_drift_bc_dt",
     )
 
-    # print the head of the df_model djf
-    print(df_model_djf.head())
-    # print the tail of the df_model djf
-    print(df_model_djf.tail())
-
-    # print the shape of the df
-    print(f"Shape of df_model_djf: {df_model_djf.shape}")
-
-    sys.exit()
-
-
     # convert the temperature tyo demand for non bias corrected T data
     df_obs, df_model_djf = temp_to_demand(
         obs_df=df_obs,
@@ -2530,6 +2519,15 @@ def main():
         model_temp_col="data_tas_c_dt",
     )
 
+    # print the head of the df_model djf
+    print(df_model_djf.head())
+    # print the tail of the df_model djf
+    print(df_model_djf.tail())
+
+    # print the shape of the df
+    print(f"Shape of df_model_djf: {df_model_djf.shape}")
+
+    # sys.exit()
 
     # do the same for temperature
     # convert the temperature tyo demand for bias corrected T data
@@ -2564,6 +2562,9 @@ def main():
         df_obs["data_c_dt_UK_demand"] - df_obs["data_sfcWind_dt_sigmoid_total_wind_gen"]
     )
 
+    # Set up the hdd_coeffs again
+    hdd_coeffs = np.linspace(0.60, 0.90, num=1000)
+
     # Calculate demand net wind for the NON-BIAS CORRECTED model data
     df_model_djf["demand_net_wind"] = (
         df_model_djf["data_tas_c_dt_UK_demand"]
@@ -2575,6 +2576,31 @@ def main():
         df_model_djf["data_tas_c_drift_bc_dt_UK_demand"]
         - df_model_djf["data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen"]
     )
+
+    # Loop over the hdd_coeffs
+    for hdd_coeff in hdd_coeffs:
+        # Calculate the demand net wind for the model data
+        df_model_djf[f"demand_net_wind_hdd_{hdd_coeff}"] = (
+            df_model_djf[f"data_tas_c_dt_UK_demand_{hdd_coeff}"]
+            - df_model_djf["data_sfcWind_dt_sigmoid_total_wind_gen"]
+        )
+
+        # Calculate the demand net wind for the bias corrected model data
+        df_model_djf[f"demand_net_wind_bc_hdd_{hdd_coeff}"] = (
+            df_model_djf[f"data_tas_c_drift_bc_dt_UK_demand_{hdd_coeff}"]
+            - df_model_djf["data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen"]
+        )
+
+    # Print the head of the df_model_djf
+    print(df_model_djf.head())
+
+    # Print the tail of the df_model_djf
+    print(df_model_djf.tail())
+
+    # print the shape of the df
+    print(f"Shape of df_model_djf: {df_model_djf.shape}")
+
+    # sys.exit()
 
     # set up the obs var names for plotting
     obs_var_names = [
@@ -2643,60 +2669,60 @@ def main():
     #     figsize=(15, 5),
     # )
 
-    # Ensure the 'time' column is in datetime format
-    df_obs["time"] = pd.to_datetime(df_obs["time"])
+    # # Ensure the 'time' column is in datetime format
+    # df_obs["time"] = pd.to_datetime(df_obs["time"])
 
-    # Print the row in df_obs where time = 2025-01-08
-    print(df_obs[df_obs["time"] == "2025-01-08"])
+    # # Print the row in df_obs where time = 2025-01-08
+    # print(df_obs[df_obs["time"] == "2025-01-08"])
 
-    # Save this row
-    jan_8_2025 = df_obs[df_obs["time"] == "2025-01-08"]
+    # # Save this row
+    # jan_8_2025 = df_obs[df_obs["time"] == "2025-01-08"]
 
-    # Print the row
-    print(jan_8_2025)
+    # # Print the row
+    # print(jan_8_2025)
 
-    # Extract all of the data for January 2025
-    jan_2025 = df_obs[(df_obs["time"].dt.month == 1) & (df_obs["time"].dt.year == 2025)]
+    # # Extract all of the data for January 2025
+    # jan_2025 = df_obs[(df_obs["time"].dt.month == 1) & (df_obs["time"].dt.year == 2025)]
 
-    feb_2006 = df_obs[(df_obs["time"].dt.month == 2) & (df_obs["time"].dt.year == 2006)]
+    # feb_2006 = df_obs[(df_obs["time"].dt.month == 2) & (df_obs["time"].dt.year == 2006)]
 
-    eff_dec_year_24 = df_obs[(df_obs["effective_dec_year"] == 2024)]
+    # eff_dec_year_24 = df_obs[(df_obs["effective_dec_year"] == 2024)]
 
-    # # create a new column for rank_dnw
-    # rank dnw from highest to lowest
-    # for eff_dec_year_24
-    eff_dec_year_24["rank_dnw"] = eff_dec_year_24["demand_net_wind"].rank(
-        ascending=False
-    )
+    # # # create a new column for rank_dnw
+    # # rank dnw from highest to lowest
+    # # for eff_dec_year_24
+    # eff_dec_year_24["rank_dnw"] = eff_dec_year_24["demand_net_wind"].rank(
+    #     ascending=False
+    # )
 
-    # Print the January 2025 data
-    print(jan_2025)
+    # # Print the January 2025 data
+    # print(jan_2025)
 
-    # set us
-    save_dir_jan = "/home/users/benhutch/unseen_multi_year/dfs"
+    # # set us
+    # save_dir_jan = "/home/users/benhutch/unseen_multi_year/dfs"
 
-    # set up the fname
-    fname_jan = os.path.join(save_dir_jan, "jan_2025.csv")
+    # # set up the fname
+    # fname_jan = os.path.join(save_dir_jan, "jan_2025.csv")
 
-    fname_feb = os.path.join(save_dir_jan, "feb_2006.csv")
+    # fname_feb = os.path.join(save_dir_jan, "feb_2006.csv")
 
-    # save the data
-    # if the file does not already exist
-    if not os.path.exists(fname_jan):
-        jan_2025.to_csv(fname_jan, index=False)
-        print(f"Saved {fname_jan}")
+    # # save the data
+    # # if the file does not already exist
+    # if not os.path.exists(fname_jan):
+    #     jan_2025.to_csv(fname_jan, index=False)
+    #     print(f"Saved {fname_jan}")
 
-    # if the file does not already exist
-    if not os.path.exists(fname_feb):
-        feb_2006.to_csv(fname_feb, index=False)
-        print(f"Saved {fname_feb}")
+    # # if the file does not already exist
+    # if not os.path.exists(fname_feb):
+    #     feb_2006.to_csv(fname_feb, index=False)
+    #     print(f"Saved {fname_feb}")
 
-    # if the file does not already exist
-    if not os.path.exists(os.path.join(save_dir_jan, "eff_dec_year_24.csv")):
-        eff_dec_year_24.to_csv(
-            os.path.join(save_dir_jan, "eff_dec_year_24.csv"), index=False
-        )
-        print(f"Saved {os.path.join(save_dir_jan, 'eff_dec_year_24.csv')}")
+    # # if the file does not already exist
+    # if not os.path.exists(os.path.join(save_dir_jan, "eff_dec_year_24.csv")):
+    #     eff_dec_year_24.to_csv(
+    #         os.path.join(save_dir_jan, "eff_dec_year_24.csv"), index=False
+    #     )
+    #     print(f"Saved {os.path.join(save_dir_jan, 'eff_dec_year_24.csv')}")
 
     # sys.exit()
 
@@ -2740,6 +2766,46 @@ def main():
     block_max_model_dnw["effective_dec_year"] = block_max_model_dnw["init_year"] + (
         block_max_model_dnw["winter_year"] - 1
     )
+
+    # Set up a list to store the dfs
+    dfs_list = []
+
+    # loop over the hdd coefs
+    for hdd_coeff in hdd_coeffs:
+        block_max_model_dnw_hdd_this = gev_funcs.model_block_min_max(
+            df=df_model_djf,
+            time_name="init_year",
+            min_max_var_name=f"demand_net_wind_bc_hdd_{hdd_coeff}",
+            new_df_cols=[
+                "data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+                f"data_tas_c_drift_bc_dt_UK_demand_hdd_{hdd_coeff}",
+                "lead",
+                "data_tas_c_drift_bc_dt",
+                "data_sfcWind_drift_bc_dt",
+                "delta_p_hpa",
+                "data_uas",
+                "data_vas",
+            ],
+            winter_year="winter_year",
+            process_min=False,
+        )
+
+        # Append this to the dfs list
+        dfs_list.append(block_max_model_dnw_hdd_this)
+
+    # print the shape of the dfs list
+    print(f"Shape of block_max_model_dnw_hdd_{hdd_coeff}: {block_max_model_dnw_hdd_this.shape}")
+
+    # print the len of the dfs list
+    print(f"Length of dfs_list: {len(dfs_list)}")
+
+    # print the head of the first df in the dfs list
+    print(f"Head of block_max_model_dnw_hdd_{hdd_coeff}: {dfs_list[0].head()}")
+
+    # print the head of the last df in the dfs list
+    print(f"Tail of block_max_model_dnw_hdd_{hdd_coeff}: {dfs_list[-1].head()}")
+
+    sys.exit()
 
     # # Plot the biases in these
     # gev_funcs.plot_lead_pdfs(
