@@ -1097,6 +1097,13 @@ def temp_to_demand(
         + (cdd_coeff_uk * model_df_copy["cdd"])
     )
 
+    # Set up the range of hdd_coefs
+    hdd_coeffs = np.linspace(0.60, 0.90 + 0.01, num=1000)
+
+    # print the min and max of hdd coeffs
+    print(f"Min HDD coeff: {hdd_coeffs.min():.2f}")
+    print(f"Max HDD coeff: {hdd_coeffs.max():.2f}")
+
     # Set up a figure
     fig = plt.figure(figsize=(6, 6))
 
@@ -1120,6 +1127,17 @@ def temp_to_demand(
         label="Model fit",
     )
 
+    # loop over and plot the fit usin all of the hdd coeffs
+    for hdd_coeff in hdd_coeffs:
+        plt.plot(
+            model_df_copy["hdd"],
+            (time_coeff_uk * demand_year)
+            + (hdd_coeff * model_df_copy["hdd"])
+            + (cdd_coeff_uk * model_df_copy["cdd"]),
+            color="grey",
+            alpha=0.01,
+        )
+
     # Include the coefficients in a textbox in the bottom right of the plot
     plt.text(
         0.95,
@@ -1140,6 +1158,10 @@ def temp_to_demand(
         loc="upper left",
         fontsize=10,
     )
+
+    # include labels and title
+    plt.xlabel("HDD (C)", fontsize=12)
+    plt.ylabel("Electricity demand (GW)", fontsize=12)
 
     return obs_df_copy, model_df_copy
 
