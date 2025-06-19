@@ -39,11 +39,11 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import (
-#     select_leads_wyears_DJF,
-#     plot_distributions_extremes,
-#     plot_multi_var_perc,
-# )
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -1973,7 +1973,7 @@ def main():
     start_time = time.time()
 
     # set iup the delta p filepath
-    # delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+    delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
 
     # # # Set up the test path
     # arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
@@ -2602,22 +2602,22 @@ def main():
 
     # sys.exit()
 
-    # For all days, plot the percentiles of T against sfcWind
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_obs,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - temperature percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of temperature vs 10m wind speed, all DJF days",
-        y2_var_name_model="delta_p_index",
-        y2_label="Delta P N-S Index (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_obs,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
     # find the 10th percentile of sfcWind in the obs data
     tenth_percentile_obs = df_obs["data_sfcWind"].quantile(0.10)
@@ -2625,25 +2625,24 @@ def main():
     # subset the df obs to values beneath the 10th percentile
     df_obs_low_wind = df_obs[df_obs["data_sfcWind"] < tenth_percentile_obs]
 
-    # Plot the percentiles of T against sfcWind for the low wind days
-    plot_multi_var_perc(
-        obs_df=df_obs_low_wind,
-        model_df=df_obs_low_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - temperature percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of temperature vs 10m wind speed, low wind days",
-        y2_var_name_model="delta_p_index",
-        y2_label="delta P N-S Index (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        xlims=(0, 105),
-        ylims=(3, 5),
-    )
-
+    # # Plot the percentiles of T against sfcWind for the low wind days
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_low_wind,
+    #     model_df=df_obs_low_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, low wind days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     xlims=(0, 105),
+    #     ylims=(3, 5),
+    # )
 
     # Set up the path to hazel demand data
     hazel_path = "/home/users/benhutch/NGrid_demand/csv_files/gas_electricity_demand_data.csv"
@@ -2827,46 +2826,46 @@ def main():
         print(f"Saving {fname_low_temp} to {save_dir}")
         df_obs_low_temp.to_csv(os.path.join(save_dir, fname_low_temp))
 
-    sys.exit()
+    # sys.exit()
 
 
-    plot_multi_var_perc(
-            obs_df=df_obs_copy,
-            model_df=df_obs_copy,
-            x_var_name_obs="data_tas_c",
-            y_var_name_obs="data_sfcWind",
-            x_var_name_model="data_tas_c",
-            y_var_name_model="data_sfcWind",
-            xlabel="100 - temperature percentiles",
-            ylabel="10m Wind Speed (m/s)",
-            title="Percentiles of temperature vs 10m wind speed, all DJF days",
-            y2_var_name_model="delta_p_index",
-            y2_label="Delta P N-S Index (hPa)",
-            figsize=(5, 6),
-            inverse_flag=False,
-            xlims=(80, 105),
-            x2_var_name_model="elec_demand_5yrRmean_nohols",
-        )
+    # plot_multi_var_perc(
+    #         obs_df=df_obs_copy,
+    #         model_df=df_obs_copy,
+    #         x_var_name_obs="data_tas_c",
+    #         y_var_name_obs="data_sfcWind",
+    #         x_var_name_model="data_tas_c",
+    #         y_var_name_model="data_sfcWind",
+    #         xlabel="100 - temperature percentiles",
+    #         ylabel="10m Wind Speed (m/s)",
+    #         title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #         y2_var_name_model="delta_p_index",
+    #         y2_label="Delta P N-S Index (hPa)",
+    #         figsize=(5, 6),
+    #         inverse_flag=False,
+    #         xlims=(80, 105),
+    #         x2_var_name_model="elec_demand_5yrRmean_nohols",
+    #     )
 
-    plot_multi_var_perc(
-            obs_df=df_obs_copy,
-            model_df=df_obs_copy,
-            x_var_name_obs="data_tas_c",
-            y_var_name_obs="data_sfcWind",
-            x_var_name_model="data_tas_c",
-            y_var_name_model="data_sfcWind",
-            xlabel="100 - temperature percentiles",
-            ylabel="10m Wind Speed (m/s)",
-            title="Percentiles of temperature vs 10m wind speed, all DJF days",
-            y2_var_name_model="data_tas_c",
-            y2_label="Temperature (C)",
-            figsize=(5, 6),
-            inverse_flag=False,
-            xlims=(80, 105),
-            x2_var_name_model="elec_demand_5yrRmean_nohols",
-        )
+    # plot_multi_var_perc(
+    #         obs_df=df_obs_copy,
+    #         model_df=df_obs_copy,
+    #         x_var_name_obs="data_tas_c",
+    #         y_var_name_obs="data_sfcWind",
+    #         x_var_name_model="data_tas_c",
+    #         y_var_name_model="data_sfcWind",
+    #         xlabel="100 - temperature percentiles",
+    #         ylabel="10m Wind Speed (m/s)",
+    #         title="Percentiles of temperature vs 10m wind speed, all DJF days",
+    #         y2_var_name_model="data_tas_c",
+    #         y2_label="Temperature (C)",
+    #         figsize=(5, 6),
+    #         inverse_flag=False,
+    #         xlims=(80, 105),
+    #         x2_var_name_model="elec_demand_5yrRmean_nohols",
+    #     )
     
-    sys.exit()
+    # sys.exit()
 
     # # plot the percentiles of demand against wind speed
     # plot_multi_var_perc(
@@ -2953,42 +2952,42 @@ def main():
     # Subset the df_obs_copy to values above the 80th percentile
     df_obs_high_demand = df_obs_copy[df_obs_copy["elec_demand_5yrRmean_nohols"] > eighty_percentile_demand]
 
-    # Plot the percentiles of demand against wind speed for the high demand days
-    plot_multi_var_perc(
-        obs_df=df_obs_high_demand,
-        model_df=df_obs_high_demand,
-        x_var_name_obs="elec_demand_5yrRmean_nohols",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="elec_demand_5yrRmean_nohols",
-        y_var_name_model="data_sfcWind",
-        xlabel="demand percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of demand vs 10m wind speed, all DJF days",
-        y2_var_name_model="delta_p_index",
-        y2_label="Delta P N-S Index (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        ylims=(4, 12),
-        y2_lims=(-40, 20),
-    )
+    # # Plot the percentiles of demand against wind speed for the high demand days
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_high_demand,
+    #     model_df=df_obs_high_demand,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(4, 12),
+    #     y2_lims=(-40, 20),
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs_high_demand,
-        model_df=df_obs_high_demand,
-        x_var_name_obs="elec_demand_5yrRmean_nohols",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="elec_demand_5yrRmean_nohols",
-        y_var_name_model="data_sfcWind",
-        xlabel="demand percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of demand vs 10m wind speed, all DJF days",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        ylims=(4, 12),
-        y2_lims=(-5, 11),
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_high_demand,
+    #     model_df=df_obs_high_demand,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, all DJF days",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(4, 12),
+    #     y2_lims=(-5, 11),
+    # )
 
     # Find the median value of temperature for high demand
     median_temp_high_demand = df_obs_high_demand["data_tas_c"].quantile(0.20)
@@ -3001,83 +3000,83 @@ def main():
         df_obs_high_demand["data_tas_c"] >= median_temp_high_demand
     ]
 
-    # Plot the percentiles of demand against wind speed for the high demand days below median temperature
-    plot_multi_var_perc(
-        obs_df=df_obs_high_demand_below_median,
-        model_df=df_obs_high_demand_below_median,
-        x_var_name_obs="elec_demand_5yrRmean_nohols",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="elec_demand_5yrRmean_nohols",
-        y_var_name_model="data_sfcWind",
-        xlabel="demand percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of demand vs 10m wind speed, below median temperature",
-        y2_var_name_model="delta_p_index",
-        y2_label="Delta P N-S Index (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        ylims=(1, 12),
-        y2_lims=(-40, 20),
-    )
+    # # Plot the percentiles of demand against wind speed for the high demand days below median temperature
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_high_demand_below_median,
+    #     model_df=df_obs_high_demand_below_median,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, below median temperature",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(1, 12),
+    #     y2_lims=(-40, 20),
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs_high_demand_below_median,
-        model_df=df_obs_high_demand_below_median,
-        x_var_name_obs="elec_demand_5yrRmean_nohols",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="elec_demand_5yrRmean_nohols",
-        y_var_name_model="data_sfcWind",
-        xlabel="demand percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of demand vs 10m wind speed, below median temperature",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        ylims=(1, 12),
-        y2_lims=(-5, 11),
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_high_demand_below_median,
+    #     model_df=df_obs_high_demand_below_median,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, below median temperature",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(1, 12),
+    #     y2_lims=(-5, 11),
+    # )
+
+    # # sys.exit()
+
+    # # Plot the percentiles of demand against wind speed for the high demand days above median temperature
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_high_demand_above_median,
+    #     model_df=df_obs_high_demand_above_median,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, above median temperature",
+    #     y2_var_name_model="delta_p_index",
+    #     y2_label="Delta P N-S Index (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(4, 12),
+    #     y2_lims=(-40, 20),
+    # )
+
+    # plot_multi_var_perc(
+    #     obs_df=df_obs_high_demand_above_median,
+    #     model_df=df_obs_high_demand_above_median,
+    #     x_var_name_obs="elec_demand_5yrRmean_nohols",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="elec_demand_5yrRmean_nohols",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="demand percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of demand vs 10m wind speed, above median temperature",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     ylims=(4, 12),
+    #     y2_lims=(-5, 11),
+    # )
 
     # sys.exit()
-
-    # Plot the percentiles of demand against wind speed for the high demand days above median temperature
-    plot_multi_var_perc(
-        obs_df=df_obs_high_demand_above_median,
-        model_df=df_obs_high_demand_above_median,
-        x_var_name_obs="elec_demand_5yrRmean_nohols",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="elec_demand_5yrRmean_nohols",
-        y_var_name_model="data_sfcWind",
-        xlabel="demand percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of demand vs 10m wind speed, above median temperature",
-        y2_var_name_model="delta_p_index",
-        y2_label="Delta P N-S Index (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        ylims=(4, 12),
-        y2_lims=(-40, 20),
-    )
-
-    plot_multi_var_perc(
-        obs_df=df_obs_high_demand_above_median,
-        model_df=df_obs_high_demand_above_median,
-        x_var_name_obs="elec_demand_5yrRmean_nohols",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="elec_demand_5yrRmean_nohols",
-        y_var_name_model="data_sfcWind",
-        xlabel="demand percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of demand vs 10m wind speed, above median temperature",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        ylims=(4, 12),
-        y2_lims=(-5, 11),
-    )
-
-    sys.exit()
 
     # # Plot percentiles of sfcWind against T
     # plot_multi_var_perc(
@@ -3191,7 +3190,7 @@ def main():
         print(f"Saving {fname_higher_wind} to {save_dir_dfs_transfer}")
         df_model_higher_wind.to_csv(full_path_higher_wind)
 
-    sys.exit()
+    # sys.exit()
 
     # # find at which percentile/qunatile the value of 5 m/s is in the data
     # # print the quantile of the wind speed
@@ -3208,203 +3207,203 @@ def main():
 
     # sys.exit()
 
-    # For all days, plot the percentiles of T against sfcWind
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_low_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - temperature percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of temperature vs 10m wind speed, low wind speed days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_low_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, low wind speed days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    # Do the same, but for U and V, and then wind speed on the second y-axis
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_low_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-    )
+    # # Do the same, but for U and V, and then wind speed on the second y-axis
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_low_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_low_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-        xlims=(80, 100),
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_low_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    #     xlims=(80, 100),
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_low_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-        xlims=(80, 100),
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_low_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    #     xlims=(80, 100),
+    # )
 
-    # do the same but with temperature on the oteher y-axis
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_low_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-        xlims=(80, 100),
-    )
+    # # do the same but with temperature on the oteher y-axis
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_low_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    #     xlims=(80, 100),
+    # )
 
 
-    # For all days, plot the percentiles of T against sfcWind
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_higher_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - temperature percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of temperature vs 10m wind speed, higher wind speed days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # For all days, plot the percentiles of T against sfcWind
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_higher_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of temperature vs 10m wind speed, higher wind speed days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_higher_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_higher_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_higher_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-        xlims=(80, 100),
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_higher_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    #     xlims=(80, 100),
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_higher_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-        xlims=(80, 100),
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_higher_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    #     xlims=(80, 100),
+    # )
 
-    # Do the same but with temperature on the other y-axis
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_higher_wind,
-        x_var_name_obs="data_tas_c",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_tas_c",
-        y_var_name_model="data_uas",
-        xlabel="100 - temperature percentiles",
-        ylabel="U-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
-        figsize=(5, 6),
-        inverse_flag=True,
-        y1_zero_line=True,
-        xlims=(80, 100),
-    )
+    # # Do the same but with temperature on the other y-axis
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_higher_wind,
+    #     x_var_name_obs="data_tas_c",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_tas_c",
+    #     y_var_name_model="data_uas",
+    #     xlabel="100 - temperature percentiles",
+    #     ylabel="U-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U/V 10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    #     y1_zero_line=True,
+    #     xlims=(80, 100),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Sense check by plotting temp percentiles against temperature
     # plot_multi_var_perc(
@@ -3425,21 +3424,21 @@ def main():
     # )
 
     # Sense check by plotting wind percentiles against wind speed
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model,
-        x_var_name_obs="data_sfcWind",
-        y_var_name_obs="data_sfcWind",
-        x_var_name_model="data_sfcWind",
-        y_var_name_model="data_sfcWind",
-        xlabel="100 - wind speed percentiles",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of wind speed vs wind speed, all DJF days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model,
+    #     x_var_name_obs="data_sfcWind",
+    #     y_var_name_obs="data_sfcWind",
+    #     x_var_name_model="data_sfcWind",
+    #     y_var_name_model="data_sfcWind",
+    #     xlabel="100 - wind speed percentiles",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of wind speed vs wind speed, all DJF days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    # )
 
     # Do the same, but for block minima T days
     # plot_multi_var_perc(
@@ -3459,61 +3458,61 @@ def main():
     # )
 
     # Do the same but for block minima wind days
-    plot_multi_var_perc(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind,
-        x_var_name_obs="data_sfcWind_min",
-        y_var_name_obs="data_tas_c",
-        x_var_name_model="data_sfcWind_min",
-        y_var_name_model="data_tas_c",
-        xlabel="10m Wind Speed (m/s)",
-        ylabel="Temperature",
-        title="Percentiles of 10m wind speed vs temperature, block min wind days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind,
+    #     x_var_name_obs="data_sfcWind_min",
+    #     y_var_name_obs="data_tas_c",
+    #     x_var_name_model="data_sfcWind_min",
+    #     y_var_name_model="data_tas_c",
+    #     xlabel="10m Wind Speed (m/s)",
+    #     ylabel="Temperature",
+    #     title="Percentiles of 10m wind speed vs temperature, block min wind days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind,
-        x_var_name_obs="data_sfcWind_min",
-        y_var_name_obs="data_sfcWind_min",
-        x_var_name_model="data_sfcWind_min",
-        y_var_name_model="data_uas",
-        xlabel="Wind speed percentiles",
-        ylabel="U/V-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind_min",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        y1_zero_line=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind,
+    #     x_var_name_obs="data_sfcWind_min",
+    #     y_var_name_obs="data_sfcWind_min",
+    #     x_var_name_model="data_sfcWind_min",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Wind speed percentiles",
+    #     ylabel="U/V-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind_min",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     y1_zero_line=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind,
-        x_var_name_obs="data_sfcWind_min",
-        y_var_name_obs="data_sfcWind_min",
-        x_var_name_model="data_sfcWind_min",
-        y_var_name_model="data_uas",
-        xlabel="Wind speed percentiles",
-        ylabel="U/V-component of Wind at 10m (m/s)",
-        title="Percentiles of temperature vs U10m wind speed, all DJF days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_tas_c",
-        y2_label="Temperature (C)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        y1_zero_line=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind,
+    #     x_var_name_obs="data_sfcWind_min",
+    #     y_var_name_obs="data_sfcWind_min",
+    #     x_var_name_model="data_sfcWind_min",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Wind speed percentiles",
+    #     ylabel="U/V-component of Wind at 10m (m/s)",
+    #     title="Percentiles of temperature vs U10m wind speed, all DJF days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_tas_c",
+    #     y2_label="Temperature (C)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     y1_zero_line=True,
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # obs_df=block_max_obs_dnw,
     #     model_df=block_max_model_dnw,
@@ -3653,19 +3652,19 @@ def main():
             :, ~block_minima_model_wind.columns.duplicated()
         ]
 
-    # if anything is duplicate in model block wind short
-    if block_minima_model_wind_short.columns.duplicated().any():
-        print("Duplicate column names in block minima model wind short")
-        print(
-            block_minima_model_wind_short.columns[
-                block_minima_model_wind_short.columns.duplicated()
-            ]
-        )
+    # # if anything is duplicate in model block wind short
+    # if block_minima_model_wind_short.columns.duplicated().any():
+    #     print("Duplicate column names in block minima model wind short")
+    #     print(
+    #         block_minima_model_wind_short.columns[
+    #             block_minima_model_wind_short.columns.duplicated()
+    #         ]
+    #     )
 
-        # Drop the duplicate columns
-        block_minima_model_wind_short = block_minima_model_wind_short.loc[
-            :, ~block_minima_model_wind_short.columns.duplicated()
-        ]
+    #     # Drop the duplicate columns
+    #     block_minima_model_wind_short = block_minima_model_wind_short.loc[
+    #         :, ~block_minima_model_wind_short.columns.duplicated()
+    #     ]
 
     # add the effective dec year to the block minima model tas
     block_minima_model_tas["effective_dec_year"] = block_minima_model_tas[
@@ -3677,17 +3676,26 @@ def main():
         "init_year"
     ] + (block_minima_model_wind["winter_year"] - 1)
 
-    # do the same for wind speed short
-    block_minima_model_wind_short["effective_dec_year"] = block_minima_model_wind_short[
-        "init_year"
-    ] + (block_minima_model_wind_short["winter_year"] - 1)
+    # # do the same for wind speed short
+    # block_minima_model_wind_short["effective_dec_year"] = block_minima_model_wind_short[
+    #     "init_year"
+    # ] + (block_minima_model_wind_short["winter_year"] - 1)
+
+
+    # print the columns for the model data
+    print("Model data columns:")
+    print(block_minima_model_tas.columns)
+
+    # print the columns for the obs data
+    print("Obs data columns:")
+    print(block_minima_obs_tas.columns)
 
     # Plot the lead pdfs
     gev_funcs.plot_lead_pdfs(
         model_df=block_minima_model_tas,
         obs_df=block_minima_obs_tas,
         model_var_name="data_tas_c_min",
-        obs_var_name="data_c_min",
+        obs_var_name="data_tas_c_min",
         lead_name="winter_year",
         xlabel="Temperature (C)",
         suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
@@ -3711,7 +3719,7 @@ def main():
         model_df=block_minima_model_tas,
         model_var_name="data_tas_c_min",
         obs_df=block_minima_obs_tas,
-        obs_var_name="data_c_min",
+        obs_var_name="data_tas_c_min",
         lead_name="winter_year",
         xlabel="Temperature (C)",
         year1_year2_tuple=(1970, 2017),
@@ -3730,24 +3738,24 @@ def main():
         constant_period=True,
     )
 
-    # print the head of the block minima model tas drift corr
-    block_minima_model_wind_short_drift_corr = model_drift_corr_plot(
-        model_df=block_minima_model_wind_short,
-        model_var_name="data_min",
-        obs_df=block_minima_obs_wind_short,
-        obs_var_name="data_min",
-        lead_name="winter_year",
-        xlabel="Wind speed (m/s)",
-        year1_year2_tuple=(1970, 2017),
-        constant_period=True,
-    )
+    # # print the head of the block minima model tas drift corr
+    # block_minima_model_wind_short_drift_corr = model_drift_corr_plot(
+    #     model_df=block_minima_model_wind_short,
+    #     model_var_name="data_min",
+    #     obs_df=block_minima_obs_wind_short,
+    #     obs_var_name="data_min",
+    #     lead_name="winter_year",
+    #     xlabel="Wind speed (m/s)",
+    #     year1_year2_tuple=(1970, 2017),
+    #     constant_period=True,
+    # )
 
     # PLOT THE LEAD pdfs post this
     gev_funcs.plot_lead_pdfs(
         model_df=block_minima_model_tas_drift_corr,
         obs_df=block_minima_obs_tas,
         model_var_name="data_tas_c_min_drift_bc",
-        obs_var_name="data_c_min",
+        obs_var_name="data_tas_c_min",
         lead_name="winter_year",
         xlabel="Temperature (C)",
         suptitle="Temperature PDFs, 1961-2017, DJF block min T (model drift corrected)",
@@ -3766,17 +3774,17 @@ def main():
         figsize=(10, 5),
     )
 
-    # plot the lead pdfs for model wind drift corr short
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_wind_short_drift_corr,
-        obs_df=block_minima_obs_wind_short,
-        model_var_name="data_min_drift_bc",
-        obs_var_name="data_min",
-        lead_name="winter_year",
-        xlabel="Wind speed (m/s)",
-        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
-        figsize=(10, 5),
-    )
+    # # plot the lead pdfs for model wind drift corr short
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_wind_short_drift_corr,
+    #     obs_df=block_minima_obs_wind_short,
+    #     model_var_name="data_min_drift_bc",
+    #     obs_var_name="data_min",
+    #     lead_name="winter_year",
+    #     xlabel="Wind speed (m/s)",
+    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
+    #     figsize=(10, 5),
+    # )
 
     # sys.exit()
 
@@ -3818,32 +3826,32 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # Test the new function
-    pivot_emp_rps(
-        obs_df=block_minima_obs_tas,
-        model_df=block_minima_model_tas_drift_corr,
-        obs_val_name="data_c_min",
-        model_val_name="data_tas_c_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="tas",
-        nsamples=1000,
-        figsize=(5, 5),
-    )
+    # # Test the new function
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_tas,
+    #     model_df=block_minima_model_tas_drift_corr,
+    #     obs_val_name="data_c_min",
+    #     model_val_name="data_tas_c_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="tas",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
 
-    # DO the same for wind speed
-    pivot_emp_rps(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind_drift_corr,
-        obs_val_name="data_min",
-        model_val_name="data_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="sfcWind",
-        nsamples=1000,
-        figsize=(5, 5),
-        wind_2005_toggle=True,
-    )
+    # # DO the same for wind speed
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind_drift_corr,
+    #     obs_val_name="data_min",
+    #     model_val_name="data_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="sfcWind",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    #     wind_2005_toggle=True,
+    # )
 
     # Do the same for wind speed short
     # pivot_emp_rps(
@@ -3884,15 +3892,15 @@ def main():
     )
 
     # Apply a detrend to thje wind data short
-    block_minima_model_wind_short_drift_corr_dt = gev_funcs.pivot_detrend_model(
-        model_df=block_minima_model_wind_short_drift_corr,
-        obs_df=block_minima_obs_wind_short,
-        model_x_axis_name="effective_dec_year",
-        model_y_axis_name="data_min_drift_bc",
-        obs_x_axis_name="effective_dec_year",
-        obs_y_axis_name="data_min",
-        suffix="_dt",
-    )
+    # block_minima_model_wind_short_drift_corr_dt = gev_funcs.pivot_detrend_model(
+    #     model_df=block_minima_model_wind_short_drift_corr,
+    #     obs_df=block_minima_obs_wind_short,
+    #     model_x_axis_name="effective_dec_year",
+    #     model_y_axis_name="data_min_drift_bc",
+    #     obs_x_axis_name="effective_dec_year",
+    #     obs_y_axis_name="data_min",
+    #     suffix="_dt",
+    # )
 
     # print the head of the dataframe
     print(block_minima_model_tas_drift_corr_dt.head())
@@ -4220,9 +4228,9 @@ def main():
     )
 
     # Make sure effective dec year is a datetime in the model wind data short
-    block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
-        block_minima_model_wind_short_drift_corr_dt["effective_dec_year"], format="%Y"
-    )
+    # block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
+    #     block_minima_model_wind_short_drift_corr_dt["effective_dec_year"], format="%Y"
+    # )
 
     # Make sure effective dec year is a datetime in the obs tas data
     block_minima_obs_tas_dt["effective_dec_year"] = pd.to_datetime(
@@ -4338,20 +4346,20 @@ def main():
     # )
 
     # test the funcion for doing the same thing
-    plot_emp_rps(
-        obs_df=block_minima_obs_tas_dt,
-        model_df=block_minima_model_tas_drift_corr_dt,
-        obs_val_name="data_c_min_dt",
-        model_val_name="data_tas_c_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Temperature (°C)",
-        nsamples=1000,
-        ylims=(-9, -2.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
-    )
+    # plot_emp_rps(
+    #     obs_df=block_minima_obs_tas_dt,
+    #     model_df=block_minima_model_tas_drift_corr_dt,
+    #     obs_val_name="data_c_min_dt",
+    #     model_val_name="data_tas_c_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Temperature (°C)",
+    #     nsamples=1000,
+    #     ylims=(-9, -2.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
 
     # # do thye same thing fo wind speed
     # plot_gev_rps(
@@ -4369,21 +4377,21 @@ def main():
     #     figsize=(5, 5),
     # )
 
-    # plot empirical return periods for wind speed
-    plot_emp_rps(
-        obs_df=block_minima_obs_wind_dt,
-        model_df=block_minima_model_wind_drift_corr_dt,
-        obs_val_name="data_min_dt",
-        model_val_name="data_min_drift_bc_dt",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Wind speed (m/s)",
-        nsamples=1000,
-        ylims=(2, 3.5),
-        blue_line=np.min,
-        high_values_rare=False,
-        figsize=(5, 5),
-    )
+    # # plot empirical return periods for wind speed
+    # plot_emp_rps(
+    #     obs_df=block_minima_obs_wind_dt,
+    #     model_df=block_minima_model_wind_drift_corr_dt,
+    #     obs_val_name="data_min_dt",
+    #     model_val_name="data_min_drift_bc_dt",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Wind speed (m/s)",
+    #     nsamples=1000,
+    #     ylims=(2, 3.5),
+    #     blue_line=np.min,
+    #     high_values_rare=False,
+    #     figsize=(5, 5),
+    # )
 
     # # # plot the empirical return periods for wind speed short
     # plot_emp_rps(
@@ -4422,17 +4430,17 @@ def main():
         block_minima_model_wind_drift_corr_dt["effective_dec_year"].dt.year.astype(int)
     )
 
-    # Make sure that effective dec year is a datetime year
-    block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
-        block_minima_model_wind_short_drift_corr_dt["effective_dec_year"], format="%Y"
-    )
+    # # Make sure that effective dec year is a datetime year
+    # block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = pd.to_datetime(
+    #     block_minima_model_wind_short_drift_corr_dt["effective_dec_year"], format="%Y"
+    # )
 
-    # format effective dec year as an int
-    block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = (
-        block_minima_model_wind_short_drift_corr_dt[
-            "effective_dec_year"
-        ].dt.year.astype(int)
-    )
+    # # format effective dec year as an int
+    # block_minima_model_wind_short_drift_corr_dt["effective_dec_year"] = (
+    #     block_minima_model_wind_short_drift_corr_dt[
+    #         "effective_dec_year"
+    #     ].dt.year.astype(int)
+    # )
 
     # # plot the return periods by decade for wind speed
     # gev_funcs.plot_return_periods_decades(

@@ -4871,22 +4871,25 @@ def plot_var_composites_model(
             ]
         )
     elif var_name == "psl":
-        # Set up the levels
-        cmap = "coolwarm"
+        # Set up the levels for plotting absolute values
+        # Set up the cmap
+        cmap = "bwr"
+
+        # Sert up the levels
         levels = np.array(
             [
-                -12,
-                -10,
-                -8,
-                -6,
-                -4,
-                -2,
-                2,
-                4,
-                6,
-                8,
-                10,
-                12,
+                1004,
+                1006,
+                1008,
+                1010,
+                1012,
+                1014,
+                1016,
+                1018,
+                1020,
+                1022,
+                1024,
+                1026,
             ]
         )
     else:
@@ -5062,6 +5065,13 @@ def plot_var_composites_model(
             # Store the value in the subset_arr_this_model_full
             subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
 
+        # if there are any zeros in the subset_arr_this_model_full
+        if np.any(subset_arr_this_model_full == 0):
+            # format these as Nans
+            subset_arr_this_model_full[
+                subset_arr_this_model_full == 0
+            ] = np.nan
+
         # Print the row index
         print(f"Row index: {i}")
         print(f"Number of missing days: {missing_days}")
@@ -5076,7 +5086,7 @@ def plot_var_composites_model(
             anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
         else:
             # If the variable is psl, then do not calculate anomalies
-            anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
+            anoms_this_model = subset_arr_this_model_mean
 
         # # # if i == 0
         # if i == 0:
@@ -5225,6 +5235,7 @@ def plot_multi_var_composites_model(
         figsize=figsize,
         layout="constrained",
         subplot_kw={"projection": ccrs.PlateCarree()},
+        gridspec_kw={"width_ratios": [1.5, 1, 1]},  # First column is 1.5x wider
     )
 
     # Set up the names
@@ -5241,6 +5252,13 @@ def plot_multi_var_composites_model(
 
     # Set up the list of axes
     axes_list = [ax1, ax2, ax3]
+
+    # Set up the labels
+    plot_labels = [
+        ["a", "b", "c"],
+        ["d", "e", "f"],
+        ["g", "h", "i"],
+    ]
 
     # Loop over the mutli var names enumerate
     for i, var_name in enumerate(multi_var_names):
@@ -5302,7 +5320,7 @@ def plot_multi_var_composites_model(
         elif var_name == "psl":
             # Set up the levels for plotting absolute values
             # Set up the cmap
-            cmap = "bwr"
+            cmap = "coolwarm"
 
             # Sert up the levels
             levels = np.array(
@@ -5482,16 +5500,20 @@ def plot_multi_var_composites_model(
                 ]
 
                 # Store the value in the subset_arr_this_model_full
-                subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
+                subset_arr_this_model_full[k, :, :] = subset_arr_this_model_index_this
 
-            # Print the col index
-            print(f"Column index: {i}")
-            print(f"Row index: {j}")
-            print(f"Number of missing days: {missing_days_this}")
-            print(f"Model overall N: {N_model_this}")
+            # anything which is a zero format as a NaN
+            subset_arr_this_model_full[
+                subset_arr_this_model_full == 0
+            ] = np.nan
+
+            # print the min and max of the subset_arr_this_model_full
+            print(f"Min of subset_arr_this_model_full: {np.min(subset_arr_this_model_full)}")
+            print(f"Max of subset_arr_this_model_full: {np.max(subset_arr_this_model_full)}")
+            print(f"Mean of subset_arr_this_model_full: {np.nanmean(subset_arr_this_model_full)}")
 
             # Take the mean over this
-            subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+            subset_arr_this_model_mean = np.nanmean(subset_arr_this_model_full, axis=0)
 
             # if the variable is not psl
             if var_name != "psl":
@@ -5508,9 +5530,21 @@ def plot_multi_var_composites_model(
             if var_name == "psl":
                 anoms_this_model = anoms_this_model / 100.0
             elif var_name == "tas":
-                anoms_this_model = np.ma.masked_where(
-                    MASK_MATRIX_RESHAPED == 0, anoms_this_model
-                )
+                print("NOT Masking the tas data with the land mask")
+                # anoms_this_model = np.ma.masked_where(
+                #     MASK_MATRIX_RESHAPED == 0, anoms_this_model
+                # )
+
+            # Print the col index
+            print(f"Column index: {i}")
+            print(f"Row index: {j}")
+            print(f"Number of missing days: {missing_days_this}")
+            print(f"Model overall N: {N_model_this}")
+
+            # print the min and max and mean of anoms this model
+            print(f"min anoms this model: {np.min(anoms_this_model)}")
+            print(f"max anoms this model: {np.max(anoms_this_model)}")
+            print(f"mean anoms this model: {np.mean(anoms_this_model)}")
 
             # Plot the model data on the right
             im_model = row_this.contourf(
@@ -5526,7 +5560,7 @@ def plot_multi_var_composites_model(
             # if the var_name is psl, then plot absolute contours
             if var_name == "psl":
                 # Plot the absolute contours
-                row_this.contour(
+                contours = row_this.contour(
                     lons_this,
                     lats_this,
                     anoms_this_model,
@@ -5534,6 +5568,15 @@ def plot_multi_var_composites_model(
                     colors="black",
                     linewidths=0.5,
                     transform=ccrs.PlateCarree(),
+                )
+
+                row_this.clabel(
+                    contours,
+                    levels,
+                    fmt="%.0f",
+                    fontsize=6,
+                    inline=True,
+                    inline_spacing=0.0,
                 )
 
             # add coastlines to all of these
@@ -5553,6 +5596,11 @@ def plot_multi_var_composites_model(
 
             # if i == 2
             if j == 2:
+                # add colorbar
+                # cbar = plt.colorbar(mymap, orientation='horizontal', shrink=0.7, pad=0.1)
+                # cbar.set_label('SST [C]', rotation=0, fontsize=10)
+                # cbar.ax.tick_params(labelsize=7, length=0)
+
                 # add the colorbar for wind
                 cbar = fig.colorbar(
                     im_model,
@@ -5561,14 +5609,64 @@ def plot_multi_var_composites_model(
                     pad=0.05,
                     shrink=0.8,
                 )
+
+                # depending on the i set the labels
+                if i == 0:
+
+                    # Set up the ticks
+                    levels = np.array(
+                        [
+                            1004,
+                            1008,
+                            1012,
+                            1015,
+                            1018,
+                            1022,
+                            1026,
+                        ]
+                    )
+                    
+                    cbar.set_label(
+                        "hPa", rotation=0, fontsize=12
+                    )
+                elif i == 1:
+                    cbar.set_label(
+                        "°C", rotation=0, fontsize=12
+                    )
+                elif i == 2:
+
+                    cbar.set_label(
+                        "m/s", rotation=0, fontsize=12
+                    )
+
                 cbar.set_ticks(levels)
+
+            # Set the title for each subplot based on `i`
+            if i == 0 and j == 0:
+                row_this.set_title("Model daily MSLP", fontsize=12, fontweight="bold")
+            elif i == 1 and j == 0:
+                row_this.set_title("Model daily airT anoms", fontsize=12, fontweight="bold")
+            elif i == 2 and j == 0:
+                row_this.set_title("Model daily sfcWind anoms", fontsize=12, fontweight="bold")
 
             # Set up a textbox in the bottom right
             row_this.text(
                 0.95,
                 0.05,
-                names_list[i],
+                names_list[j],
                 horizontalalignment="right",
+                verticalalignment="bottom",
+                transform=row_this.transAxes,
+                fontsize=12,
+                bbox=dict(facecolor="white", alpha=0.5),
+            )
+
+            # Include the plot labels in the bottom left
+            row_this.text(
+                0.05,
+                0.05,
+                f"{plot_labels[i][j]}",
+                horizontalalignment="left",
                 verticalalignment="bottom",
                 transform=row_this.transAxes,
                 fontsize=12,
@@ -8046,6 +8144,14 @@ def main():
         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
     )
 
+    # set up the lons europe for wind
+    lons_europe_wind = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    )
+    lats_europe_wind = os.path.join(
+        metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    )
+
     # Set up the lons europe vas
     lons_europe_vas = os.path.join(
         metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy"
@@ -8413,17 +8519,17 @@ def main():
 
     # sys.exit()
 
-    # test the new function
-    plot_var_composites_model(
-        subset_dfs_model=subset_dfs_model,
-        subset_arrs_model=subset_arrs_model_vas,
-        clim_arrs_model=clim_arrs_model_vas,
-        model_index_dicts=model_index_dicts_vas,
-        lats_path=lats_europe_vas,
-        lons_path=lons_europe_vas,
-        var_name="vas",
-        figsize=(10, 10),
-    )
+    # # test the new function
+    # plot_var_composites_model(
+    #     subset_dfs_model=subset_dfs_model,
+    #     subset_arrs_model=subset_arrs_model_vas,
+    #     clim_arrs_model=clim_arrs_model_vas,
+    #     model_index_dicts=model_index_dicts_vas,
+    #     lats_path=lats_europe_vas,
+    #     lons_path=lons_europe_vas,
+    #     var_name="vas",
+    #     figsize=(10, 10),
+    # )
 
     # test the new new function
     multi_subset_dfs_list = [
@@ -8453,16 +8559,60 @@ def main():
     lats_paths_list = [
         lats_paths[0],
         lats_europe,
-        lats_europe,
+        lats_europe_wind,
     ]
 
     lons_paths_list = [
         lons_paths[0],
         lons_europe,
-        lons_europe,
+        lons_europe_wind,
     ]
 
-    # test the new function for plotting multiple variables
+    plot_width = 10
+    plot_height = 8
+
+    # print the shape of subset arrs tas and subset arras wind
+    print(f"Shape of subset arrs tas: {subset_arrs_model_tas[0].shape}")
+    print(f"Shape of subset arrs wind: {subset_arrs_model_wind[0].shape}")
+
+
+    # # Plot the var composites for psl
+    # plot_var_composites_model(
+    #     subset_dfs_model=subset_dfs_model,
+    #     subset_arrs_model=subset_arrs_model,
+    #     clim_arrs_model=clim_arrs_model,
+    #     model_index_dicts=model_index_dicts,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="psl",
+    #     figsize=(10, 10),
+    # )
+
+    # # Do the same for tas
+    # plot_var_composites_model(
+    #     subset_dfs_model=subset_dfs_model,
+    #     subset_arrs_model=subset_arrs_model_tas,
+    #     clim_arrs_model=clim_arrs_model_tas,
+    #     model_index_dicts=model_index_dicts_tas,
+    #     lats_path=lats_europe,
+    #     lons_path=lons_europe,
+    #     var_name="tas",
+    #     figsize=(10, 10),
+    # )
+
+    # # Do the same for wind
+    # plot_var_composites_model(
+    #     subset_dfs_model=subset_dfs_model,
+    #     subset_arrs_model=subset_arrs_model_wind,
+    #     clim_arrs_model=clim_arrs_model_wind,
+    #     model_index_dicts=model_index_dicts_wind,
+    #     lats_path=lats_europe,
+    #     lons_path=lons_europe,
+    #     var_name="sfcWind",
+    #     figsize=(10, 10),
+    # )
+
+    # # test the new function for plotting multiple variables
     plot_multi_var_composites_model(
         multi_subset_dfs_model=multi_subset_dfs_list,
         multi_subset_arrs_model=multi_subset_arrs_list,
@@ -8471,60 +8621,24 @@ def main():
         multi_lats_path=lats_paths_list,
         multi_lons_path=lons_paths_list,
         multi_var_names=["psl", "tas", "sfcWind"],
-        figsize=(10, 10),
+        figsize=(plot_width, plot_height),
     )
 
     sys.exit()
 
-    # test the new function
-    plot_var_composites_model(
-        subset_dfs_model=subset_dfs_model,
-        subset_arrs_model=subset_arrs_model_uas,
-        clim_arrs_model=clim_arrs_model_uas,
-        model_index_dicts=model_index_dicts_uas,
-        lats_path=lats_europe_uas,
-        lons_path=lons_europe_uas,
-        var_name="uas",
-        figsize=(10, 10),
-    )
+    # # # test the new function
+    # # plot_var_composites_model(
+    # #     subset_dfs_model=subset_dfs_model,
+    # #     subset_arrs_model=subset_arrs_model_uas,
+    # #     clim_arrs_model=clim_arrs_model_uas,
+    # #     model_index_dicts=model_index_dicts_uas,
+    # #     lats_path=lats_europe_uas,
+    # #     lons_path=lons_europe_uas,
+    # #     var_name="uas",
+    # #     figsize=(10, 10),
+    # # )
 
-    # Plot the var composites for psl
-    plot_var_composites_model(
-        subset_dfs_model=subset_dfs_model,
-        subset_arrs_model=subset_arrs_model,
-        clim_arrs_model=clim_arrs_model,
-        model_index_dicts=model_index_dicts,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="psl",
-        figsize=(10, 10),
-    )
-
-    # Do the same for tas
-    plot_var_composites_model(
-        subset_dfs_model=subset_dfs_model,
-        subset_arrs_model=subset_arrs_model_tas,
-        clim_arrs_model=clim_arrs_model_tas,
-        model_index_dicts=model_index_dicts_tas,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        var_name="tas",
-        figsize=(10, 10),
-    )
-
-    # Do the same for wind
-    plot_var_composites_model(
-        subset_dfs_model=subset_dfs_model,
-        subset_arrs_model=subset_arrs_model_wind,
-        clim_arrs_model=clim_arrs_model_wind,
-        model_index_dicts=model_index_dicts_wind,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        var_name="sfcWind",
-        figsize=(10, 10),
-    )
-
-    sys.exit()
+    # sys.exit()
 
     # test the function for just plotting the tas composites
     plot_tas_composites(
