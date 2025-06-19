@@ -574,7 +574,7 @@ def pivot_emp_rps_dnw(
 
     # Set up the title
     ax.set_title(
-        f"Chance of >2010 DnW by year",
+        f"f) Chance of > 2010 DnW by year",
         fontsize=12,
     )
 
@@ -2273,20 +2273,20 @@ def main():
     # )
 
     # # Test the new function before all detrending takes place
-    pivot_emp_rps_dnw(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        obs_var_name_wind="data_sfcWind",
-        obs_var_name_tas="data_c",
-        model_var_name_wind="data_sfcWind_drift_bc",
-        model_var_name_tas="data_tas_c_drift_bc",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        nsamples=100,
-        figsize=(5, 5),
-    )
+    # pivot_emp_rps_dnw(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     obs_var_name_wind="data_sfcWind",
+    #     obs_var_name_tas="data_c",
+    #     model_var_name_wind="data_sfcWind_drift_bc",
+    #     model_var_name_tas="data_tas_c_drift_bc",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
@@ -3390,7 +3390,7 @@ def main():
     # #     figsize=(5, 6),
     # # )
 
-    sys.exit()
+    # sys.exit()
 
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
@@ -3411,7 +3411,10 @@ def main():
         high_values_rare=True,
         figsize=(5, 5),
         wind_2005_toggle=False,
+        title="e) Chance > 2010-11 DnW"
     )
+
+    sys.exit()
 
     # # plot the GEV fitted return periods
     # plot_gev_rps(
