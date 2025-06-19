@@ -3690,6 +3690,13 @@ def main():
     print("Obs data columns:")
     print(block_minima_obs_tas.columns)
 
+    # print the same for wind
+    print("Model wind data columns:")
+    print(block_minima_model_wind.columns)
+
+    print("Obs wind data columns:")
+    print(block_minima_obs_wind.columns)
+
     # Plot the lead pdfs
     gev_funcs.plot_lead_pdfs(
         model_df=block_minima_model_tas,
@@ -3706,8 +3713,8 @@ def main():
     gev_funcs.plot_lead_pdfs(
         model_df=block_minima_model_wind,
         obs_df=block_minima_obs_wind,
-        model_var_name="data_min",
-        obs_var_name="data_min",
+        model_var_name="data_sfcWind_min",
+        obs_var_name="data_sfcWind_min",
         lead_name="winter_year",
         xlabel="Wind speed (m/s)",
         suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
@@ -3729,9 +3736,9 @@ def main():
     # Apply the same drift correction to the wind data
     block_minima_model_wind_drift_corr = model_drift_corr_plot(
         model_df=block_minima_model_wind,
-        model_var_name="data_min",
+        model_var_name="data_sfcWind_min",
         obs_df=block_minima_obs_wind,
-        obs_var_name="data_min",
+        obs_var_name="data_sfcWind_min",
         lead_name="winter_year",
         xlabel="Wind speed (m/s)",
         year1_year2_tuple=(1970, 2017),
@@ -3741,9 +3748,9 @@ def main():
     # # print the head of the block minima model tas drift corr
     # block_minima_model_wind_short_drift_corr = model_drift_corr_plot(
     #     model_df=block_minima_model_wind_short,
-    #     model_var_name="data_min",
+    #     model_var_name="data_sfcWind_min",
     #     obs_df=block_minima_obs_wind_short,
-    #     obs_var_name="data_min",
+    #     obs_var_name="data_sfcWind_min",
     #     lead_name="winter_year",
     #     xlabel="Wind speed (m/s)",
     #     year1_year2_tuple=(1970, 2017),
@@ -3766,8 +3773,8 @@ def main():
     gev_funcs.plot_lead_pdfs(
         model_df=block_minima_model_wind_drift_corr,
         obs_df=block_minima_obs_wind,
-        model_var_name="data_min_drift_bc",
-        obs_var_name="data_min",
+        model_var_name="data_sfcWind_min_drift_bc",
+        obs_var_name="data_sfcWind_min",
         lead_name="winter_year",
         xlabel="Wind speed (m/s)",
         suptitle="Wind speed PDFs, 1961-2017, DJF block min T (model drift corrected)",
@@ -3876,7 +3883,7 @@ def main():
         model_x_axis_name="effective_dec_year",
         model_y_axis_name="data_tas_c_min_drift_bc",
         obs_x_axis_name="effective_dec_year",
-        obs_y_axis_name="data_c_min",
+        obs_y_axis_name="data_tas_c_min",
         suffix="_dt",
     )
 
@@ -3885,9 +3892,9 @@ def main():
         model_df=block_minima_model_wind_drift_corr,
         obs_df=block_minima_obs_wind,
         model_x_axis_name="effective_dec_year",
-        model_y_axis_name="data_min_drift_bc",
+        model_y_axis_name="data_sfcWind_min_drift_bc",
         obs_x_axis_name="effective_dec_year",
-        obs_y_axis_name="data_min",
+        obs_y_axis_name="data_sfcWind_min",
         suffix="_dt",
     )
 
@@ -3896,9 +3903,9 @@ def main():
     #     model_df=block_minima_model_wind_short_drift_corr,
     #     obs_df=block_minima_obs_wind_short,
     #     model_x_axis_name="effective_dec_year",
-    #     model_y_axis_name="data_min_drift_bc",
+    #     model_y_axis_name="data_sfcWind_min_drift_bc",
     #     obs_x_axis_name="effective_dec_year",
-    #     obs_y_axis_name="data_min",
+    #     obs_y_axis_name="data_sfcWind_min",
     #     suffix="_dt",
     # )
 
@@ -3921,22 +3928,22 @@ def main():
     block_minima_obs_tas_dt = gev_funcs.pivot_detrend_obs(
         df=block_minima_obs_tas,
         x_axis_name="effective_dec_year",
-        y_axis_name="data_c_min",
+        y_axis_name="data_tas_c_min",
     )
 
     # pivot detrend the obs data for wind speed
     block_minima_obs_wind_dt = gev_funcs.pivot_detrend_obs(
         df=block_minima_obs_wind,
         x_axis_name="effective_dec_year",
-        y_axis_name="data_min",
+        y_axis_name="data_sfcWind_min",
     )
 
-    # pivot detrend the obs data for wind speed short
-    block_minima_obs_wind_short_dt = gev_funcs.pivot_detrend_obs(
-        df=block_minima_obs_wind_short,
-        x_axis_name="effective_dec_year",
-        y_axis_name="data_min",
-    )
+    # # pivot detrend the obs data for wind speed short
+    # block_minima_obs_wind_short_dt = gev_funcs.pivot_detrend_obs(
+    #     df=block_minima_obs_wind_short,
+    #     x_axis_name="effective_dec_year",
+    #     y_axis_name="data_min",
+    # )
 
     # Set up a name for the block min obs
     fname_tas = "block_minima_obs_tas_UK_1961-2024_DJF_detrended.csv"
@@ -4266,10 +4273,10 @@ def main():
         model_df_left=block_minima_model_tas_drift_corr_dt,
         obs_df_right=block_minima_obs_wind_dt,
         model_df_right=block_minima_model_wind_drift_corr_dt,
-        obs_val_name_left="data_c_min_dt",
+        obs_val_name_left="data_tas_c_min_dt",
         model_val_name_left="data_tas_c_min_drift_bc_dt",
-        obs_val_name_right="data_min_dt",
-        model_val_name_right="data_min_drift_bc_dt",
+        obs_val_name_right="data_sfcWind_min_dt",
+        model_val_name_right="data_sfcWind_min_drift_bc_dt",
         model_time_name="effective_dec_year",
         ylabel_left="Temperature (°C)",
         ylabel_right="Wind speed (m/s)",
@@ -4580,7 +4587,7 @@ def main():
     gev_params_bc_temp = gev_funcs.process_gev_params(
         obs_df=block_minima_obs_tas_dt,
         model_df=block_minima_model_tas_drift_corr_dt,
-        obs_var_name="data_c_min_dt",
+        obs_var_name="data_tas_c_min_dt",
         model_var_name="data_tas_c_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
@@ -4592,8 +4599,8 @@ def main():
     gev_params_bc_wind = gev_funcs.process_gev_params(
         obs_df=block_minima_obs_wind_dt,
         model_df=block_minima_model_wind_drift_corr_dt,
-        obs_var_name="data_min_dt",
-        model_var_name="data_min_drift_bc_dt",
+        obs_var_name="data_sfcWind_min_dt",
+        model_var_name="data_sfcWind_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         nboot=1000,
@@ -4634,10 +4641,10 @@ def main():
         model_df_top=block_minima_model_tas_drift_corr_dt,
         obs_df_bottom=block_minima_obs_wind_dt,
         model_df_bottom=block_minima_model_wind_drift_corr_dt,
-        obs_var_name_top="data_c_min_dt",
+        obs_var_name_top="data_tas_c_min_dt",
         model_var_name_top="data_tas_c_min_drift_bc_dt",
-        obs_var_name_bottom="data_min_dt",
-        model_var_name_bottom="data_min_drift_bc_dt",
+        obs_var_name_bottom="data_sfcWind_min_dt",
+        model_var_name_bottom="data_sfcWind_min_drift_bc_dt",
         title_top="Distribution of DJF block minima temperature (°C)",
         title_bottom="Distribution of DJF block minima wind speed 1960-2024 (m/s)",
         figsize=(15, 10),
