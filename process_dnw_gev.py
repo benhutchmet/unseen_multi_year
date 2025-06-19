@@ -3027,58 +3027,58 @@ def main():
 
     # Plot the percentiles of temp against wind speed
     # for subset data
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_sfcWind_drift_bc_dt",
-        xlabel="Temperature",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    # Do the same but with uas
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_uas",
-        xlabel="Temperature",
-        ylabel="U10m (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind_drift_bc_dt",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # Do the same but with uas
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Temperature",
+    #     ylabel="U10m (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_uas",
-        xlabel="Temperature",
-        ylabel="U10m (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Temperature",
+    #     ylabel="U10m (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
     # sys.exit()
 
@@ -3158,58 +3158,58 @@ def main():
     #     figsize=(5, 6),
     # )
 
-    # Do the same but for the full distribution
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_sfcWind_drift_bc_dt",
-        xlabel="Temperature",
-        ylabel="10m Wind Speed (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # # Do the same but for the full distribution
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_sfcWind_drift_bc_dt",
+    #     xlabel="Temperature",
+    #     ylabel="10m Wind Speed (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_uas",
-        xlabel="Temperature",
-        ylabel="U10m (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind_drift_bc_dt",
-        y2_label="10m Wind Speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Temperature",
+    #     ylabel="U10m (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
+    #     y2_label="10m Wind Speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_uas",
-        xlabel="Temperature",
-        ylabel="U10m (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=True,
-    )
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="data_tas_c_drift_bc_dt",
+    #     y_var_name_model="data_uas",
+    #     xlabel="Temperature",
+    #     ylabel="U10m (m/s)",
+    #     title="Percentiles of (inverted) temperature vs 10m wind speed, all winter days",
+    #     y_var_name_model_2="data_vas",
+    #     ylabel_2="V10m (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=True,
+    # )
 
     # do the same for electricity demand against wind power generation
     # plot_multi_var_perc(
