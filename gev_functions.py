@@ -1698,6 +1698,11 @@ def plot_gev_params_subplots(
     # Set up the list of titles
     titles = [title_top, title_bottom]
 
+    ax_title_labels = [
+        ["b)", "c)", "d)"],
+        ["f)", "g)", "h)"]
+    ]
+
     # Loop over the axes
     for i, ax_row in enumerate(axes):
         # Set up the axes
@@ -1853,7 +1858,7 @@ def plot_gev_params_subplots(
         )
 
         # Set the title
-        ax1.set_title(f"location, {round(obs_percentile_loc)}%")
+        ax1.set_title(f"{ax_title_labels[i][0]} location, {round(obs_percentile_loc)}%")
 
         # Plot the scale values
         ax2.hist(gev_params["model_scale"][0], bins=30, color="red", alpha=0.5)
@@ -1893,14 +1898,14 @@ def plot_gev_params_subplots(
                 label="Observed",
             )
 
-            # plot the obs scale short asa blue dashed line
-            ax2.axvline(
-                gev_params["obs_scale_short"],
-                color="blue",
-                lw=3,
-                label="Observed",
-                linestyle="--",
-            )
+            # # plot the obs scale short asa blue dashed line
+            # ax2.axvline(
+            #     gev_params["obs_scale_short"],
+            #     color="blue",
+            #     lw=3,
+            #     label="Observed",
+            #     linestyle="--",
+            # )
 
             # Calculate the obs percentile scale
             obs_percentile_scale = percentileofscore(
@@ -1914,7 +1919,7 @@ def plot_gev_params_subplots(
 
             # Set the title
             ax2.set_title(
-                f"scale, {round(obs_percentile_scale)}% ({round(obs_percentile_scale_short)}%)"
+                f"{ax_title_labels[i][1]} scale, {round(obs_percentile_scale)}%"
             )
 
         else:
@@ -1927,7 +1932,7 @@ def plot_gev_params_subplots(
             )
 
             # Set the title
-            ax2.set_title(f"scale, {round(obs_percentile_scale)}%")
+            ax2.set_title(f"{ax_title_labels[i][1]} scale, {round(obs_percentile_scale)}%")
 
         # Plot the shape values
         ax3.hist(gev_params["model_shape"][0], bins=30, color="red", alpha=0.5)
@@ -1990,7 +1995,7 @@ def plot_gev_params_subplots(
         )
 
         # Set the title
-        ax3.set_title(f"shape, {round(obs_percentile_shape)}%")
+        ax3.set_title(f"{ax_title_labels[i][2]} shape, {round(obs_percentile_shape)}%")
 
         # remove the y-axis ticks
         for ax in [ax0, ax1, ax2, ax3]:

@@ -42,7 +42,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -2273,20 +2273,20 @@ def main():
     # )
 
     # # Test the new function before all detrending takes place
-    # pivot_emp_rps_dnw(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf,
-    #     obs_var_name_wind="data_sfcWind",
-    #     obs_var_name_tas="data_c",
-    #     model_var_name_wind="data_sfcWind_drift_bc",
-    #     model_var_name_tas="data_tas_c_drift_bc",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    # )
+    pivot_emp_rps_dnw(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        obs_var_name_wind="data_sfcWind",
+        obs_var_name_tas="data_c",
+        model_var_name_wind="data_sfcWind_drift_bc",
+        model_var_name_tas="data_tas_c_drift_bc",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        nsamples=100,
+        figsize=(5, 5),
+    )
 
-    # sys.exit()
+    sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
@@ -2770,74 +2770,74 @@ def main():
     # Set up a list to store the dfs
     dfs_list = []
 
-    # loop over the hdd coefs
-    for hdd_coeff in hdd_coeffs:
-        block_max_model_dnw_hdd_this = gev_funcs.model_block_min_max(
-            df=df_model_djf,
-            time_name="init_year",
-            min_max_var_name=f"demand_net_wind_bc_hdd_{hdd_coeff}",
-            new_df_cols=[
-                "data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
-                f"data_tas_c_drift_bc_dt_UK_demand_hdd_{hdd_coeff}",
-                "lead",
-                "data_tas_c_drift_bc_dt",
-                "data_sfcWind_drift_bc_dt",
-                "delta_p_hpa",
-                "data_uas",
-                "data_vas",
-            ],
-            winter_year="winter_year",
-            process_min=False,
-        )
+    # # loop over the hdd coefs
+    # for hdd_coeff in hdd_coeffs:
+    #     block_max_model_dnw_hdd_this = gev_funcs.model_block_min_max(
+    #         df=df_model_djf,
+    #         time_name="init_year",
+    #         min_max_var_name=f"demand_net_wind_bc_hdd_{hdd_coeff}",
+    #         new_df_cols=[
+    #             "data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+    #             f"data_tas_c_drift_bc_dt_UK_demand_hdd_{hdd_coeff}",
+    #             "lead",
+    #             "data_tas_c_drift_bc_dt",
+    #             "data_sfcWind_drift_bc_dt",
+    #             "delta_p_hpa",
+    #             "data_uas",
+    #             "data_vas",
+    #         ],
+    #         winter_year="winter_year",
+    #         process_min=False,
+    #     )
 
-        # Append this to the dfs list
-        dfs_list.append(block_max_model_dnw_hdd_this)
+    #     # Append this to the dfs list
+    #     dfs_list.append(block_max_model_dnw_hdd_this)
 
-    # print the shape of the dfs list
-    print(f"Shape of block_max_model_dnw_hdd_{hdd_coeff}: {block_max_model_dnw_hdd_this.shape}")
+    # # print the shape of the dfs list
+    # print(f"Shape of block_max_model_dnw_hdd_{hdd_coeff}: {block_max_model_dnw_hdd_this.shape}")
 
-    # print the len of the dfs list
-    print(f"Length of dfs_list: {len(dfs_list)}")
+    # # print the len of the dfs list
+    # print(f"Length of dfs_list: {len(dfs_list)}")
 
-    # print the head of the first df in the dfs list
-    print(f"Head of block_max_model_dnw_hdd_{hdd_coeff}: {dfs_list[0].head()}")
+    # # print the head of the first df in the dfs list
+    # print(f"Head of block_max_model_dnw_hdd_{hdd_coeff}: {dfs_list[0].head()}")
 
-    # print the head of the last df in the dfs list
-    print(f"Tail of block_max_model_dnw_hdd_{hdd_coeff}: {dfs_list[-1].head()}")
+    # # print the head of the last df in the dfs list
+    # print(f"Tail of block_max_model_dnw_hdd_{hdd_coeff}: {dfs_list[-1].head()}")
 
-    sys.exit()
+    # sys.exit()
 
-    # # Plot the biases in these
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=block_max_model_dnw,
-    #     obs_df=block_max_obs_dnw,
-    #     model_var_name="demand_net_wind_bc_max",
-    #     obs_var_name="demand_net_wind_max",
-    #     lead_name="winter_year",
-    #     xlabel="Demand net wind (GW)",
-    #     suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind)",
-    #     figsize=(10, 5),
+    # # # Plot the biases in these
+    # # gev_funcs.plot_lead_pdfs(
+    # #     model_df=block_max_model_dnw,
+    # #     obs_df=block_max_obs_dnw,
+    # #     model_var_name="demand_net_wind_bc_max",
+    # #     obs_var_name="demand_net_wind_max",
+    # #     lead_name="winter_year",
+    # #     xlabel="Demand net wind (GW)",
+    # #     suptitle="Lead dependent demand net wind PDFs, DJF all days, 1961-2024 (detrended, BC T + sfcWind)",
+    # #     figsize=(10, 5),
+    # # )
+
+    # # apply a uniform bias correction to the block maxima from the model
+    # bias = (
+    #     block_max_model_dnw["demand_net_wind_bc_max"].mean()
+    #     - block_max_obs_dnw["demand_net_wind_max"].mean()
     # )
 
-    # apply a uniform bias correction to the block maxima from the model
-    bias = (
-        block_max_model_dnw["demand_net_wind_bc_max"].mean()
-        - block_max_obs_dnw["demand_net_wind_max"].mean()
-    )
+    # # print the bias
+    # print(f"Bias: {bias}")
 
-    # print the bias
-    print(f"Bias: {bias}")
+    # # apply the bias correction
+    # block_max_model_dnw["demand_net_wind_bc_max_bc"] = (
+    #     block_max_model_dnw["demand_net_wind_bc_max"] - bias
+    # )
 
-    # apply the bias correction
-    block_max_model_dnw["demand_net_wind_bc_max_bc"] = (
-        block_max_model_dnw["demand_net_wind_bc_max"] - bias
-    )
+    # # apply a uniform bias correct to the jan 8 df
+    # jan_8_2025["demand_net_wind_bc"] = jan_8_2025["demand_net_wind"] - bias
 
-    # apply a uniform bias correct to the jan 8 df
-    jan_8_2025["demand_net_wind_bc"] = jan_8_2025["demand_net_wind"] - bias
-
-    # print the row
-    print(jan_8_2025)
+    # # print the row
+    # print(jan_8_2025)
 
     # sys.exit()
 
@@ -2861,7 +2861,7 @@ def main():
         obs_df_block=block_max_obs_dnw,
         model_var_name_full_field="demand_net_wind_bc",
         obs_var_name_full_field="demand_net_wind",
-        model_var_name_block="demand_net_wind_bc_max_bc",
+        model_var_name_block="demand_net_wind_bc_max",
         obs_var_name_block="demand_net_wind_max",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
@@ -2894,18 +2894,20 @@ def main():
         obs_val_name_left="demand_net_wind_max",
         model_val_name_left="demand_net_wind_bc_max",
         obs_val_name_right="demand_net_wind_max",
-        model_val_name_right="demand_net_wind_bc_max_bc",
+        model_val_name_right="demand_net_wind_bc_max",
         model_time_name="effective_dec_year",
         ylabel_left="Demand net wind (GW)",
         ylabel_right="Demand net wind (GW)",
-        title_left="Block maxima demand net wind (GW, no uniform BC)",
-        title_right="Block maxima demand net wind (GW)",
+        title_left="c) Block maxima demand net wind (GW)",
+        title_right="c) Block maxima demand net wind (GW)",
         ylims_left=(30, 60),
         ylims_right=(30, 60),
         dashed_quant=0.80,
         solid_line=np.max,
         figsize=(10, 5),
     )
+
+    # sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
