@@ -4007,8 +4007,13 @@ def plot_temp_quartiles(
     second_subset_arr: np.ndarray = None,
     second_model_index_dict: Dict[str, np.ndarray] = None,
     gridbox: dict = None,
-    quartiles: List[Tuple[float, float]] = [(0.0, 0.25), (0.25, 0.5), (0.5, 0.75), (0.75, 1.0)],
-    ):
+    quartiles: List[Tuple[float, float]] = [
+        (0.0, 0.25),
+        (0.25, 0.5),
+        (0.5, 0.75),
+        (0.75, 1.0),
+    ],
+):
     """
     Plots subplots with 4 rows and 2 columns. The left column shows the full
     field MSLP and the right column shows the differences between that
@@ -4425,11 +4430,9 @@ def plot_temp_quartiles(
             print(
                 f"Min, max and mean of the climatology array: {np.min(climatology_arr)}, {np.max(climatology_arr)}, {np.mean(climatology_arr)}"
             )
-            
+
             # Calculate the model anoms
             subset_arr_this_model_mean = subset_arr_this_model_mean - climatology_arr
-
-
 
         # If subset_arr_this_model_full_second is not None
         if second_subset_arr is not None:
@@ -4868,7 +4871,7 @@ def plot_var_composites_model(
             ]
         )
     elif var_name == "psl":
-         # Set up the levels
+        # Set up the levels
         cmap = "coolwarm"
         levels = np.array(
             [
@@ -5066,7 +5069,7 @@ def plot_var_composites_model(
 
         # Take the mean over this
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
-        
+
         # if the variable is not psl
         if var_name != "psl":
             # Calculate the model anoms
@@ -5174,6 +5177,403 @@ def plot_var_composites_model(
             fontsize=12,
             bbox=dict(facecolor="white", alpha=0.5),
         )
+
+    return None
+
+
+# Define a function to plot the multiple column variables
+def plot_multi_var_composites_model(
+    multi_subset_dfs_model: List[List[pd.DataFrame]],
+    multi_subset_arrs_model: List[List[np.ndarray]],
+    multi_clim_arrs_model: List[List[np.ndarray]],
+    multi_model_index_dicts: List[List[Dict[str, np.ndarray]]],
+    multi_lats_path: List[str],
+    multi_lons_path: List[str],
+    multi_var_names: List[str],
+    figsize: Tuple[int, int] = (8, 9),
+):
+    """
+    Plots the subset composites for multiple model variables.
+
+    Args:
+    =====
+
+        multi_subset_dfs_model (List[List[pd.DataFrame]]): The list of list of subset dataframes for the model.
+        multi_subset_arrs_model (List[List[np.ndarray]]): The list of list of subset arrays for the model.
+        multi_clim_arrs_model (List[List[np.ndarray]]): The list of list of climatology arrays for the model.
+        multi_model_index_dicts (List[List[Dict[str, np.ndarray]]]): The list of list of model index dictionaries.
+        multi_lats_path (List[str]): The list of paths to the latitude files.
+        multi_lons_path (List[str]): The list of paths to the longitude files.
+        multi_var_names (List[str]): The list of variable names to plot.
+        figsize (Tuple[int, int]): The figure size.
+
+    Returns:
+    ========
+
+        None
+
+    """
+
+    # Set up the ncols
+    ncols = 3
+    nrows = len(multi_var_names)
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        ncols=ncols,
+        nrows=nrows,
+        figsize=figsize,
+        layout="constrained",
+        subplot_kw={"projection": ccrs.PlateCarree()},
+    )
+
+    # Set up the names
+    names_list = [
+        "Low DnW days",
+        "High DnW days",
+        "Peak DnW days",
+    ]
+
+    # Set up the axes
+    ax1 = axs[:, 0]
+    ax2 = axs[:, 1]
+    ax3 = axs[:, 2]
+
+    # Set up the list of axes
+    axes_list = [ax1, ax2, ax3]
+
+    # Loop over the mutli var names enumerate
+    for i, var_name in enumerate(multi_var_names):
+        # if the variable is tas
+        if var_name == "tas":
+            cmap = "bwr"
+            levels = np.array(
+                [
+                    -10,
+                    -8,
+                    -6,
+                    -4,
+                    -2,
+                    2,
+                    4,
+                    6,
+                    8,
+                    10,
+                ]
+            )
+        elif var_name == "sfcWind":
+            cmap = "PRGn"
+            levels = np.array(
+                [
+                    -5,
+                    -4,
+                    -3,
+                    -2,
+                    -1,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ]
+            )
+        elif var_name in ["uas", "vas"]:
+            cmap = "PRGn"
+            levels = np.array(
+                [
+                    -4,
+                    -3.5,
+                    -3,
+                    -2.5,
+                    -2,
+                    -1.5,
+                    -1,
+                    -0.5,
+                    0.5,
+                    1,
+                    1.5,
+                    2,
+                    2.5,
+                    3,
+                    3.5,
+                    4,
+                ]
+            )
+        elif var_name == "psl":
+            # Set up the levels for plotting absolute values
+            # Set up the cmap
+            cmap = "bwr"
+
+            # Sert up the levels
+            levels = np.array(
+                [
+                    1004,
+                    1006,
+                    1008,
+                    1010,
+                    1012,
+                    1014,
+                    1016,
+                    1018,
+                    1020,
+                    1022,
+                    1024,
+                    1026,
+                ]
+            )
+        else:
+            raise ValueError(f"Variable {var_name} not supported.")
+
+        # Extract the lats
+        lats_this = np.load(multi_lats_path[i])
+        lons_this = np.load(multi_lons_path[i])
+
+        # Set up the countries shapefile
+        countries_shp = shpreader.natural_earth(
+            resolution="10m",
+            category="cultural",
+            name="admin_0_countries",
+        )
+
+        # Set up the land shapereader
+        # Initialize the mask with the correct shape
+        MASK_MATRIX_TMP = np.zeros((len(lats_this), len(lons_this)))
+        country_shapely = []
+        for country in shpreader.Reader(countries_shp).records():
+            country_shapely.append(country.geometry)
+
+        # Loop over the latitude and longitude points
+        for l in range(len(lats_this)):
+            for j in range(len(lons_this)):
+                point = shapely.geometry.Point(lons_this[j], lats_this[l])
+                for country in country_shapely:
+                    if country.contains(point):
+                        MASK_MATRIX_TMP[l, j] = 1.0
+
+        # Reshape the mask to match the shape of the data
+        MASK_MATRIX_RESHAPED = MASK_MATRIX_TMP
+
+        # Extract the col this
+        col_this = axes_list[i]
+
+        # Loop over the rows this col
+        for j, row_this in enumerate(col_this):
+            # Set up the subset arr this model
+            subset_arr_this_model = multi_subset_arrs_model[i][j]
+
+            # Set up the subset arr this model full
+            subset_arr_this_model_full = np.zeros(
+                (len(multi_subset_dfs_model[i][j]), len(lats_this), len(lons_this))
+            )
+
+            # if the var name is tas
+            if var_name == "tas":
+                print("Applying detrend to the tas data")
+
+                # Extract the index dicts this
+                index_dict_this = multi_model_index_dicts[i][j]
+
+                # Extract the effective dec years array
+                effective_dec_years_arr = np.array(index_dict_this["effective_dec_year"])
+
+                # Extract the unique effective dec years
+                unique_effective_dec_years = np.unique(effective_dec_years_arr)
+
+                # Set up a new array to append to
+                subset_arr_this_detrended = np.zeros(
+                    (
+                        len(unique_effective_dec_years),
+                        subset_arr_this_model.shape[1],
+                        subset_arr_this_model.shape[2],
+                    )
+                )
+
+                # Loop over the unique effective dec years
+                for dec_year_i, effective_dec_year in enumerate(unique_effective_dec_years):
+                    # Find the index of this effective dec year in the index dict this
+                    index_this = np.where(effective_dec_years_arr == effective_dec_year)[0]
+
+                    # Extract the subset arr this for this index
+                    subset_arr_this_model_this = np.mean(
+                        subset_arr_this_model[index_this, :, :], axis=0
+                    )
+
+                    # Store the value in the subset arr this detrended
+                    subset_arr_this_detrended[dec_year_i, :, :] = subset_arr_this_model_this
+
+                # Loop over the lats and lons
+                for ilat in range(len(lats_this)):
+                    for ilon in range(len(lons_this)):
+                        # Detrend the data
+                        slope_this, intercept_this, _, _, _ = linregress(
+                            unique_effective_dec_years,
+                            subset_arr_this_detrended[:, ilat, ilon],
+                        )
+
+                        # Calculate the trend line this
+                        trend_line_this = (
+                            slope_this * unique_effective_dec_years + intercept_this
+                        )
+
+                        # Find the final point on the trend line
+                        final_point_this = trend_line_this[-1]
+
+                        # Loop over the unique effective dec years
+                        for l, eff_dec_year_this in enumerate(unique_effective_dec_years):
+                            # Find the index of this effective dec year in the index dict this
+                            index_this = np.where(
+                                effective_dec_years_arr == eff_dec_year_this
+                            )[0]
+
+                            # Extract the subset arr this for this index
+                            subset_arr_this_model[index_this, ilat, ilon] = (
+                                final_point_this
+                                - trend_line_this[l]
+                                + subset_arr_this_model[index_this, ilat, ilon]
+                            )
+
+            # Set up the N for model this
+            N_model_this = np.shape(subset_arr_this_model_full)[0]
+
+            # # print the i and j
+            # print(f"value of index i: {i}")
+            # print(f"value of index j: {j}")
+
+            # # print the len of multi_model_index_dicts
+            # print(f"Length of multi_model_index_dicts: {len(multi_model_index_dicts)}")
+
+            # Extract the index dict for the model this
+            model_index_dict_this = multi_model_index_dicts[i][j]
+
+            # do the same for wind speed
+            init_year_array_this = np.array(model_index_dict_this["init_year"])
+            member_array_this = np.array(model_index_dict_this["member"])
+            lead_array_this = np.array(model_index_dict_this["lead"])
+
+            # Zero the missing days here
+            missing_days_this = 0
+
+            # Loop over the rows in this subset df for the model
+            for k, (_, row) in tqdm(enumerate(multi_subset_dfs_model[i][j].iterrows())):
+                # Extract the init_year from the df
+                init_year_df = int(row["init_year"])
+                member_df = int(row["member"])
+                lead_df = int(row["lead"])
+
+                # Construct the condition for element wise comparison
+                condition_this = (
+                    (init_year_array_this == init_year_df)
+                    & (member_array_this == member_df)
+                    & (lead_array_this == lead_df)
+                )
+
+                try:
+                    # Find the index where this condition is met
+                    index_this = np.where(condition_this)[0][0]
+                except IndexError:
+                    print(
+                        f"init year {init_year_df}, member {member_df}, lead {lead_df} not found"
+                    )
+                    missing_days += 1
+
+                # Extract the corresponding value from the subset_arr_this_model
+                subset_arr_this_model_index_this = subset_arr_this_model[
+                    index_this, :, :
+                ]
+
+                # Store the value in the subset_arr_this_model_full
+                subset_arr_this_model_full[j, :, :] = subset_arr_this_model_index_this
+
+            # Print the col index
+            print(f"Column index: {i}")
+            print(f"Row index: {j}")
+            print(f"Number of missing days: {missing_days_this}")
+            print(f"Model overall N: {N_model_this}")
+
+            # Take the mean over this
+            subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
+
+            # if the variable is not psl
+            if var_name != "psl":
+                # Calculate the model anoms
+                anoms_this_model = (
+                    subset_arr_this_model_mean - multi_clim_arrs_model[i][j]
+                )
+            else:
+                # If the variable is psl, then do not calculate anomalies
+                anoms_this_model = subset_arr_this_model_mean
+
+            # if the var name is psl
+            # do anoms this / 100 to get in hPa
+            if var_name == "psl":
+                anoms_this_model = anoms_this_model / 100.0
+            elif var_name == "tas":
+                anoms_this_model = np.ma.masked_where(
+                    MASK_MATRIX_RESHAPED == 0, anoms_this_model
+                )
+
+            # Plot the model data on the right
+            im_model = row_this.contourf(
+                lons_this,
+                lats_this,
+                anoms_this_model,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
+
+            # if the var_name is psl, then plot absolute contours
+            if var_name == "psl":
+                # Plot the absolute contours
+                row_this.contour(
+                    lons_this,
+                    lats_this,
+                    anoms_this_model,
+                    levels=levels,
+                    colors="black",
+                    linewidths=0.5,
+                    transform=ccrs.PlateCarree(),
+                )
+
+            # add coastlines to all of these
+            row_this.coastlines()
+
+            # Include a textbox in the top right for N
+            row_this.text(
+                0.95,
+                0.95,
+                f"N = {N_model_this}",
+                horizontalalignment="right",
+                verticalalignment="top",
+                transform=row_this.transAxes,
+                fontsize=12,
+                bbox=dict(facecolor="white", alpha=0.5),
+            )
+
+            # if i == 2
+            if j == 2:
+                # add the colorbar for wind
+                cbar = fig.colorbar(
+                    im_model,
+                    ax=row_this,
+                    orientation="horizontal",
+                    pad=0.05,
+                    shrink=0.8,
+                )
+                cbar.set_ticks(levels)
+
+            # Set up a textbox in the bottom right
+            row_this.text(
+                0.95,
+                0.05,
+                names_list[i],
+                horizontalalignment="right",
+                verticalalignment="bottom",
+                transform=row_this.transAxes,
+                fontsize=12,
+                bbox=dict(facecolor="white", alpha=0.5),
+            )
 
     return None
 
@@ -5626,7 +6026,8 @@ def plot_temp_demand_quartiles_obs(
                 )
             if var_name == "psl":
                 subset_arr_this_obs_mean_diff = (
-                    subset_arr_this_obs_mean / 100 - subset_arr_this_obs_mean_second / 100
+                    subset_arr_this_obs_mean / 100
+                    - subset_arr_this_obs_mean_second / 100
                 )
             else:
                 subset_arr_this_obs_mean_diff = (
@@ -5671,13 +6072,13 @@ def plot_temp_demand_quartiles_obs(
 
         if second_subset_df_obs is not None:
             print("plotting the difference between the first and second quartile")
-            
+
             print(
-            f"Min: {np.min(subset_arr_this_obs_mean_diff):.2f}, "
-            f"Max: {np.max(subset_arr_this_obs_mean_diff):.2f}, "
-            f"Mean: {np.mean(subset_arr_this_obs_mean_diff):.2f}"
+                f"Min: {np.min(subset_arr_this_obs_mean_diff):.2f}, "
+                f"Max: {np.max(subset_arr_this_obs_mean_diff):.2f}, "
+                f"Mean: {np.mean(subset_arr_this_obs_mean_diff):.2f}"
             )
-            
+
             # Plot the full field on the left
             im_full = left_col_full.contourf(
                 lons,
@@ -6049,8 +6450,10 @@ def main():
     obs_df_low_temp_path = (
         "/home/users/benhutch/unseen_multi_year/dfs/df_obs_low_temp_2025-05-28.csv"
     )
-    delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
-    
+    delta_p_fpath = (
+        "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+    )
+
     season = "DJF"
     time_freq = "day"
     len_winter_days = 5324
@@ -6310,7 +6713,7 @@ def main():
     # current_date = "2025-05-08"
     # current_date = datetime.now().strftime("%Y-%m-%d")
     # current_date = f"{current_date}_cold_temps"
-    current_date= "2025-05-28_cold_temps"
+    current_date = "2025-05-28_cold_temps"
 
     # Set up fnames for the psl data
     psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
@@ -6983,7 +7386,9 @@ def main():
     ]
 
     # subset the model df to red points
-    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max_bc"] >= model_dnw_99th]
+    model_df_subset_red = model_df[
+        model_df["demand_net_wind_bc_max_bc"] >= model_dnw_99th
+    ]
 
     # do the same for the obs
     obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_99th]
@@ -7354,7 +7759,7 @@ def main():
     #     gridbox=dicts.wind_gridbox_south,
     # )
 
-    # # Load in the data for high demand for wind 
+    # # Load in the data for high demand for wind
     # obs_wind_subset_high_demand = np.load(
     #     "/home/users/benhutch/unseen_multi_year/data/ERA5_sfcWind_Europe_1960-2018_DJF_day_2025-05-28.npy"
     # )
@@ -7717,49 +8122,49 @@ def main():
     # )
 
     # # do the same for the higher wind days
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=obs_df,
-        model_df=model_df,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="demand_net_wind_bc_max",
-        y_var_name_model="data_tas_c_drift_bc_dt",
-        xlabel="Demand net wind percentiles",
-        ylabel="Temperature (°C)",
-        title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
-        legend_y1="Temperature (°C)",
-        legend_y2="10m wind speed (m/s)",
-        y2_var_name_model="data_sfcWind_drift_bc_dt",
-        y2_label="10m wind speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        y1_zero_line=True,
-        xlims=(80.0, 105.0),
-    )
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=obs_df,
+    #     model_df=model_df,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="demand_net_wind_bc_max",
+    #     y_var_name_model="data_tas_c_drift_bc_dt",
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Temperature (°C)",
+    #     title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
+    #     legend_y1="Temperature (°C)",
+    #     legend_y2="10m wind speed (m/s)",
+    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
+    #     y2_label="10m wind speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     y1_zero_line=True,
+    #     xlims=(80.0, 105.0),
+    # )
+
+    # # sys.exit()
+
+    # # # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=obs_df,
+    #     model_df=model_df,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="demand_net_wind_bc_max",
+    #     y_var_name_model="demand_net_wind_bc_max",
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Demand net wind (GW)",
+    #     title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
+    #     legend_y1="Demand net wind (GW)",
+    #     legend_y2="10m wind speed (m/s)",
+    #     y2_var_name_model="delta_p_hpa",
+    #     y2_label="delta P N-S (hPa)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     xlims=(80.0, 105.0),
+    # )
 
     # sys.exit()
-
-    # # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=obs_df,
-        model_df=model_df,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="demand_net_wind_bc_max",
-        y_var_name_model="demand_net_wind_bc_max",
-        xlabel="Demand net wind percentiles",
-        ylabel="Demand net wind (GW)",
-        title="Percentiles of DnW vs demand net wind, block max DnW DJF days",
-        legend_y1="Demand net wind (GW)",
-        legend_y2="10m wind speed (m/s)",
-        y2_var_name_model="delta_p_hpa",
-        y2_label="delta P N-S (hPa)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        xlims=(80.0, 105.0),
-    )
-
-    sys.exit()
 
     # set up the quartiles
     quartiles = [
@@ -7769,90 +8174,88 @@ def main():
         (0.95, 1.0),
     ]
 
-    # print the collumns in the model df
-    print(f"Columns in model df: {model_df.columns}")
+    # # print the collumns in the model df
+    # print(f"Columns in model df: {model_df.columns}")
 
-    # test the new function for plotting temp quartiles
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max",
-        subset_arr_model=model_psl_subset,
-        model_index_dict=model_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="psl",
-        figsize=(8, 10),
-        anoms_flag=False,
-        clim_filepath=None,
-        gridbox=[
-            dicts.uk_n_box_tight,
-            dicts.uk_s_box_tight,
-        ],
-        quartiles=quartiles,
-    )
+    # # test the new function for plotting temp quartiles
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max",
+    #     subset_arr_model=model_psl_subset,
+    #     model_index_dict=model_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="psl",
+    #     figsize=(8, 10),
+    #     anoms_flag=False,
+    #     clim_filepath=None,
+    #     gridbox=[
+    #         dicts.uk_n_box_tight,
+    #         dicts.uk_s_box_tight,
+    #     ],
+    #     quartiles=quartiles,
+    # )
+
+    # # sys.exit()
+
+    # # # do the same for the higher wind
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max",
+    #     subset_arr_model=model_psl_subset,
+    #     model_index_dict=model_psl_subset_index_list,
+    #     lats_path=lats_paths[0],
+    #     lons_path=lons_paths[0],
+    #     var_name="psl",
+    #     figsize=(8, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, psl_clim_fname),
+    #     gridbox=[
+    #         dicts.uk_n_box_tight,
+    #         dicts.uk_s_box_tight,
+    #     ],
+    #     quartiles=quartiles,
+    # )
+
+    # # # Do the same for temperature
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max",
+    #     subset_arr_model=model_temp_subset,
+    #     model_index_dict=model_temp_subset_index_list,
+    #     lats_path=lats_europe,
+    #     lons_path=lons_europe,
+    #     var_name="tas",
+    #     figsize=(6, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, tas_clim_fname),
+    #     gridbox=dicts.wind_gridbox_south,
+    #     quartiles=quartiles,
+    # )
+
+    # # sys.exit()
+
+    # # # Do the same for wind speed
+    # plot_temp_quartiles(
+    #     subset_df_model=model_df,
+    #     tas_var_name="demand_net_wind_bc_max_bc",
+    #     subset_arr_model=model_wind_subset,
+    #     model_index_dict=model_wind_subset_index_list,
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #     ),
+    #     var_name="sfcWind",
+    #     figsize=(6, 10),
+    #     anoms_flag=True,
+    #     clim_filepath=os.path.join(model_clim_dir, sfcWind_clim_fname),
+    #     gridbox=dicts.wind_gridbox_south,
+    #     quartiles=quartiles,
+    # )
 
     # sys.exit()
-
-    # # do the same for the higher wind
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max",
-        subset_arr_model=model_psl_subset,
-        model_index_dict=model_psl_subset_index_list,
-        lats_path=lats_paths[0],
-        lons_path=lons_paths[0],
-        var_name="psl",
-        figsize=(8, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(
-            model_clim_dir, psl_clim_fname
-        ),
-        gridbox=[
-            dicts.uk_n_box_tight,
-            dicts.uk_s_box_tight,
-        ],
-        quartiles=quartiles,
-    )
-
-    # # Do the same for temperature
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max",
-        subset_arr_model=model_temp_subset,
-        model_index_dict=model_temp_subset_index_list,
-        lats_path=lats_europe,
-        lons_path=lons_europe,
-        var_name="tas",
-        figsize=(6, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, tas_clim_fname),
-        gridbox=dicts.wind_gridbox_south,
-        quartiles=quartiles,
-    )
-
-    # sys.exit()
-
-    # # Do the same for wind speed
-    plot_temp_quartiles(
-        subset_df_model=model_df,
-        tas_var_name="demand_net_wind_bc_max_bc",
-        subset_arr_model=model_wind_subset,
-        model_index_dict=model_wind_subset_index_list,
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-        ),
-        var_name="sfcWind",
-        figsize=(6, 10),
-        anoms_flag=True,
-        clim_filepath=os.path.join(model_clim_dir, sfcWind_clim_fname),
-        gridbox=dicts.wind_gridbox_south,
-        quartiles=quartiles,
-    )
-
-    sys.exit()
 
     # Plot the differences between lower wind and higher wind (full field)
     # low - high in this case
@@ -8022,7 +8425,56 @@ def main():
         figsize=(10, 10),
     )
 
-    # sys.exit()
+    # test the new new function
+    multi_subset_dfs_list = [
+        subset_dfs_model,
+        subset_dfs_model,
+        subset_dfs_model,
+    ]
+
+    multi_subset_arrs_list = [
+        subset_arrs_model,
+        subset_arrs_model_tas,
+        subset_arrs_model_wind,
+    ]
+
+    multi_clim_arrs_list = [
+        clim_arrs_model,
+        clim_arrs_model_tas,
+        clim_arrs_model_wind,
+    ]
+
+    multi_model_index_dicts_list = [
+        model_index_dicts,
+        model_index_dicts_tas,
+        model_index_dicts_wind,
+    ]
+
+    lats_paths_list = [
+        lats_paths[0],
+        lats_europe,
+        lats_europe,
+    ]
+
+    lons_paths_list = [
+        lons_paths[0],
+        lons_europe,
+        lons_europe,
+    ]
+
+    # test the new function for plotting multiple variables
+    plot_multi_var_composites_model(
+        multi_subset_dfs_model=multi_subset_dfs_list,
+        multi_subset_arrs_model=multi_subset_arrs_list,
+        multi_clim_arrs_model=multi_clim_arrs_list,
+        multi_model_index_dicts=multi_model_index_dicts_list,
+        multi_lats_path=lats_paths_list,
+        multi_lons_path=lons_paths_list,
+        multi_var_names=["psl", "tas", "sfcWind"],
+        figsize=(10, 10),
+    )
+
+    sys.exit()
 
     # test the new function
     plot_var_composites_model(
