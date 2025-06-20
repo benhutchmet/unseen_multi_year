@@ -67,6 +67,7 @@ def pivot_emp_rps(
     nsamples: int = 10000,
     figsize: tuple = (5, 5),
     wind_2005_toggle=True,
+    title: str = None,
 ) -> None:
     """
     Pivots the entire ensemble around each year in turn and quantifies
@@ -429,7 +430,7 @@ def pivot_emp_rps(
 
     # Set up the title
     ax.set_title(
-        f"Chance of <{obs_extreme_time} by year",
+        title if title is not None else f"Empirical Return Periods for {var_name}",
         fontsize=12,
     )
 
@@ -3839,32 +3840,34 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # # Test the new function
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_tas,
-    #     model_df=block_minima_model_tas_drift_corr,
-    #     obs_val_name="data_c_min",
-    #     model_val_name="data_tas_c_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="tas",
-    #     nsamples=100,
-    #     figsize=(5, 5),
-    # )
+    # Test the new function
+    pivot_emp_rps(
+        obs_df=block_minima_obs_tas,
+        model_df=block_minima_model_tas_drift_corr,
+        obs_val_name="data_c_min",
+        model_val_name="data_tas_c_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="tas",
+        nsamples=10,
+        figsize=(5, 5),
+        title="b) Chance of < 1986-87 temperature by year",
+    )
 
-    # # DO the same for wind speed
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_wind,
-    #     model_df=block_minima_model_wind_drift_corr,
-    #     obs_val_name="data_min",
-    #     model_val_name="data_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="sfcWind",
-    #     nsamples=100,
-    #     figsize=(5, 5),
-    #     wind_2005_toggle=True,
-    # )
+    # DO the same for wind speed
+    pivot_emp_rps(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind_drift_corr,
+        obs_val_name="data_min",
+        model_val_name="data_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="sfcWind",
+        nsamples=10,
+        figsize=(5, 5),
+        wind_2005_toggle=True,
+        title="d) Chance of < 2005-06 wind speed by year"
+    )
 
     # Do the same for wind speed short
     # pivot_emp_rps(
@@ -3880,7 +3883,7 @@ def main():
     #     wind_2005_toggle=True,
     # )
 
-    # sys.exit()
+    sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
@@ -4295,7 +4298,7 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # # Dot plot subplots for tas and wind speed short
     # gev_funcs.dot_plot_subplots(
@@ -4364,7 +4367,7 @@ def main():
     plot_emp_rps(
         obs_df=block_minima_obs_tas_dt,
         model_df=block_minima_model_tas_drift_corr_dt,
-        obs_val_name="data_c_min_dt",
+        obs_val_name="data_tas_c_min_dt",
         model_val_name="data_tas_c_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
@@ -4374,6 +4377,7 @@ def main():
         blue_line=np.min,
         high_values_rare=False,
         figsize=(5, 5),
+        title="a) Chance < 1986-87 temperature"
     )
 
     # # do thye same thing fo wind speed
@@ -4396,8 +4400,8 @@ def main():
     plot_emp_rps(
         obs_df=block_minima_obs_wind_dt,
         model_df=block_minima_model_wind_drift_corr_dt,
-        obs_val_name="data_min_dt",
-        model_val_name="data_min_drift_bc_dt",
+        obs_val_name="data_sfcWind_min_dt",
+        model_val_name="data_sfcWind_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         ylabel="10m wind speed (m/s)",
