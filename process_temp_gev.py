@@ -2366,16 +2366,6 @@ def main():
     # extract the unique leads in df model
     unique_leads = df_model["lead"].unique()
 
-    # Convert wind speed to wind power gen
-    _, _ = ws_to_wp_gen(
-        obs_df=df_obs,
-        model_df=df_model,
-        obs_ws_col="data_sfcWind",
-        model_ws_col="data_sfcWind",
-    )
-
-    sys.exit()
-
     # # rpint the unique leads
     # print(f"Unique leads: {unique_leads}")
 
@@ -4305,7 +4295,7 @@ def main():
         figsize=(10, 5),
     )
 
-    # sys.exit()
+    sys.exit()
 
     # # Dot plot subplots for tas and wind speed short
     # gev_funcs.dot_plot_subplots(

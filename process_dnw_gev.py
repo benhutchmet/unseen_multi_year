@@ -1040,7 +1040,7 @@ def ws_to_wp_gen(
         bracket=[0, 30],  # Adjust the range as needed
         method='bisect'
     )
-    
+
     if result.converged:
         print(f"The x value where y = 0 is: {result.root}")
     else:
@@ -2544,6 +2544,8 @@ def main():
         model_ws_col="data_sfcWind_drift_bc_dt",
         date_range=("1961-12-01", "2018-03-01"),
     )
+
+    sys.exit()
 
     # apply the ws to wp gen function to the non bias corrected wind
     # data

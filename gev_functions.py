@@ -4446,6 +4446,11 @@ def dot_plot_subplots(
         print("The worst event occurs in the year:", obs_df[obs_val_name].idxmax())
         print("The no. days for the worst event is:", solid_line(obs_df[obs_val_name]))
 
+        # pribt the worst event for the model
+        print("The highest event for the model occurs in the year:", model_df[model_val_name].idxmax())
+        print("The lowest event for the model occurs in the year:", model_df[model_val_name].idxmin())
+        print("The no. days for the worst event in the model is:", solid_line(model_df[model_val_name]))
+
         # plot the scatter points for the obs
         ax_big.scatter(
             obs_df.index,
