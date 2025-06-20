@@ -1573,20 +1573,20 @@ def plot_multi_var_perc(
         )
 
         # plot the lower bounds as a dashed red line
-        ax.plot(
-            model_percs_5["percentile"],
-            model_percs_5[f"{y_var_name_model}_lower"],
-            color="red",
-            linestyle="--",
-        )
+        # ax.plot(
+        #     model_percs_5["percentile"],
+        #     model_percs_5[f"{y_var_name_model}_lower"],
+        #     color="red",
+        #     linestyle="--",
+        # )
 
-        # plot the upper bounds as a dashed red line
-        ax.plot(
-            model_percs_5["percentile"],
-            model_percs_5[f"{y_var_name_model}_upper"],
-            color="red",
-            linestyle="--",
-        )
+        # # plot the upper bounds as a dashed red line
+        # ax.plot(
+        #     model_percs_5["percentile"],
+        #     model_percs_5[f"{y_var_name_model}_upper"],
+        #     color="red",
+        #     linestyle="--",
+        # )
 
         # if x2_var_name_model is not None:
         if x2_var_name_model is not None:
@@ -1750,12 +1750,12 @@ def plot_multi_var_perc(
     ax.legend(
         handles=handles,
         labels=labels,
-        loc="upper left",
-        fontsize=10,
+        loc="upper right",
+        fontsize=12,
     )
 
-    # Set the title
-    ax.set_title(title)
+    # # Set the title
+    # ax.set_title(title)
 
     # Set up the x ticks for the percentiel axis
     x_ticks_perc = [
@@ -1794,14 +1794,14 @@ def plot_multi_var_perc(
         x_tick_vals_obs.append(obs_val_this)
         x_tick_vals_model.append(model_val_this)
 
-    # format the values to two sf
-    x_tick_vals_obs = [f"{x:.2f}" for x in x_tick_vals_obs]
-    x_tick_vals_model = [f"{x:.2f}" for x in x_tick_vals_model]
+    # # format the values to two sf
+    # x_tick_vals_obs = [f"{x:.2f}" for x in x_tick_vals_obs]
+    # x_tick_vals_model = [f"{x:.2f}" for x in x_tick_vals_model]
 
-    # Create a second x-axis
-    secax = ax.secondary_xaxis("top")
-    secax.set_xticks(x_ticks_perc)
-    secax.set_xticklabels(x_tick_vals_model)
+    # # Create a second x-axis
+    # secax = ax.secondary_xaxis("top")
+    # secax.set_xticks(x_ticks_perc)
+    # secax.set_xticklabels(x_tick_vals_model)
 
     # Set a tight layour
     plt.tight_layout()
