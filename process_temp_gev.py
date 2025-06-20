@@ -3844,12 +3844,12 @@ def main():
     pivot_emp_rps(
         obs_df=block_minima_obs_tas,
         model_df=block_minima_model_tas_drift_corr,
-        obs_val_name="data_c_min",
+        obs_val_name="data_tas_c_min",
         model_val_name="data_tas_c_min_drift_bc",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         var_name="tas",
-        nsamples=10,
+        nsamples=1000,
         figsize=(5, 5),
         title="b) Chance of < 1986-87 temperature by year",
     )
@@ -3858,12 +3858,12 @@ def main():
     pivot_emp_rps(
         obs_df=block_minima_obs_wind,
         model_df=block_minima_model_wind_drift_corr,
-        obs_val_name="data_min",
-        model_val_name="data_min_drift_bc",
+        obs_val_name="data_sfcWind_min",
+        model_val_name="data_sfcWind_min_drift_bc",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
         var_name="sfcWind",
-        nsamples=10,
+        nsamples=1000,
         figsize=(5, 5),
         wind_2005_toggle=True,
         title="d) Chance of < 2005-06 wind speed by year"

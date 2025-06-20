@@ -8228,27 +8228,26 @@ def main():
     # )
 
     # # do the same for the higher wind days
-    # pdg_funcs.plot_multi_var_perc(
-    #     obs_df=obs_df,
-    #     model_df=model_df,
-    #     x_var_name_obs="data_c_dt",
-    #     y_var_name_obs="data_sfcWind_dt",
-    #     x_var_name_model="demand_net_wind_bc_max",
-    #     y_var_name_model="data_tas_c_drift_bc_dt",
-    #     xlabel="Demand net wind percentiles",
-    #     ylabel="Temperature (°C)",
-    #     title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
-    #     legend_y1="Temperature (°C)",
-    #     legend_y2="10m wind speed (m/s)",
-    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
-    #     y2_label="10m wind speed (m/s)",
-    #     figsize=(5, 6),
-    #     inverse_flag=False,
-    #     y1_zero_line=True,
-    #     xlims=(80.0, 105.0),
-    # )
+    pdg_funcs.plot_multi_var_perc(
+        obs_df=obs_df,
+        model_df=model_df,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="demand_net_wind_bc_max",
+        y_var_name_model="data_tas_c_drift_bc_dt",
+        xlabel="Demand net wind percentiles",
+        ylabel="Temperature (°C)",
+        title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
+        legend_y1="Temperature (°C)",
+        legend_y2="10m wind speed (m/s)",
+        y2_var_name_model="data_sfcWind_drift_bc_dt",
+        y2_label="10m wind speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        y1_zero_line=True,
+    )
 
-    # # sys.exit()
+    sys.exit()
 
     # # # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
     # pdg_funcs.plot_multi_var_perc(
