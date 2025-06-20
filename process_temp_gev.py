@@ -39,11 +39,12 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_dnw_gev import (
-#     select_leads_wyears_DJF,
-#     plot_distributions_extremes,
-#     plot_multi_var_perc,
-# )
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+    ws_to_wp_gen,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -2365,6 +2366,16 @@ def main():
     # extract the unique leads in df model
     unique_leads = df_model["lead"].unique()
 
+    # Convert wind speed to wind power gen
+    _, _ = ws_to_wp_gen(
+        obs_df=df_obs,
+        model_df=df_model,
+        obs_ws_col="data_sfcWind",
+        model_ws_col="data_sfcWind",
+    )
+
+    sys.exit()
+
     # # rpint the unique leads
     # print(f"Unique leads: {unique_leads}")
 
@@ -3838,32 +3849,32 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # Test the new function
-    pivot_emp_rps(
-        obs_df=block_minima_obs_tas,
-        model_df=block_minima_model_tas_drift_corr,
-        obs_val_name="data_c_min",
-        model_val_name="data_tas_c_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="tas",
-        nsamples=100,
-        figsize=(5, 5),
-    )
+    # # Test the new function
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_tas,
+    #     model_df=block_minima_model_tas_drift_corr,
+    #     obs_val_name="data_c_min",
+    #     model_val_name="data_tas_c_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="tas",
+    #     nsamples=100,
+    #     figsize=(5, 5),
+    # )
 
-    # DO the same for wind speed
-    pivot_emp_rps(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind_drift_corr,
-        obs_val_name="data_min",
-        model_val_name="data_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="sfcWind",
-        nsamples=100,
-        figsize=(5, 5),
-        wind_2005_toggle=True,
-    )
+    # # DO the same for wind speed
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind_drift_corr,
+    #     obs_val_name="data_min",
+    #     model_val_name="data_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="sfcWind",
+    #     nsamples=100,
+    #     figsize=(5, 5),
+    #     wind_2005_toggle=True,
+    # )
 
     # Do the same for wind speed short
     # pivot_emp_rps(
@@ -3879,7 +3890,7 @@ def main():
     #     wind_2005_toggle=True,
     # )
 
-    sys.exit()
+    # sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
@@ -4294,7 +4305,7 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # # Dot plot subplots for tas and wind speed short
     # gev_funcs.dot_plot_subplots(
@@ -4360,20 +4371,20 @@ def main():
     # )
 
     # test the funcion for doing the same thing
-    # plot_emp_rps(
-    #     obs_df=block_minima_obs_tas_dt,
-    #     model_df=block_minima_model_tas_drift_corr_dt,
-    #     obs_val_name="data_c_min_dt",
-    #     model_val_name="data_tas_c_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Temperature (°C)",
-    #     nsamples=1000,
-    #     ylims=(-9, -2.5),
-    #     blue_line=np.min,
-    #     high_values_rare=False,
-    #     figsize=(5, 5),
-    # )
+    plot_emp_rps(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
+        obs_val_name="data_c_min_dt",
+        model_val_name="data_tas_c_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Temperature (°C)",
+        nsamples=1000,
+        ylims=(-9, -2.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+    )
 
     # # do thye same thing fo wind speed
     # plot_gev_rps(
@@ -4391,21 +4402,24 @@ def main():
     #     figsize=(5, 5),
     # )
 
-    # # plot empirical return periods for wind speed
-    # plot_emp_rps(
-    #     obs_df=block_minima_obs_wind_dt,
-    #     model_df=block_minima_model_wind_drift_corr_dt,
-    #     obs_val_name="data_min_dt",
-    #     model_val_name="data_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Wind speed (m/s)",
-    #     nsamples=1000,
-    #     ylims=(2, 3.5),
-    #     blue_line=np.min,
-    #     high_values_rare=False,
-    #     figsize=(5, 5),
-    # )
+    # plot empirical return periods for wind speed
+    plot_emp_rps(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_val_name="data_min_dt",
+        model_val_name="data_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="10m wind speed (m/s)",
+        nsamples=1000,
+        ylims=(2, 3.5),
+        blue_line=np.min,
+        high_values_rare=False,
+        figsize=(5, 5),
+        title="c) Chance < 2005-06 wind speed"
+    )
+
+    sys.exit()
 
     # # # plot the empirical return periods for wind speed short
     # plot_emp_rps(

@@ -34,7 +34,7 @@ from tqdm import tqdm
 from matplotlib import gridspec
 from datetime import datetime, timedelta
 
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, root_scalar
 from scipy.stats import linregress, percentileofscore, gaussian_kde, pearsonr
 from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
@@ -42,7 +42,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -866,6 +866,9 @@ def select_leads_wyears_DJF(
 
     return df_wyears
 
+# Wrapper function to find where sigmoid(x, *popt) = 0
+def sigmoid_zero(x, popt):
+    return sigmoid(x, *popt)  # popt contains the fitted parameters
 
 # Define a function to convert 10m wind speed to UK wind power generation
 def ws_to_wp_gen(
@@ -970,6 +973,81 @@ def ws_to_wp_gen(
         p0=p0,
         method="dogbox",
     )
+
+    # print the value of wind speed where the sigmoid fit gives a zero 
+    # for wind power generation
+    print(
+        f"Wind speed where sigmoid fit gives zero wind power generation: {popt[1]} m/s"
+    )
+
+    # print the other value which gives zero wind power generation
+    print(
+        f"Other value which gives zero wind power generation: {popt[3]} GW"
+    )
+
+    # print popt and pcov
+    print(f"Optimized parameters (popt): {popt}")
+    print(f"Covariance of parameters (pcov): {pcov}")
+
+    # using the sigmoid fit, find where the wind power generation is zero
+    # This is where the wind speed is equal to the second parameter of popt
+    # Set up a figure to plot the sigmoid fit
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    # Plot the observed wind speed against the observed wind power generation
+    ax.scatter(
+        obs_df_copy_subset[obs_ws_col],
+        ch_df["total_gen"],
+        color="blue",
+        label="Observed wind speed vs total generation",
+        alpha=0.5,
+    )
+
+    # Plot the sigmoid fit
+    x_vals = np.linspace(
+        model_df_copy[model_ws_col].min(),
+        model_df_copy[model_ws_col].max(),
+        100,
+    )
+
+    y_vals = sigmoid(x_vals, *popt)
+    ax.plot(
+        x_vals,
+        y_vals,
+        color="red",
+        label="Sigmoid fit",
+    )
+
+    # Set the x and y labels
+    ax.set_xlabel("Wind Speed (m/s)", fontsize=12)
+
+    ax.set_ylabel("Total Wind Power Generation (GW)", fontsize=12)
+
+    # Include a horizontal line at y=0
+    ax.axhline(
+        y=0,
+        color="black",
+        linestyle="--",
+        label="Zero wind power generation",
+    )
+
+    # find the x where y = 0 intersects the sigmoid fit and print
+    # find where the sigmoid fit crosses zero
+    # Use root_scalar to find the x where y = 0
+    result = root_scalar(
+        sigmoid_zero,
+        args=(popt,),
+        bracket=[0, 30],  # Adjust the range as needed
+        method='bisect'
+    )
+    
+    if result.converged:
+        print(f"The x value where y = 0 is: {result.root}")
+    else:
+        print("No root found within the given range.")
+
+    # # print the zero wind speed
+    # print(f"Zero wind speed for sigmoid fit: {zero_wind_speed} m/s")
 
     # Apply the sigmoid function to the observed data
     obs_df_copy[f"{obs_ws_col}_sigmoid_total_wind_gen"] = sigmoid(
