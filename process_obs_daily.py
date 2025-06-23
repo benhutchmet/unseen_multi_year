@@ -257,7 +257,7 @@ def main():
     
     # subset the ERA5 data to the EU grid
     obs_cube_test = obs_cube_test.intersection(
-        longitude=(eu_grid["lon1"], eu_grid["lon2"]),l
+        longitude=(eu_grid["lon1"], eu_grid["lon2"]),
         latitude=(eu_grid["lat1"], eu_grid["lat2"]),
     )
 
