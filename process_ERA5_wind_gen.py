@@ -123,13 +123,109 @@ def process_area_weighted_mean(
     
     return regridded_farm_locations_total_corrected
 
+# Define a function for loading the wind speed and taking it to hub height
+def load_wind_speed_and_take_to_hubheight(
+    ERA5_cube: iris.cube.Cube,
+    land_mask: np.ndarray,
+    height_of_wind_speed: float = 10.0,
+) -> iris.cube.Cube:
+    """
+    Load wind speed data and take it to hub height.
+
+    Args:
+        ERA5_cube (iris.cube.Cube): Cube containing the ERA5 wind speed data.
+        land_mask (np.ndarray): Land mask for the region.
+        height_of_wind_speed (float): Height of the wind speed data in meters.
+
+    Returns:
+        iris.cube.Cube: Cube containing the wind speed data at hub height.
+    """
+    
+    # Perform the correction to hub height
+    correction_hubheight = land_mask * (71.0 / height_of_wind_speed) ** (
+        1.0 / 7.0
+    ) + abs(land_mask - 1) * (92.0 / height_of_wind_speed) ** (1.0 / 7.0)
+
+    # Calculate the speed at hub height
+    ERA5_cube_hubheight = ERA5_cube * correction_hubheight
+
+    # Set the units to m/s
+    ERA5_cube_hubheight.units = "m/s"
+    # Set the standard name to wind speed
+    ERA5_cube_hubheight.standard_name = "wind_speed"
+
+    # Set the long name to wind speed at hub height
+    ERA5_cube_hubheight.long_name = (
+        "Wind speed at hub height (m/s)"
+    )
+
+    return ERA5_cube_hubheight
+
+# Convert the wind speed at hub height to wind power generation
+# using the power curves
+def convert_wind_speed_to_power_generation(
+    ERA5_cube_hubheight: iris.cube.Cube,
+    pc_winds: np.ndarray,
+    pc_power_ons: np.ndarray,
+    pc_power_ofs: np.ndarray,
+    land_mask: np.ndarray = None,
+    farm_locations: np.ndarray = None,
+) -> np.ndarray:
+    """
+    Convert wind speed at hub height to wind power generation.
+
+    Args:
+        ERA5_cube_hubheight (iris.cube.Cube): Cube containing the wind speed data at hub height.
+        pc_winds (np.ndarray): Array of wind speeds from the power curve.
+        pc_power_ons (np.ndarray): Array of onshore power generation from the power curve.
+        pc_power_ofs (np.ndarray): Array of offshore power generation from the power curve.
+        land_mask (np.ndarray, optional): Land mask for the region. Defaults to None.
+        farm_locations (np.ndarray, optional): Wind farm locations. Defaults to None.
+
+    Returns:
+        np.ndarray: Array of wind power generation in GW.
+    """
+    
+    # Digitize the wind speed data to the power curve
+    digitized_winds = np.digitize(
+        ERA5_cube_hubheight.data.ravel(),  # Flatten the data
+        pc_winds,
+        right=False, # Use left edges for bins
+    ).reshape(ERA5_cube_hubheight.data.shape)  # Reshape back to original shape if needed
+
+    # Make sure the bins don't go out of bounds
+    digitized_winds[digitized_winds == len(pc_winds)] = 500
+
+    # Apply. the landmask and power curve to the digitized winds onshore/offshore
+    p_hh_ons = (
+        land_mask * 0.5 * (pc_power_ons[digitized_winds - 1]
+        + pc_power_ons[digitized_winds])
+    )
+    p_hh_ofs = (
+        (1 - land_mask) * 0.5 * (pc_power_ofs[digitized_winds - 1]
+        + pc_power_ofs[digitized_winds])
+    )
+
+    p_hh_total = p_hh_ons + p_hh_ofs
+
+    # Get the time series accumulated over the country
+    p_hh_total_GW = (
+        p_hh_total * farm_locations
+    ) / 1000.0  # Convert to GW
+
+    # sum across latitude and longitude
+    p_hh_total_GW = np.sum(p_hh_total_GW, axis=(1, 2))
+
+    return p_hh_total_GW
+
 # Define the main function
 def main():
     # Start the timer
     start_time = time.time()
 
     # Set up the hardcoded variables
-    test_ERA5_file_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_test_1960_1961.nc"
+    # ERA5_file_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_test_1960_1961.nc"
+    ERA5_file_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/ERA5_wind_daily_1952_2020.nc"
     test_dps_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/sfcWind/gn/files/d20200417/sfcWind_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
     onshore_pc_path = "/home/users/benhutch/for_martin/for_martin/creating_wind_power_generation/power_onshore.csv"
     offshore_pc_path = "/home/users/benhutch/for_martin/for_martin/creating_wind_power_generation/power_offshore.csv"
@@ -147,7 +243,7 @@ def main():
     }
 
     # Set up the fname
-    fname = "ERA5_UK_wind_power_generation_1960_1961.csv"
+    fname = "ERA5_UK_wind_power_generation_1952_2020.csv"
     fpath = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind"
 
     # if the directory does not exist, create it
@@ -162,11 +258,11 @@ def main():
         return None
 
     # If the test file path ERA5 exists, then load it
-    if os.path.exists(test_ERA5_file_path):
-        print(f"Loading test ERA5 file from {test_ERA5_file_path}")
-        ERA5_cube = iris.load_cube(test_ERA5_file_path)
+    if os.path.exists(ERA5_file_path):
+        print(f"Loading test ERA5 file from {ERA5_file_path}")
+        ERA5_cube = iris.load_cube(ERA5_file_path)
     else:
-        print(f"Test ERA5 file not found at {test_ERA5_file_path}")
+        print(f"Test ERA5 file not found at {ERA5_file_path}")
 
     # If the test file path dps exists, then load it
     if os.path.exists(test_dps_file_path):
@@ -239,26 +335,68 @@ def main():
     print(f"Regridded farm locations max: {np.max(regridded_farm_locations.data):.2f}")
     print(f"Regridded farm locations mean: {np.mean(regridded_farm_locations.data):.2f}")
 
-    # -----------------------------------
-    # Plot the wind farm distribution
-    # -----------------------------------
-    fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': ccrs.PlateCarree()})
-
-    ax.coastlines()
-
-    mesh = ax.pcolormesh(
-        LONS, LATS, regridded_farm_locations.data,
-        cmap="Greens",
-        transform=ccrs.PlateCarree(),
+    # Load the wind speed and take it to hub height
+    ERA5_cube_hubheight = load_wind_speed_and_take_to_hubheight(
+        ERA5_cube=ERA5_cube_rg,
+        land_mask=MASK_MATRIX_RESHAPE,
+        height_of_wind_speed=10.0,
     )
 
-    # limit to the min/max lon/lat region
-    ax.set_extent([-10, 5, 49, 61], crs=ccrs.PlateCarree())
+    # print the ERA5 cube hub height
+    print(f"ERA5 cube hub height shape: {ERA5_cube_hubheight.shape}")
+    print(f"ERA5 cube hub height min: {np.min(ERA5_cube_hubheight.data):.2f} m/s")
+    print(f"ERA5 cube hub height max: {np.max(ERA5_cube_hubheight.data):.2f} m/s")
+    print(f"ERA5 cube hub height mean: {np.mean(ERA5_cube_hubheight.data):.2f} m/s")
 
-    # include a title
-    plt.title("Regridded Wind Farm Distribution in the UK")
+    # Test the new function
+    p_hh_total_GW = convert_wind_speed_to_power_generation(
+        ERA5_cube_hubheight=ERA5_cube_hubheight,
+        pc_winds=pc_winds,
+        pc_power_ons=pc_power_ons,
+        pc_power_ofs=pc_power_ofs,
+        land_mask=MASK_MATRIX_RESHAPE,
+        farm_locations=regridded_farm_locations.data,
+    )
 
-    plt.colorbar(mesh, ax=ax, orientation="vertical", label="Wind Farm Density")
+    # print the power generation
+    print(f"Power generation shape: {p_hh_total_GW.shape}")
+    print(f"Power generation min: {np.min(p_hh_total_GW):.2f} GW")
+    print(f"Power generation max: {np.max(p_hh_total_GW):.2f} GW")
+    print(f"Power generation mean: {np.mean(p_hh_total_GW):.2f} GW")
+    print(f"Type of power generation: {type(p_hh_total_GW)}")
+
+    # Extract the time series
+    wp_cfs = (
+        (p_hh_total_GW / 1000.0)  # Convert to MW
+    )
+
+    # Limit to the first time step
+    wp_cfs_first = wp_cfs[0]
+
+    # print the sum of this
+    print(f"Sum of wind power generation: {np.sum(wp_cfs_first):.2f} GW")
+    # print the shape of the wind power generation
+    print(f"Shape of wind power generation: {wp_cfs_first.shape}")
+
+    # Get the wind power generation time series
+    wp_cf_ts = pd.DataFrame(
+        data=wp_cfs,
+        index=ERA5_cube_hubheight.coord("time").points,
+        columns=["Wind Power Generation (GW)"],
+    )
+
+    # Print the head of the dataframe
+    print(wp_cf_ts.head())
+
+    # Print the tail of the dataframe
+    print(wp_cf_ts.tail())
+
+    # print the stats of the dataframe
+    print(f"Dataframe description:\n{wp_cf_ts.describe()}")
+
+    # Save the dataframe to a csv file
+    print("Saving the dataframe to a csv file")
+    wp_cf_ts.to_csv(full_path)
 
     end_time = time.time()
 
