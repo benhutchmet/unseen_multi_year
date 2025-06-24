@@ -243,7 +243,7 @@ def main():
     }
 
     # Set up the fname
-    fname = "ERA5_UK_wind_power_generation_1952_2020.csv"
+    fname = "ERA5_UK_wind_power_generation_cfs_1952_2020.csv"
     fpath = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind"
 
     # if the directory does not exist, create it
@@ -370,6 +370,8 @@ def main():
         (p_hh_total_GW / 1000.0)  # Convert to MW
     )
 
+    cfs = wp_cfs / (np.sum(regridded_farm_locations.data) / 1000000.0)  # Convert to CFs
+
     # Limit to the first time step
     wp_cfs_first = wp_cfs[0]
 
@@ -384,6 +386,9 @@ def main():
         index=ERA5_cube_hubheight.coord("time").points,
         columns=["Wind Power Generation (GW)"],
     )
+
+    # Add the capacity factor to the dataframe
+    wp_cf_ts["Capacity Factor"] = cfs
 
     # Print the head of the dataframe
     print(wp_cf_ts.head())

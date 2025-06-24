@@ -42,7 +42,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -1967,11 +1967,20 @@ def main():
     model_tas_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_model_tas_UK_1961-2024_DJF_detrended.csv_06-05-2025"
     model_wind_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_model_wind_UK_1961-2024_DJF_detrended.csv_06-05-2025"
 
+    # Hardcode the new path to the alternate WP generation data
+    # Using Hannah's spatially aggregated method
+    obs_wp_generation_path = (
+        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_1952_2020.csv"
+    )
+
     # load the dfs
     df_obs_tas_block_min = pd.read_csv(obs_tas_block_min_path)
     df_obs_wind_block_min = pd.read_csv(obs_wind_block_min_path)
     df_model_tas_block_min = pd.read_csv(model_tas_block_min_path)
     df_model_wind_block_min = pd.read_csv(model_wind_block_min_path)
+
+    # Load the observed wind power generation data
+    df_obs_wp_generation = pd.read_csv(obs_wp_generation_path)
 
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
@@ -2190,8 +2199,27 @@ def main():
         df_obs_tas["time"], origin="1950-01-01", unit="D"
     )
 
+    # time:units = "days since 1952-01-01 00:00:00" ;
+    # Reset the index of the wp generation dataframe
+    # df_obs_wp_generation.reset_index(inplace=True)
+    # rename "Unnamed: 0" to "time"
+    df_obs_wp_generation.rename(columns={"Unnamed: 0": "time"}, inplace=True)
+
+    # Convert the 'time' column to datetime, assuming it represents days since "1952-01-01 00:00:00"
+    df_obs_wp_generation["time"] = pd.to_datetime(
+        df_obs_wp_generation["time"], origin="1952-01-01", unit="D"
+    )
+
+    # print the head of the df_obs_wp_generation
+    print(df_obs_wp_generation.head())
+
     # subset the obs data to D, J, F
     df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2])]
+
+    # Subset the wp generation data to D, J, F
+    df_obs_wp_generation = df_obs_wp_generation[
+        df_obs_wp_generation["time"].dt.month.isin([12, 1, 2])
+    ]
 
     # new column for temp in C
     df_obs_tas["data_c"] = df_obs_tas["data"] - 273.15
@@ -2220,9 +2248,17 @@ def main():
     # Set time as the index for both dataframes
     df_obs_tas.set_index("time", inplace=True)
     df_obs_sfcWind.set_index("time", inplace=True)
+    df_obs_wp_generation.set_index("time", inplace=True)
 
     # Join the two dataframes with suffixes
     df_obs = df_obs_tas.join(df_obs_sfcWind, lsuffix="_tas", rsuffix="_sfcWind")
+
+    # Join the observed wind power generation data
+    df_obs = df_obs.join(
+        df_obs_wp_generation,
+        lsuffix="",
+        rsuffix="_wp_generation",
+    )
 
     # Reset the index of df_obs
     df_obs.reset_index(inplace=True)
@@ -2236,10 +2272,19 @@ def main():
     )
 
     # Limit the obs data to the same years as the model data
-    common_wyears = np.arange(1961, 2024 + 1)  # test full period first
+    # NOTE: LIMITED FOR WP GENERATION TESTING
+    common_wyears = np.arange(1961, 2019 + 1)  # test full period first
 
     # Subset the obs data to the common_wyears
     df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
+
+    # print the head of the df_obs
+    print(df_obs.head())
+
+    # print the tail of the df_obs
+    print(df_obs.tail())
+
+    # sys.exit()
 
     # Subset the model data to the common_wyears
     df_model_djf = df_model_djf[df_model_djf["effective_dec_year"].isin(common_wyears)]
@@ -2378,6 +2423,19 @@ def main():
         df=df_obs,
         x_axis_name="effective_dec_year",
         y_axis_name="data_sfcWind",
+    )
+
+    # rename the column Wind Power Generation (GW) as data_wp_generation
+    df_obs.rename(
+        columns={"Wind Power Generation (GW)": "data_wp_generation"},
+        inplace=True,
+    )
+
+    # Pivot detrend the obs for wind power generation
+    df_obs = gev_funcs.pivot_detrend_obs(
+        df=df_obs,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_wp_generation",
     )
 
     # perform the detrending on the model data
@@ -2544,6 +2602,164 @@ def main():
         model_ws_col="data_sfcWind_drift_bc_dt",
         date_range=("1961-12-01", "2018-03-01"),
     )
+
+    # Print the head of the df_obs
+    print(df_obs.head())
+
+    # Print the tail of the df_obs
+    print(df_obs.tail())
+
+    # Print the description of the dataframe
+    print(df_obs.describe())
+
+    # Set up the sigmoid fit for wind speed pre-iterable
+    ch_df = pd.read_csv(
+        "/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv"
+    )
+
+    # Set up the onshore and offshore capacities in gw
+    onshore_cap_gw = 15710.69 / 1000
+    offshore_cap_gw = 14733.02 / 1000
+
+    # Set up the generation in CH
+    ch_df["onshore_gen"] = ch_df["ons_cfs"] * onshore_cap_gw
+    ch_df["offshore_gen"] = ch_df["ofs_cfs"] * offshore_cap_gw
+
+    # Sum to give the total generation
+    ch_df["total_gen"] = ch_df["onshore_gen"] + ch_df["offshore_gen"]
+
+    # Make sure that date is a datetime
+    ch_df["date"] = pd.to_datetime(ch_df["date"])
+
+    # subset to months 12, 1, 2
+    ch_df = ch_df[ch_df["date"].dt.month.isin([12, 1, 2])]
+
+    # rename date to time
+    ch_df.rename(columns={"date": "time"}, inplace=True)
+
+    # Include the effective dec year
+    ch_df["effective_dec_year"] = ch_df.apply(
+        lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
+    )
+    
+    # print the head of the ch_df
+    print(ch_df.head())
+    print(ch_df.tail())
+
+    # Print the head of df obs
+    print(df_obs.head())
+    # Print the tail of df obs
+    print(df_obs.tail())
+
+    # rename "Capacity Factor" as combined_cfs
+    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+
+    # quantify wp_generation from the capacity factor
+    df_obs["data_wp_generation_from_cfs"] = (
+        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    )
+
+    # find the min and max of the effective_dec_year
+    min_year = ch_df["effective_dec_year"].min()
+    max_year = ch_df["effective_dec_year"].max()
+
+    # Group the df obs by effective_dec_year
+    df_obs_grouped = df_obs.groupby("effective_dec_year").mean().reset_index()
+
+    # Limit the df_obs_grouped to the min and max year
+    df_obs_grouped = df_obs_grouped[
+        (df_obs_grouped["effective_dec_year"] >= min_year)
+        & (df_obs_grouped["effective_dec_year"] <= max_year)
+    ]
+
+    # group the ch_df by effective_dec_year
+    ch_df_grouped = ch_df.groupby("effective_dec_year").mean().reset_index()
+
+    # Plot the data_wp_generation_dt against the effective_dec_year
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    # detrend the total_gen by pivot method
+    ch_df_grouped = gev_funcs.pivot_detrend_obs(
+        df=ch_df_grouped,
+        x_axis_name="effective_dec_year",
+        y_axis_name="total_gen",
+        suffix="_dt",
+    )
+
+    # pivot detrend the data_wp_generation_from_cfs
+    df_obs_grouped = gev_funcs.pivot_detrend_obs(
+        df=df_obs_grouped,
+        x_axis_name="effective_dec_year",
+        y_axis_name="data_wp_generation_from_cfs",
+        suffix="_dt",
+    )
+
+    # ax.plot(
+    #     df_obs_grouped["effective_dec_year"],
+    #     df_obs_grouped["data_wp_generation_dt"],
+    #     label="HANNAH WP gen (GW)",
+    #     color="blue",
+    # )
+
+    ax.plot(
+        df_obs_grouped["effective_dec_year"],
+        df_obs_grouped["data_sfcWind_dt_sigmoid_total_wind_gen"],
+        label="Ben WP gen (GW)",
+        color="green",
+    )
+
+    ax.plot(
+        ch_df_grouped["effective_dec_year"],
+        ch_df_grouped["total_gen_dt"],
+        label="CH WP gen (GW)",
+        color="orange",
+    )
+
+    # Plot the combined capacity factor
+    ax.plot(
+        df_obs_grouped["effective_dec_year"],
+        df_obs_grouped["data_wp_generation_from_cfs_dt"],
+        label="WP gen from CFS (GW)",
+        color="red",
+    )
+
+    # quantify the MSE from the CH WP gen (GW) data
+    mse_ch = np.mean(
+        (ch_df_grouped["total_gen"] - df_obs_grouped["data_sfcWind_dt_sigmoid_total_wind_gen"]) ** 2
+    )
+    
+    # Quantify the MSE bteween CH and WP gen from CFS
+    mse_cfs = np.mean(
+        (ch_df_grouped["total_gen"] - df_obs_grouped["data_wp_generation_from_cfs"]) ** 2
+    )
+
+    # Include these values in a textbox in the bottom left of the plot
+    textstr = f"MSE CH WP gen: {mse_ch:.2f}\
+    \nMSE CFS WP gen: {mse_cfs:.2f}"
+    props = dict(boxstyle="round", facecolor="wheat", alpha=0.5)
+
+    # Place a text box in upper left in axes coords
+    ax.text(
+        0.05,
+        0.05,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=12,
+        verticalalignment="bottom",
+        horizontalalignment="left",
+        bbox=props,
+    )
+
+    # Set the labels and title
+    ax.set_xlabel("Effective Dec Year")
+    ax.set_ylabel("Wind Power Generation (GW)")
+
+    # include a legend
+    ax.legend(loc="upper left")
+    plt.title("Wind Power Generation (GW) over Effective Dec Year")
+
+    # show the plot
+    plt.show()
 
     sys.exit()
 
