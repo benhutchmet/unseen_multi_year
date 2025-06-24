@@ -35,6 +35,8 @@ import time
 
 # Third-party imports
 import iris
+import iris.analysis
+import iris.analysis.cartography
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,6 +44,7 @@ import cartopy.crs as ccrs
 
 # Specific imports
 from tqdm import tqdm
+from iris import cube
 
 # Imports from Hannah's functions
 sys.path.append("/home/users/benhutch/for_martin/for_martin/creating_wind_power_generation/")
@@ -54,6 +57,71 @@ from European_hourly_hub_height_winds_2023_model import (
     load_wind_speed_and_take_to_hubheight,
     convert_to_wind_power
 )
+
+# Define a function to process area weighted mean for wind farm locations
+def process_area_weighted_mean(
+    path_to_farm_locations_ons: str,
+    path_to_farm_locations_ofs: str,
+    cube: iris.cube.Cube,
+) -> iris.cube.Cube:
+    """
+    Process area weighted mean for wind farm locations.
+
+    Args:
+        path_to_farm_locations_ons (str): Path to onshore wind farm locations.
+        path_to_farm_locations_ofs (str): Path to offshore wind farm locations.
+        cube (iris.cube.Cube): Cube containing the wind speed data.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the area weighted mean wind speeds
+        for onshore and offshore wind farms
+    """
+    # Load the onshore and offshore wind farm locations
+    onshore_farm_locations = iris.load_cube(path_to_farm_locations_ons)
+    offshore_farm_locations = iris.load_cube(path_to_farm_locations_ofs)
+
+    # Get the lats and lons from the cube
+    lats_wp, lons_wp = iris.analysis.cartography.get_xy_grids(
+        onshore_farm_locations
+    )
+
+    # Add the onshore and offshore wind farm locations together
+    combined_farm_locations = onshore_farm_locations + offshore_farm_locations
+
+    # Set the coordinates and the bounds
+    for coordinate in ["latitude", "longitude"]:
+        combined_farm_locations.coord(coordinate).units = "degrees"
+        combined_farm_locations.coord(coordinate).guess_bounds()
+
+    # Get the x and y grids from the combined farm locations
+    lons_wind, lats_wind = iris.analysis.cartography.get_xy_grids(
+        cube=cube,
+    )
+
+    # Get the area weights of the target drig
+    wind_weights = iris.analysis.cartography.area_weights(
+        cube=cube[0, :, :],
+    )
+    
+    # Get the weights of the wind farm grid
+    wf_weights = iris.analysis.cartography.area_weights(
+        cube=combined_farm_locations,
+    )
+
+    # Get the wind farms total over the area
+    wind_farm_total_over_area = combined_farm_locations / wf_weights
+
+    # Regrid the wind farm locations to the wind speed cube
+    regridded_farm_locations = wind_farm_total_over_area.regrid(
+        cube, iris.analysis.AreaWeighted()
+    )
+
+    # Undo the divide by dA
+    regridded_farm_locations_total_corrected = (
+        regridded_farm_locations * wind_weights
+    )
+    
+    return regridded_farm_locations_total_corrected
 
 # Define the main function
 def main():
@@ -144,6 +212,53 @@ def main():
     print(f"ERA5 data min: {np.min(ERA5_cube_rg.data):.2f} m/s")
     print(f"ERA5 data max: {np.max(ERA5_cube_rg.data):.2f} m/s")
     print(f"ERA5 data mean: {np.mean(ERA5_cube_rg.data):.2f} m/s")
+
+    # Load the power curves
+    pc_winds, pc_power_ons, pc_power_ofs = load_power_curves(
+        path_onshore_curve=onshore_pc_path,
+        path_offshore_curve=offshore_pc_path
+    )
+
+    # Make a country mask for the UK
+    MASK_MATRIX_RESHAPE, LONS, LATS = country_mask(
+        dataset=ERA5_cube_rg,
+        COND="si10",
+        COUNTRY="United Kingdom",
+    )
+
+    # Tets the new function to process area weighted mean for wind farm locations
+    regridded_farm_locations = process_area_weighted_mean(
+        path_to_farm_locations_ons=path_to_farm_locations_ons,
+        path_to_farm_locations_ofs=path_to_farm_locations_ofs,
+        cube=ERA5_cube_rg,
+    )
+
+    # print the regridded farm locations
+    print(f"Regridded farm locations shape: {regridded_farm_locations.shape}")
+    print(f"Regridded farm locations min: {np.min(regridded_farm_locations.data):.2f}")
+    print(f"Regridded farm locations max: {np.max(regridded_farm_locations.data):.2f}")
+    print(f"Regridded farm locations mean: {np.mean(regridded_farm_locations.data):.2f}")
+
+    # -----------------------------------
+    # Plot the wind farm distribution
+    # -----------------------------------
+    fig, ax = plt.subplots(figsize=(10, 5), subplot_kw={'projection': ccrs.PlateCarree()})
+
+    ax.coastlines()
+
+    mesh = ax.pcolormesh(
+        LONS, LATS, regridded_farm_locations.data,
+        cmap="Greens",
+        transform=ccrs.PlateCarree(),
+    )
+
+    # limit to the min/max lon/lat region
+    ax.set_extent([-10, 5, 49, 61], crs=ccrs.PlateCarree())
+
+    # include a title
+    plt.title("Regridded Wind Farm Distribution in the UK")
+
+    plt.colorbar(mesh, ax=ax, orientation="vertical", label="Wind Farm Density")
 
     end_time = time.time()
 
