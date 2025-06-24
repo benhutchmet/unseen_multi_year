@@ -259,8 +259,6 @@ def main():
     print(f"Mean power generation: {np.mean(p_hh_total_GW_vals)} GW")
     print(f"Std power generation: {np.std(p_hh_total_GW_vals)} GW")
 
-    sys.exit()
-
     # Print the min and max of the power generation data
     print(f"Min power generation: {np.min(p_hh_total_GW_vals)} GW")
     print(f"Max power generation: {np.max(p_hh_total_GW_vals)} GW")
