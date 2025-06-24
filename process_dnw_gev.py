@@ -1970,7 +1970,7 @@ def main():
     # Hardcode the new path to the alternate WP generation data
     # Using Hannah's spatially aggregated method
     obs_wp_generation_path = (
-        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_1952_2020.csv"
+        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2020.csv"
     )
 
     # load the dfs
