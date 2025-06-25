@@ -107,7 +107,9 @@ def main():
 
     # Set up a path of the test file
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
-    subset_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/subset_WP/"
+    subset_arrs_dir = (
+        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/subset_WP/"
+    )
     test_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day.npy"
     lats_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lats.npy"
     lons_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lons.npy"
@@ -205,7 +207,7 @@ def main():
     # # If the path exists, then return
     if os.path.exists(path_data_anoms_plus_obs_dt):
         print(f"Path {path_data_anoms_plus_obs_dt} already exists. Exiting.")
-        
+
         # Load the fpath
         data_anoms_plus_obs_dt = np.load(path_data_anoms_plus_obs_dt)
 
@@ -238,13 +240,16 @@ def main():
             if not os.path.exists(path_this):
                 # Save the data anomalies plus obs dt for this year
                 np.save(path_this, data_anoms_plus_obs_dt[year_idx, :, :, :, :, :])
-                print(f"Saved data anomalies plus obs dt for year {year_this} to {path_this}")
+                print(
+                    f"Saved data anomalies plus obs dt for year {year_this} to {path_this}"
+                )
             else:
-                print(f"Path {path_this} already exists. Skipping saving for year {year_this}")
+                print(
+                    f"Path {path_this} already exists. Skipping saving for year {year_this}"
+                )
 
         sys.exit()
-        
-        
+
     #     sys.exit()
 
     # If the path exists, save the data anomalies plus obs
@@ -650,26 +655,18 @@ def main():
             model_trend_this = (
                 model_slope_this * valid_years_model_subset + model_intercept_this
             )
-            obs_trend_this = (
-                obs_slope_this * valid_dec_years_obs + obs_intercept_this
-            )
+            obs_trend_this = obs_slope_this * valid_dec_years_obs + obs_intercept_this
 
             # Determine the final point for the trend line for the model
-            final_point_model = (
-                model_trend_this[-1]
-            )
+            final_point_model = model_trend_this[-1]
             # Determine the final point for the trend line for the obs
-            final_point_obs = (
-                obs_trend_this[-1]
-            )
+            final_point_obs = obs_trend_this[-1]
 
             # Calculate the model bias
             model_bias = final_point_model - final_point_obs
 
             # Add the model bias to the data for this lat and lon
-            final_point_model_bc = (
-                final_point_model - model_bias
-            )
+            final_point_model_bc = final_point_model - model_bias
 
             # # Print the shape of the trend
             # print(f"Shape of data this lat lon: {data_this_lat_lon.shape}")
@@ -692,10 +689,15 @@ def main():
                     effective_dec_year_this_val = init_year + (wyear - 1)
 
                     # Subset the data_this_lat_lon_for_detrend
-                    data_this_lat_lon_for_detrend_this = data_this_lat_lon_for_detrend[i_init_year, :, :, iwyear]
+                    data_this_lat_lon_for_detrend_this = data_this_lat_lon_for_detrend[
+                        i_init_year, :, :, iwyear
+                    ]
 
                     # Find the trend value at the effective dec year this
-                    trend_value_this = model_slope_this * effective_dec_year_this_val + model_intercept_this
+                    trend_value_this = (
+                        model_slope_this * effective_dec_year_this_val
+                        + model_intercept_this
+                    )
 
                     # # Print the trend value for this effective dec year
                     # print(
@@ -716,7 +718,9 @@ def main():
 
                     # Remove the trend value from the data for this lat and lon
                     data_this_lat_lon_dt = (
-                        final_point_model_bc - trend_value_this + data_this_lat_lon_for_detrend_this
+                        final_point_model_bc
+                        - trend_value_this
+                        + data_this_lat_lon_for_detrend_this
                     )
 
                     # # Print the data this lat lon dt
@@ -750,7 +754,9 @@ def main():
         year_data = data_anoms_plus_obs_dt[year_idx]
 
         # Define the filename for the current year
-        fname = os.path.join(output_dir, f"data_anoms_plus_obs_dt_year_{year_idx + 1}.npy")
+        fname = os.path.join(
+            output_dir, f"data_anoms_plus_obs_dt_year_{year_idx + 1}.npy"
+        )
 
         # Save the array to the file
         np.save(fname, year_data)
