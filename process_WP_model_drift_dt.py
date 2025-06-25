@@ -90,6 +90,9 @@ def main():
     # Set up the hard-coded variables
     subset_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/subset_WP/"
 
+    # Set up the output df path
+    output_df_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/model/WP_gen"
+
     test_dps_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/sfcWind/gn/files/d20200417/sfcWind_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
     test_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day.npy"
     lats_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lats.npy"
@@ -109,6 +112,24 @@ def main():
 
     # Hard code the country to UK
     COUNTRY = "United Kingdom"
+
+    # If the output df path does not exist, create it
+    if not os.path.exists(output_df_path):
+        os.makedirs(output_df_path)
+        print(f"Created output directory: {output_df_path}")
+
+    # Set up the output path for the model data
+    output_model_data_path = os.path.join(
+        output_df_path,
+        f"HadGEM3-GC31-MM_WP_gen_{COUNTRY}_drift_bc_dt.csv",
+    )
+
+    # If the output model data path already exists, remove it
+    if os.path.exists(output_model_data_path):
+        print(
+            f"Output model data path {output_model_data_path} already exists."
+        )
+        sys.exit()
 
     # Set up the argument parser
     parser = argparse.ArgumentParser(
@@ -245,6 +266,85 @@ def main():
 
     # Print the shape of wind speeds at hub height
     print(f"Wind speeds at hub height shape: {ws_hh.shape}")
+
+    # Convert the wind speed data to power generation data
+    p_hh_total_GW = convert_wind_speed_to_power_generation(
+        ERA5_cube_hubheight=ws_hh,
+        pc_winds=pc_winds,
+        pc_power_ons=pc_power_ons,
+        pc_power_ofs=pc_power_ofs,
+        land_mask=MASK_MATRIX_RESHAPE,
+        farm_locations=rg_farm_locations.data,
+    )
+
+    # Print the shape of the power generation data
+    print(f"Power generation data shape: {p_hh_total_GW.shape}")
+
+    # Print the type of the power generation data
+    print(f"Power generation data type: {type(p_hh_total_GW)}")
+
+    # Extract the data
+    p_hh_total_GW_vals = np.array(p_hh_total_GW.data)
+
+    # Convert form GW to MW
+    total_gen_MW = p_hh_total_GW_vals / 1000.0
+
+    # Get the capacity factor
+    capacity_factors = (
+        total_gen_MW / (np.sum(rg_farm_locations.data) / 1000000.0)
+    )
+
+    # Print the shape of the capacity factors
+    print(f"Capacity factors shape: {capacity_factors.shape}")
+
+    # Print the min and max values of the capacity factors
+    print(f"Capacity factors min: {np.min(capacity_factors)}, "
+            f"Capacity factors max: {np.max(capacity_factors)}")
+    # Print the mean and std of the capacity factors
+    print(f"Capacity factors mean: {np.mean(capacity_factors)}, "
+            f"Capacity factors std: {np.std(capacity_factors)}")
+    
+    # Set up a model df to store the data in
+    model_df = pd.DataFrame()
+
+    # Set up the members
+    for i_member, member in enumerate(members):
+        for i_day, day in enumerate(range(1, np.shape(country_shapely)[1] + 1)):
+            for i_wyear, wyear in enumerate(range(1, np.shape(country_shapely)[2] + 1)):
+                # Extract the model values this
+                cf_this = capacity_factors[i_member, i_day, i_wyear]
+
+                # Set up the df this
+                model_df_this = pd.DataFrame(
+                    {
+                        "member": [member],
+                        "lead": [day],
+                        "wyear": [wyear],
+                        "capacity_factor": [cf_this],
+                    }
+                )
+
+                # Concat this to the model df
+                model_df = pd.concat([model_df, model_df_this])
+    
+    # Inclue an additional column for the initialisation year
+    model_df["init_year"] = args.init_year
+    
+    # Print the head of the model df
+    print("Model DataFrame head:")
+    print(model_df.head())
+
+    # Print the tail of the model df
+    print("Model DataFrame tail:")
+    print(model_df.tail())
+
+    # describe the model df
+    print("Model DataFrame description:")
+    print(model_df.describe())
+
+    # Save the model df to a csv file
+    print(f"Saving model DataFrame to {output_model_data_path}...")
+    model_df.to_csv(output_model_data_path, index=False)
 
     # Set up an end timer
     end_time = time.time()
