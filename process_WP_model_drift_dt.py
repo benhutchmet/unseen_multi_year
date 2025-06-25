@@ -161,7 +161,7 @@ def main():
             print(
                 f"Output model data path {output_model_data_path} already exists."
             )
-            sys.exit()
+            continue
 
         # Set up the fname for the array data to load
         fname_year = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_this}_DJF_day_drift_bc_anoms_1960-2018_dt.npy"
