@@ -107,6 +107,7 @@ def main():
 
     # Set up a path of the test file
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
+    subset_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/subset_WP/"
     test_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day.npy"
     lats_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lats.npy"
     lons_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lons.npy"
@@ -202,21 +203,46 @@ def main():
     )
 
     # # If the path exists, then return
-    # if os.path.exists(path_data_anoms_plus_obs_dt):
-    #     print(f"Path {path_data_anoms_plus_obs_dt} already exists. Exiting.")
+    if os.path.exists(path_data_anoms_plus_obs_dt):
+        print(f"Path {path_data_anoms_plus_obs_dt} already exists. Exiting.")
         
-    #     # Load the fpath
-    #     data_anoms_plus_obs_dt = np.load(path_data_anoms_plus_obs_dt)
+        # Load the fpath
+        data_anoms_plus_obs_dt = np.load(path_data_anoms_plus_obs_dt)
 
-    #     print(f"Loaded data anomalies plus obs dt from {path_data_anoms_plus_obs_dt}")
+        print(f"Loaded data anomalies plus obs dt from {path_data_anoms_plus_obs_dt}")
 
-    #     # Print the shape of the data anomalies plus obs dt
-    #     print(f"Shape of data anomalies plus obs dt: {data_anoms_plus_obs_dt.shape}")
+        # Print the shape of the data anomalies plus obs dt
+        print(f"Shape of data anomalies plus obs dt: {data_anoms_plus_obs_dt.shape}")
 
-    #     # Print the mean, min and max of the data anomalies plus obs dt
-    #     print(f"Mean of data anomalies plus obs dt: {np.mean(data_anoms_plus_obs_dt)}")
-    #     print(f"Min of data anomalies plus obs dt: {np.min(data_anoms_plus_obs_dt)}")
-    #     print(f"Max of data anomalies plus obs dt: {np.max(data_anoms_plus_obs_dt)}")
+        # Print the mean, min and max of the data anomalies plus obs dt
+        print(f"Mean of data anomalies plus obs dt: {np.mean(data_anoms_plus_obs_dt)}")
+        print(f"Min of data anomalies plus obs dt: {np.min(data_anoms_plus_obs_dt)}")
+        print(f"Max of data anomalies plus obs dt: {np.max(data_anoms_plus_obs_dt)}")
+
+        # if the subset_arrs_dir does not exist, create it
+        if not os.path.exists(subset_arrs_dir):
+            os.makedirs(subset_arrs_dir)
+            print(f"Created directory {subset_arrs_dir}")
+
+        # Loop over the years and save the data anomalies plus obs dt
+        for year_idx in tqdm(range(data_anoms_plus_obs_dt.shape[0])):
+            year_this = test_years[year_idx]
+
+            # Define the filename for the current year
+            fname_this = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_this}_DJF_day_drift_bc_anoms_1960-2018_dt.npy"
+
+            # Set up the path to the file
+            path_this = os.path.join(subset_arrs_dir, fname_this)
+
+            # If the path does not exist, save the data anomalies plus obs dt
+            if not os.path.exists(path_this):
+                # Save the data anomalies plus obs dt for this year
+                np.save(path_this, data_anoms_plus_obs_dt[year_idx, :, :, :, :, :])
+                print(f"Saved data anomalies plus obs dt for year {year_this} to {path_this}")
+            else:
+                print(f"Path {path_this} already exists. Skipping saving for year {year_this}")
+
+        sys.exit()
         
         
     #     sys.exit()
@@ -645,19 +671,19 @@ def main():
                 final_point_model - model_bias
             )
 
-            # Print the shape of the trend
-            print(f"Shape of data this lat lon: {data_this_lat_lon.shape}")
-            print(f"Shape of data this lat lon for detrend: {data_this_lat_lon_for_detrend.shape}")
-            print(f"Shape of obs wind this lat lon: {obs_wind_this_lat_lon.shape}")
+            # # Print the shape of the trend
+            # print(f"Shape of data this lat lon: {data_this_lat_lon.shape}")
+            # print(f"Shape of data this lat lon for detrend: {data_this_lat_lon_for_detrend.shape}")
+            # print(f"Shape of obs wind this lat lon: {obs_wind_this_lat_lon.shape}")
 
-            # Print the shape of the trend lines
-            print(f"Shape of model trend this: {model_trend_this.shape}")
-            print(f"Shape of obs trend this: {obs_trend_this.shape}")
+            # # Print the shape of the trend lines
+            # print(f"Shape of model trend this: {model_trend_this.shape}")
+            # print(f"Shape of obs trend this: {obs_trend_this.shape}")
 
-            # Print the final points for the trend lines
-            print(f"Final point model: {final_point_model}")
-            print(f"Final point obs: {final_point_obs}")
-            print(f"Final point model bias corrected: {final_point_model_bc}")
+            # # Print the final points for the trend lines
+            # print(f"Final point model: {final_point_model}")
+            # print(f"Final point obs: {final_point_obs}")
+            # print(f"Final point model bias corrected: {final_point_model_bc}")
 
             # Loop over the winter years
             for iwyear, wyear in tqdm(enumerate(winter_years)):
@@ -671,43 +697,65 @@ def main():
                     # Find the trend value at the effective dec year this
                     trend_value_this = model_slope_this * effective_dec_year_this_val + model_intercept_this
 
-                    # Print the trend value for this effective dec year
-                    print(
-                        f"Trend value for effective dec year {effective_dec_year_this_val}: {trend_value_this}"
-                    )
+                    # # Print the trend value for this effective dec year
+                    # print(
+                    #     f"Trend value for effective dec year {effective_dec_year_this_val}: {trend_value_this}"
+                    # )
 
-                    # Print the shape of the data for this lat and lon
-                    print(f"Shape of data this lat lon for detrend this: {data_this_lat_lon_for_detrend_this.shape}")
+                    # # Print the shape of the data for this lat and lon
+                    # print(f"Shape of data this lat lon for detrend this: {data_this_lat_lon_for_detrend_this.shape}")
 
-                    # Print the values of this
-                    print(f"Values of data this lat lon for detrend this: {data_this_lat_lon_for_detrend_this}")
-                    print(f"Mean of data this lat lon for detrend this: {np.mean(data_this_lat_lon_for_detrend_this)}")
-                    print(f"Min of data this lat lon for detrend this: {np.min(data_this_lat_lon_for_detrend_this)}")
-                    print(f"Max of data this lat lon for detrend this: {np.max(data_this_lat_lon_for_detrend_this)}")
+                    # # Print the values of this
+                    # print(f"Values of data this lat lon for detrend this: {data_this_lat_lon_for_detrend_this}")
+                    # print(f"Mean of data this lat lon for detrend this: {np.mean(data_this_lat_lon_for_detrend_this)}")
+                    # print(f"Min of data this lat lon for detrend this: {np.min(data_this_lat_lon_for_detrend_this)}")
+                    # print(f"Max of data this lat lon for detrend this: {np.max(data_this_lat_lon_for_detrend_this)}")
 
-                    # print the final point model BC
-                    print(f"Final point model BC: {final_point_model_bc}")
+                    # # print the final point model BC
+                    # print(f"Final point model BC: {final_point_model_bc}")
 
                     # Remove the trend value from the data for this lat and lon
                     data_this_lat_lon_dt = (
                         final_point_model_bc - trend_value_this + data_this_lat_lon_for_detrend_this
                     )
 
-                    # Print the data this lat lon dt
-                    print(f"Data this lat lon dt post trend corr: {data_this_lat_lon_dt}")
-                    print(f"mean of data this lat lon dt post trend corr: {np.mean(data_this_lat_lon_dt)}")
-                    print(f"min of data this lat lon dt post trend corr: {np.min(data_this_lat_lon_dt)}")
-                    print(f"max of data this lat lon dt post trend corr: {np.max(data_this_lat_lon_dt)}")
+                    # # Print the data this lat lon dt
+                    # print(f"Data this lat lon dt post trend corr: {data_this_lat_lon_dt}")
+                    # print(f"mean of data this lat lon dt post trend corr: {np.mean(data_this_lat_lon_dt)}")
+                    # print(f"min of data this lat lon dt post trend corr: {np.min(data_this_lat_lon_dt)}")
+                    # print(f"max of data this lat lon dt post trend corr: {np.max(data_this_lat_lon_dt)}")
 
                     # Store the data in the data_anoms_plus_obs_dt array
-                    data_anoms_plus_obs_dt[i_init_year, :, iwyear, :, ilat, ilon] = (
+                    data_anoms_plus_obs_dt[i_init_year, :, :, iwyear, ilat, ilon] = (
                         data_this_lat_lon_dt
                     )
 
-                    sys.exit()
+    # Print the shape of the data anomalies plus obs dt
+    print(f"Shape of data anomalies plus obs dt: {data_anoms_plus_obs_dt.shape}")
+    # Print the mean, min and max of the data anomalies plus obs dt
+    print(f"Mean of data anomalies plus obs dt: {np.mean(data_anoms_plus_obs_dt)}")
+    print(f"Min of data anomalies plus obs dt: {np.min(data_anoms_plus_obs_dt)}")
+    print(f"Max of data anomalies plus obs dt: {np.max(data_anoms_plus_obs_dt)}")
 
     # Save the data anomalies plus obs dt to the path
     np.save(path_data_anoms_plus_obs_dt, data_anoms_plus_obs_dt)
+
+    # Directory to save the split arrays
+    output_dir = "/home/users/benhutch/unseen_multi_year/split_data_anomalies"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Assuming `data_anoms_plus_obs_dt` is the array with shape (59, 10, 91, 11, 63, 49)
+    for year_idx in range(data_anoms_plus_obs_dt.shape[0]):
+        # Extract the array for the current year
+        year_data = data_anoms_plus_obs_dt[year_idx]
+
+        # Define the filename for the current year
+        fname = os.path.join(output_dir, f"data_anoms_plus_obs_dt_year_{year_idx + 1}.npy")
+
+        # Save the array to the file
+        np.save(fname, year_data)
+
+        print(f"Saved year {year_idx + 1} data to {fname}")
 
     # End the timer and print the execution time
     end_time = time.time()
