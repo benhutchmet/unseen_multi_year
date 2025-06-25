@@ -77,7 +77,11 @@ def load_obs_data(
     first_dim_ticker = 0
 
     # Set up the data array to append to
-    data_arr = np.zeros((winter_dim_shape, lat_shape, lon_shape))
+    data_arr_full = np.zeros((winter_dim_shape, lat_shape, lon_shape))
+
+    print(f"Data array shape: {data_arr_full.shape}")
+
+    data_arr_wmeans = np.zeros((len(years_arr), lat_shape, lon_shape))
 
     # Loop through the years
     for year in tqdm(years_arr, desc="Loading data"):
@@ -91,16 +95,26 @@ def load_obs_data(
         # Load the data
         data_this = np.load(os.path.join(arrs_dir, fname_this))
 
+        # # Print the shape of data this
+        # print(f"Shape of data this: {data_this.shape}")
+
+        # # print the first dim ticker
+        # print(f"First dim ticker: {first_dim_ticker}")
+
         # Append the arr to the all arr
         if data_this.size != 0:
-            data_arr[first_dim_ticker : first_dim_ticker + data_this.shape[0], :, :] = (
+            data_arr_full[first_dim_ticker : first_dim_ticker + data_this.shape[0], :, :] = (
                 data_this
             )
             first_dim_ticker += data_this.shape[0]
+
+            # Take the mean over the first dimension and append to the data arr wmeans
+            data_arr_wmeans[year - winter_years[0], :, :] = np.mean(data_this, axis=0)
+
         else:
             raise ValueError(f"Data array is empty for {fname_this}")
 
-    return data_arr
+    return data_arr_full, data_arr_wmeans
 
 
 # Write a function which extracts the data from the obs df

@@ -123,6 +123,12 @@ def main():
         "lat2": 80,
     }
 
+    # Set up the specifications for loading the model data
+    season = "DJF"
+    time_freq = "day"
+    len_winter_days = 5776 + 90
+    winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
+
     # Set up the constant period
     constant_years = np.arange(1970, 2017 + 1, 1)  # 1970 to 2018 inclusive
 
@@ -132,18 +138,36 @@ def main():
 
     # Load obs data for sfcWind
     # Do the same for wind speed
-    obs_wind_arr = load_obs_data(
+    obs_wind_arr, obs_wind_wmeans = load_obs_data(
         variable="sfcWind",
         region="Europe",
         season=season,
         time_freq=time_freq,
-        winter_years=(1960, 2018),
+        winter_years=(1960, 2024),
         winter_dim_shape=len_winter_days,
         lat_shape=63,  # Europe region
         lon_shape=49,  # Europe region
         arrs_dir=winter_arrs_dir,
     )
 
+    # Set up the valid dec years obs
+    valid_dec_years_obs = np.arange(1960, 2024 + 1, 1)  # 1960 to 2024 inclusive
+
+    # Print the shape of the obs wind array
+    print(f"Shape of obs wind array: {obs_wind_arr.shape}")
+    # Print the shape of the obs wind wmeans
+    print(f"Shape of obs wind wmeans: {obs_wind_wmeans.shape}")
+
+    # Print the min and max of the obs wind array
+    print(f"Min obs wind speed: {np.min(obs_wind_arr)} m/s ")
+    print(f"Max obs wind speed: {np.max(obs_wind_arr)} m/s ")
+    print(f"Mean obs wind speed: {np.mean(obs_wind_arr)} m/s ")
+
+    # # Calculate the obs_wind_clim
+    # obs_wind_clim = np.mean(obs_wind_arr, axis=0)
+
+    # # Print the shape of the obs wind climatology
+    # print(f"Shape of obs wind climatology: {obs_wind_clim.shape}")
 
     # Set up the winter years for subsetting the data
     winter_years = np.arange(1, 11 + 1, 1)
@@ -168,7 +192,7 @@ def main():
     COUNTRY = "United Kingdom"
 
     # Set up the test years
-    test_years = np.arange(1960, 1971 + 1, 1)  # 1960 to 1965 inclusive
+    test_years = np.arange(1960, 2018 + 1, 1)  # Full period now
 
     # Load the test data
     test_data = np.load(test_file_path)
@@ -247,9 +271,7 @@ def main():
         for ilon, lon in enumerate(lons):
             for iwyear, wyear in enumerate(winter_years):
                 # Subset the test data for this lat, lon, and member
-                subset_data = reshaped_test_arr[
-                    :, :, iwyear, :, ilat, ilon
-                ]
+                subset_data = reshaped_test_arr[:, :, iwyear, :, ilat, ilon]
 
                 # Set up the effective dec years this
                 effective_dec_years_this = test_years + (wyear - 1)
@@ -289,19 +311,73 @@ def main():
 
     # Now remove the climatologies from the test data
     data_anoms = (
-        test_data -
-        wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
+        test_data - wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
     )
 
-    # Print the shape of the data anomalies
-    print(f"Shape of data anomalies: {data_anoms.shape}")
+    # Set up a new array to store the anomalies
+    data_anoms_plus_obs = np.zeros_like(data_anoms, dtype=np.float32)
 
-    # Print the mean, min and max of the data anomalies
-    print(f"Mean of data anomalies: {np.mean(data_anoms)}")
-    print(f"Min of data anomalies: {np.min(data_anoms)}")
-    print(f"Max of data anomalies: {np.max(data_anoms)}")
+    # Lopo over the winter years
+    for iwyear, wyear in tqdm(enumerate(winter_years)):
+        # Subset the anomalies for this winter year
+        data_anoms_this = data_anoms[:, :, :, iwyear, :, :]
 
-    # Now need to load the obs data to add the values back in
+        # Print the shape of the data anomalies for this winter year
+        # print(
+        #     f"Shape of data anomalies for winter year {wyear}: {data_anoms_this.shape}"
+        # )
+
+        # Set up the effective dec years this
+        effective_dec_years_this = test_years + (wyear - 1)
+
+        # Find the indices of the effective dec years this
+        # which are in the observed years
+        indices_this = np.where(np.isin(effective_dec_years_this, valid_dec_years_obs))[
+            0
+        ]
+
+        # Find the non-overlapping years
+        non_overlapping_years = np.setdiff1d(
+            effective_dec_years_this, valid_dec_years_obs
+        )
+
+        # Print the non-overlapping years
+        print(f"Non-overlapping years for winter year {wyear}: {non_overlapping_years}")
+
+        # # Print the indices of the effective dec years this
+        # print(f"Indices of effective dec years this: {indices_this}")
+
+        # If the indices are empty, raise an error
+        if len(indices_this) == 0:
+            raise ValueError(
+                f"No effective dec years found for winter year {wyear}. Please check the test years and valid dec years."
+            )
+
+        # Subset the obs wind data wmeans to these indices
+        obs_wmeans_this = obs_wind_wmeans[indices_this, :, :]
+
+        # Add the obs wind wmeans to the data anomalies
+        data_anoms_plus_obs_this = (
+            data_anoms_this + obs_wmeans_this[:, np.newaxis, np.newaxis, :, :]
+        )
+
+        # Store the data anomalies plus obs in the new array
+        data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
+
+    # Print the shape of the data anomalies plus obs
+    print(f"Shape of data anomalies plus obs: {data_anoms_plus_obs.shape}")
+    # Print the mean, min and max of the data anomalies plus obs
+    print(f"Mean of data anomalies plus obs: {np.mean(data_anoms_plus_obs)}")
+    print(f"Min of data anomalies plus obs: {np.min(data_anoms_plus_obs)}")
+    print(f"Max of data anomalies plus obs: {np.max(data_anoms_plus_obs)}")
+
+    # Print the numbver of values in the data anomalies plus obs
+    num_values = np.prod(data_anoms_plus_obs.shape)
+    print(f"Number of values in data anomalies plus obs: {num_values}")
+
+    # Count the number of values below 0 in the data anomalies plus obs
+    num_below_zero = np.sum(data_anoms_plus_obs < 0)
+    print(f"Number of values below 0 in data anomalies plus obs: {num_below_zero}")
 
     sys.exit()
 
