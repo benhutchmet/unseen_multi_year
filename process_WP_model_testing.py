@@ -89,6 +89,12 @@ def load_wind_speed_and_take_to_hubheight_model(
         np.ndarray: Wind speed data at hub height.
     """
 
+    # If there are any values below 0 in the model data
+    if np.any(model_data < 0):
+        print("Warning: Negative wind speed values found in model data. Setting them to 0.")
+        # Set negative values to 0
+        model_data[model_data < 0] = 0.0
+
     # Perform the correction to hub height
     correction_hubheight = land_mask * (71.0 / height_of_wind_speed) ** (
         1.0 / 7.0
