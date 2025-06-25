@@ -118,18 +118,8 @@ def main():
         os.makedirs(output_df_path)
         print(f"Created output directory: {output_df_path}")
 
-    # Set up the output path for the model data
-    output_model_data_path = os.path.join(
-        output_df_path,
-        f"HadGEM3-GC31-MM_WP_gen_{COUNTRY}_drift_bc_dt.csv",
-    )
-
-    # If the output model data path already exists, remove it
-    if os.path.exists(output_model_data_path):
-        print(
-            f"Output model data path {output_model_data_path} already exists."
-        )
-        sys.exit()
+    # Format country with _
+    COUNTRY_str = COUNTRY.replace(" ", "_")
 
     # Set up the argument parser
     parser = argparse.ArgumentParser(
@@ -152,199 +142,217 @@ def main():
         # Parse arguments normally
         args = parser.parse_args()
 
-    # Print the initialisation year we are processing
-    print(f"Processing model data for initialisation year: {args.init_year}")
+    # Set up the years
+    years = np.arange(1960, 2018 + 1, 1)
 
-    # Set up the fname for the array data to load
-    fname_year = f"HadGEM3-GC31-MM_sfcWind_Europe_{args.init_year}_DJF_day_drift_bc_anoms_1960-2018_dt.npy"
+    # Loop over the years
+    for year_this in tqdm(years):
+        # Print the initialisation year we are processing
+        print(f"Processing model data for initialisation year: {year_this}")
 
-    fpath = os.path.join(subset_arrs_dir, fname_year)
-
-    # If the file does not exist, raise an error
-    if not os.path.exists(fpath):
-        raise FileNotFoundError(
-            f"The file {fpath} does not exist. Please check the path and try again."
+        # Set up the output path for the model data
+        output_model_data_path = os.path.join(
+            output_df_path,
+            f"HadGEM3-GC31-MM_WP_gen_{COUNTRY_str}_{year_this}_drift_bc_dt.csv",
         )
-    
-    # Load the numpy array data
-    print(f"Loading data from {fpath}...")
-    data = np.load(fpath)
 
-    # Load the latitudes and longitudes
-    print(f"Loading latitudes from {lats_file_path}...")
-    lats = np.load(lats_file_path)
-    print(f"Loading longitudes from {lons_file_path}...")
-    lons = np.load(lons_file_path)
-    print(f"Loading members from {members_file_path}...")
-    members = np.load(members_file_path)
+        # If the output model data path already exists, remove it
+        if os.path.exists(output_model_data_path):
+            print(
+                f"Output model data path {output_model_data_path} already exists."
+            )
+            sys.exit()
 
-    # Print the shape of the data
-    print(f"Data shape: {data.shape}")
+        # Set up the fname for the array data to load
+        fname_year = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_this}_DJF_day_drift_bc_anoms_1960-2018_dt.npy"
 
-    # Print the min and max values of the data
-    print(f"Data min: {np.min(data)}, Data max: {np.max(data)}")
-    # Print the mean and std of the data
-    print(f"Data mean: {np.mean(data)}, Data std: {np.std(data)}")
+        fpath = os.path.join(subset_arrs_dir, fname_year)
 
-    # Load the power curves
-    print("Loading power curves...")
-    pc_winds, pc_power_ons, pc_power_ofs = load_power_curves(
-        path_onshore_curve=onshore_pc_path,
-        path_offshore_curve=offshore_pc_path,
-    )
+        # If the file does not exist, raise an error
+        if not os.path.exists(fpath):
+            raise FileNotFoundError(
+                f"The file {fpath} does not exist. Please check the path and try again."
+            )
+        
+        # Load the numpy array data
+        print(f"Loading data from {fpath}...")
+        data = np.load(fpath)
 
-    # Make a country mask for the UK
-    countries_shp = shpreader.natural_earth(
-        resolution="10m",
-        category="cultural",
-        name="admin_0_countries",
-    )
+        # Load the latitudes and longitudes
+        print(f"Loading latitudes from {lats_file_path}...")
+        lats = np.load(lats_file_path)
+        print(f"Loading longitudes from {lons_file_path}...")
+        lons = np.load(lons_file_path)
+        print(f"Loading members from {members_file_path}...")
+        members = np.load(members_file_path)
 
-    # Set up the land shapereader
-    # Initialize the mask with the correct shape
-    MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
-    country_shapely = []
-    for country in shpreader.Reader(countries_shp).records():
-        if country.attributes["NAME"][0:14] == COUNTRY:
-            # Convert the shapefile geometry to shapely geometry
-            country_shapely.append(shapely.geometry.shape(country.geometry))
+        # Print the shape of the data
+        print(f"Data shape: {data.shape}")
 
-    # Loop over the latitude and longitude points
-    for l in range(len(lats)):
-        for j in range(len(lons)):
-            point = shapely.geometry.Point(lons[j], lats[l])
-            for country in country_shapely:
-                if country.contains(point):
-                    MASK_MATRIX_TMP[l, j] = 1.0
+        # Print the min and max values of the data
+        print(f"Data min: {np.min(data)}, Data max: {np.max(data)}")
+        # Print the mean and std of the data
+        print(f"Data mean: {np.mean(data)}, Data std: {np.std(data)}")
 
-    # Reshape the mask to match the shape of the data
-    MASK_MATRIX_RESHAPE = MASK_MATRIX_TMP
+        # Load the power curves
+        print("Loading power curves...")
+        pc_winds, pc_power_ons, pc_power_ofs = load_power_curves(
+            path_onshore_curve=onshore_pc_path,
+            path_offshore_curve=offshore_pc_path,
+        )
 
-    # Process the area weighted means for the wind farm locations
-    rg_farm_locations = process_area_weighted_mean(
-        path_to_farm_locations_ons=path_to_farm_locations_ons,
-        path_to_farm_locations_ofs=path_to_farm_locations_ofs,
-        cube=iris.load_cube(test_dps_file_path),
-    )
+        # Make a country mask for the UK
+        countries_shp = shpreader.natural_earth(
+            resolution="10m",
+            category="cultural",
+            name="admin_0_countries",
+        )
 
-    # Find the min and max latitudes and longitudes
-    min_lat, max_lat = np.min(lats), np.max(lats)
-    min_lon, max_lon = np.min(lons), np.max(lons)
+        # Set up the land shapereader
+        # Initialize the mask with the correct shape
+        MASK_MATRIX_TMP = np.zeros((len(lats), len(lons)))
+        country_shapely = []
+        for country in shpreader.Reader(countries_shp).records():
+            if country.attributes["NAME"][0:14] == COUNTRY:
+                # Convert the shapefile geometry to shapely geometry
+                country_shapely.append(shapely.geometry.shape(country.geometry))
 
-    # Print the min and max latitudes and longitudes
-    print(f"Min latitude: {min_lat}, Max latitude: {max_lat}")
-    print(f"Min longitude: {min_lon}, Max longitude: {max_lon}")
+        # Loop over the latitude and longitude points
+        for l in range(len(lats)):
+            for j in range(len(lons)):
+                point = shapely.geometry.Point(lons[j], lats[l])
+                for country in country_shapely:
+                    if country.contains(point):
+                        MASK_MATRIX_TMP[l, j] = 1.0
 
-    # Intersect the rg_farm_locations to this region
-    rg_farm_locations = rg_farm_locations.intersection(
-        longitude=(min_lon, max_lon),
-        latitude=(min_lat, max_lat),
-    )
+        # Reshape the mask to match the shape of the data
+        MASK_MATRIX_RESHAPE = MASK_MATRIX_TMP
 
-    # Load the wind speed data and take to hubheight
-    ws_hh = load_wind_speed_and_take_to_hubheight_model(
-        model_data=data,
-        land_mask=MASK_MATRIX_RESHAPE,
-        height_of_wind_speed=10.0,  # 10m wind speed
-    )
+        # Process the area weighted means for the wind farm locations
+        rg_farm_locations = process_area_weighted_mean(
+            path_to_farm_locations_ons=path_to_farm_locations_ons,
+            path_to_farm_locations_ofs=path_to_farm_locations_ofs,
+            cube=iris.load_cube(test_dps_file_path),
+        )
 
-    # Count the number of values which are 0.0
-    num_zero_values = np.sum(ws_hh == 0.0)
-    print(f"Number of zero values in wind speed data: {num_zero_values}")
+        # Find the min and max latitudes and longitudes
+        min_lat, max_lat = np.min(lats), np.max(lats)
+        min_lon, max_lon = np.min(lons), np.max(lons)
 
-    # Print the % of values which are 0.0
-    total_values = ws_hh.size
-    percent_zero_values = (num_zero_values / total_values) * 100
-    print(f"Percentage of zero values in wind speed data: {percent_zero_values:.2f}%")
+        # Print the min and max latitudes and longitudes
+        print(f"Min latitude: {min_lat}, Max latitude: {max_lat}")
+        print(f"Min longitude: {min_lon}, Max longitude: {max_lon}")
 
-    # Print the shape of the wind speed data
-    print(f"Wind speed data shape: {ws_hh.shape}")
-    # Print the min and max values of the wind speed data
-    print(f"Wind speed data min: {np.min(ws_hh)}, Wind speed data max: {np.max(ws_hh)}")
-    # Print the mean and std of the wind speed data
-    print(f"Wind speed data mean: {np.mean(ws_hh)}, Wind speed data std: {np.std(ws_hh)}")
+        # Intersect the rg_farm_locations to this region
+        rg_farm_locations = rg_farm_locations.intersection(
+            longitude=(min_lon, max_lon),
+            latitude=(min_lat, max_lat),
+        )
 
-    # Print the shape of wind speeds at hub height
-    print(f"Wind speeds at hub height shape: {ws_hh.shape}")
+        # Load the wind speed data and take to hubheight
+        ws_hh = load_wind_speed_and_take_to_hubheight_model(
+            model_data=data,
+            land_mask=MASK_MATRIX_RESHAPE,
+            height_of_wind_speed=10.0,  # 10m wind speed
+        )
 
-    # Convert the wind speed data to power generation data
-    p_hh_total_GW = convert_wind_speed_to_power_generation(
-        ERA5_cube_hubheight=ws_hh,
-        pc_winds=pc_winds,
-        pc_power_ons=pc_power_ons,
-        pc_power_ofs=pc_power_ofs,
-        land_mask=MASK_MATRIX_RESHAPE,
-        farm_locations=rg_farm_locations.data,
-    )
+        # Count the number of values which are 0.0
+        num_zero_values = np.sum(ws_hh == 0.0)
+        print(f"Number of zero values in wind speed data: {num_zero_values}")
 
-    # Print the shape of the power generation data
-    print(f"Power generation data shape: {p_hh_total_GW.shape}")
+        # Print the % of values which are 0.0
+        total_values = ws_hh.size
+        percent_zero_values = (num_zero_values / total_values) * 100
+        print(f"Percentage of zero values in wind speed data: {percent_zero_values:.2f}%")
 
-    # Print the type of the power generation data
-    print(f"Power generation data type: {type(p_hh_total_GW)}")
+        # Print the shape of the wind speed data
+        print(f"Wind speed data shape: {ws_hh.shape}")
+        # Print the min and max values of the wind speed data
+        print(f"Wind speed data min: {np.min(ws_hh)}, Wind speed data max: {np.max(ws_hh)}")
+        # Print the mean and std of the wind speed data
+        print(f"Wind speed data mean: {np.mean(ws_hh)}, Wind speed data std: {np.std(ws_hh)}")
 
-    # Extract the data
-    p_hh_total_GW_vals = np.array(p_hh_total_GW.data)
+        # Print the shape of wind speeds at hub height
+        print(f"Wind speeds at hub height shape: {ws_hh.shape}")
 
-    # Convert form GW to MW
-    total_gen_MW = p_hh_total_GW_vals / 1000.0
+        # Convert the wind speed data to power generation data
+        p_hh_total_GW = convert_wind_speed_to_power_generation(
+            ERA5_cube_hubheight=ws_hh,
+            pc_winds=pc_winds,
+            pc_power_ons=pc_power_ons,
+            pc_power_ofs=pc_power_ofs,
+            land_mask=MASK_MATRIX_RESHAPE,
+            farm_locations=rg_farm_locations.data,
+        )
 
-    # Get the capacity factor
-    capacity_factors = (
-        total_gen_MW / (np.sum(rg_farm_locations.data) / 1000000.0)
-    )
+        # Print the shape of the power generation data
+        print(f"Power generation data shape: {p_hh_total_GW.shape}")
 
-    # Print the shape of the capacity factors
-    print(f"Capacity factors shape: {capacity_factors.shape}")
+        # Print the type of the power generation data
+        print(f"Power generation data type: {type(p_hh_total_GW)}")
 
-    # Print the min and max values of the capacity factors
-    print(f"Capacity factors min: {np.min(capacity_factors)}, "
-            f"Capacity factors max: {np.max(capacity_factors)}")
-    # Print the mean and std of the capacity factors
-    print(f"Capacity factors mean: {np.mean(capacity_factors)}, "
-            f"Capacity factors std: {np.std(capacity_factors)}")
-    
-    # Set up a model df to store the data in
-    model_df = pd.DataFrame()
+        # Extract the data
+        p_hh_total_GW_vals = np.array(p_hh_total_GW.data)
 
-    # Set up the members
-    for i_member, member in enumerate(members):
-        for i_day, day in enumerate(range(1, np.shape(country_shapely)[1] + 1)):
-            for i_wyear, wyear in enumerate(range(1, np.shape(country_shapely)[2] + 1)):
-                # Extract the model values this
-                cf_this = capacity_factors[i_member, i_day, i_wyear]
+        # Convert form GW to MW
+        total_gen_MW = p_hh_total_GW_vals / 1000.0
 
-                # Set up the df this
-                model_df_this = pd.DataFrame(
-                    {
-                        "member": [member],
-                        "lead": [day],
-                        "wyear": [wyear],
-                        "capacity_factor": [cf_this],
-                    }
-                )
+        # Get the capacity factor
+        capacity_factors = (
+            total_gen_MW / (np.sum(rg_farm_locations.data) / 1000000.0)
+        )
 
-                # Concat this to the model df
-                model_df = pd.concat([model_df, model_df_this])
-    
-    # Inclue an additional column for the initialisation year
-    model_df["init_year"] = args.init_year
-    
-    # Print the head of the model df
-    print("Model DataFrame head:")
-    print(model_df.head())
+        # Print the shape of the capacity factors
+        print(f"Capacity factors shape: {capacity_factors.shape}")
 
-    # Print the tail of the model df
-    print("Model DataFrame tail:")
-    print(model_df.tail())
+        # Print the min and max values of the capacity factors
+        print(f"Capacity factors min: {np.min(capacity_factors)}, "
+                f"Capacity factors max: {np.max(capacity_factors)}")
+        # Print the mean and std of the capacity factors
+        print(f"Capacity factors mean: {np.mean(capacity_factors)}, "
+                f"Capacity factors std: {np.std(capacity_factors)}")
+        
+        # Set up a model df to store the data in
+        model_df = pd.DataFrame()
 
-    # describe the model df
-    print("Model DataFrame description:")
-    print(model_df.describe())
+        # Fix the loop dimensions based on the actual structure of capacity_factors
+        for i_member, member in enumerate(members):
+            for i_day in range(capacity_factors.shape[1]):  # Use the second dimension of capacity_factors
+                for i_wyear in range(capacity_factors.shape[2]):  # Use the third dimension of capacity_factors
+                    # Extract the model values this
+                    cf_this = capacity_factors[i_member, i_day, i_wyear]
 
-    # Save the model df to a csv file
-    print(f"Saving model DataFrame to {output_model_data_path}...")
-    model_df.to_csv(output_model_data_path, index=False)
+                    # Set up the df this
+                    model_df_this = pd.DataFrame(
+                        {
+                            "member": [i_member + 1],  # Use i_member + 1 to represent the member
+                            "lead": [i_day + 1],  # Use i_day + 1 to represent the day
+                            "wyear": [i_wyear + 1],  # Use i_wyear + 1 to represent the winter year
+                            "capacity_factor": [cf_this],
+                        }
+                    )
+
+                    # Concat this to the model df
+                    model_df = pd.concat([model_df, model_df_this])
+        
+        # Inclue an additional column for the initialisation year
+        model_df["init_year"] = year_this
+        
+        # Print the head of the model df
+        print("Model DataFrame head:")
+        print(model_df.head())
+
+        # Print the tail of the model df
+        print("Model DataFrame tail:")
+        print(model_df.tail())
+
+        # describe the model df
+        print("Model DataFrame description:")
+        print(model_df.describe())
+
+        # Save the model df to a csv file
+        print(f"Saving model DataFrame to {output_model_data_path}...")
+        model_df.to_csv(output_model_data_path, index=False)
 
     # Set up an end timer
     end_time = time.time()
