@@ -435,6 +435,36 @@ def main():
     num_below_zero = np.sum(data_anoms_plus_obs < 0)
     print(f"Number of values below 0 in data anomalies plus obs: {num_below_zero}")
 
+    # -------------------------------
+    # Now perform pivot detrending on the model array
+    # Shape: (59, 10, 91, 11, 63, 49)
+    # -------------------------------
+
+    # Bin these by effective dec year
+    model_eff_dec_years = np.arange(1960, 2018 + len(winter_years) + 1, 1)  # 1960 to 2018 + len(winter_years) inclusive
+
+    # Print the min and max of the effective dec years
+    print(f"Min effective dec year: {np.min(model_eff_dec_years)}")
+    print(f"Max effective dec year: {np.max(model_eff_dec_years)}")
+
+    # Loop over the winter years
+    for iwyear, wyear in tqdm(enumerate(winter_years)):
+        # Set up the effective dec years this
+        effective_dec_years_this = test_years + (wyear - 1)
+
+        # Print the first and last effective dec years this
+        print(
+            f"Winter year {wyear} effective dec years: {effective_dec_years_this[0]} to {effective_dec_years_this[-1]}"
+        )
+
+        sys.exit()
+
+
+    # End the timer and print the execution time
+    end_time = time.time()
+
+    print(f"Execution time: {end_time - start_time:.2f} seconds")
+
     sys.exit()
 
     # print the shape of the test data
@@ -610,10 +640,7 @@ def main():
     print(f"0.5 quantile: {np.quantile(capacity_factor_flat, 0.5)}")
     print(f"0.75 quantile: {np.quantile(capacity_factor_flat, 0.75)}")
 
-    # End the timer and print the execution time
-    end_time = time.time()
-
-    print(f"Execution time: {end_time - start_time:.2f} seconds")
+    return None
 
 
 if __name__ == "__main__":
