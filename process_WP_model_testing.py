@@ -47,6 +47,7 @@ import shapely.geometry
 # Specific imports
 from tqdm import tqdm
 from iris import cube
+from scipy.stats import linregress
 
 # Specific imports from local modules
 from process_ERA5_wind_gen import (
@@ -123,6 +124,12 @@ def main():
         "lat2": 80,
     }
 
+    # Hard code the country to UK
+    COUNTRY = "United Kingdom"
+
+    # Set up the test years
+    test_years = np.arange(1960, 2018 + 1, 1)  # Full period now
+
     # Set up the specifications for loading the model data
     season = "DJF"
     time_freq = "day"
@@ -135,6 +142,12 @@ def main():
     # Set up the constraints
     constraint_lon = (-6.25, 4.58)  # degrees east
     constraint_lat = (50.28, 59.72)  # degrees north
+
+    # Load the test data
+    test_data = np.load(test_file_path)
+    lats = np.load(lats_file_path)
+    lons = np.load(lons_file_path)
+    members = np.load(members_file_path)
 
     # Load obs data for sfcWind
     # Do the same for wind speed
@@ -171,9 +184,7 @@ def main():
 
     # Set up the fname for the data anomalies plus obs
     current_date = time.strftime("%Y%m%d")
-    fname_data_anoms_plus_obs = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018.npy"
-    )
+    fname_data_anoms_plus_obs = f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018.npy"
 
     # Set up the path to the data anomalies plus obs
     path_data_anoms_plus_obs = os.path.join(
@@ -198,7 +209,9 @@ def main():
         for winter_year in winter_years:
             # Set up the indices
             indices_this = np.arange(
-                30 + ((winter_year - 1) * 360), 30 + 90 + ((winter_year - 1) * 360) + 1, 1
+                30 + ((winter_year - 1) * 360),
+                30 + 90 + ((winter_year - 1) * 360) + 1,
+                1,
             )
 
             # print the winter year and the first lead this
@@ -206,19 +219,6 @@ def main():
 
             # Append the indices to the list
             winter_indices.extend(indices_this)
-
-        # Hard code the country to UK
-        COUNTRY = "United Kingdom"
-
-        # Set up the test years
-        test_years = np.arange(1960, 2018 + 1, 1)  # Full period now
-
-        # Load the test data
-        test_data = np.load(test_file_path)
-
-        lats = np.load(lats_file_path)
-        lons = np.load(lons_file_path)
-        members = np.load(members_file_path)
 
         # Set up the test array
         test_array = np.zeros(
@@ -375,12 +375,12 @@ def main():
             effective_dec_years_this = test_years + (wyear - 1)
 
             # Find the common years between the effective dec years and the obs years
-            common_years = np.intersect1d(
-                effective_dec_years_this, valid_dec_years_obs
-            )
+            common_years = np.intersect1d(effective_dec_years_this, valid_dec_years_obs)
 
             # Find the indices of the common years in the effective dec years
-            indices_this_model = np.where(np.isin(effective_dec_years_this, common_years))[0]
+            indices_this_model = np.where(
+                np.isin(effective_dec_years_this, common_years)
+            )[0]
 
             # Find the indices of the common years in the obs years
             indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
@@ -396,7 +396,8 @@ def main():
 
             # Add the obs wind wmeans to the data anomalies
             data_anoms_plus_obs_this = (
-                data_anoms_this + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
+                data_anoms_this
+                + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
             )
 
             # Print the shape of the data anomalies plus obs for this winter year
@@ -409,13 +410,15 @@ def main():
             print(f"Shape of data anoms this: {data_anoms_this.shape}")
 
             # print the shape of data_anoms_plus_obs
-            print(f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}")
+            print(
+                f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}"
+            )
             # print the shape of data_anoms_plus_obs
             print(f"Shape of data_anoms_plus_obs: {data_anoms_plus_obs.shape}")
 
             # Store the data anomalies plus obs in the new array
             data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
-        
+
         # Save the data anomalies plus obs to the path
         np.save(path_data_anoms_plus_obs, data_anoms_plus_obs)
         print(f"Saved data anomalies plus obs to {path_data_anoms_plus_obs}")
@@ -440,25 +443,213 @@ def main():
     # Shape: (59, 10, 91, 11, 63, 49)
     # -------------------------------
 
+    winter_years = np.arange(1, 11 + 1, 1)  # 1 to 11 inclusive
+
     # Bin these by effective dec year
-    model_eff_dec_years = np.arange(1960, 2018 + len(winter_years) + 1, 1)  # 1960 to 2018 + len(winter_years) inclusive
+    model_eff_dec_years = np.arange(
+        1960, 2018 + len(winter_years) + 1, 1
+    )  # 1960 to 2018 + len(winter_years) inclusive
 
     # Print the min and max of the effective dec years
     print(f"Min effective dec year: {np.min(model_eff_dec_years)}")
     print(f"Max effective dec year: {np.max(model_eff_dec_years)}")
 
+    # Set up a dictionary with keys as the model effective dec years and values as empty arrays
+    model_eff_dec_years_dict = {}
+
+    for eff_dec_year in model_eff_dec_years:
+        # Initialize the dictionary with empty arrays
+        model_eff_dec_years_dict[eff_dec_year] = []
+
     # Loop over the winter years
     for iwyear, wyear in tqdm(enumerate(winter_years)):
-        # Set up the effective dec years this
-        effective_dec_years_this = test_years + (wyear - 1)
+        # For each effective dec year, store the data in the dictionary
+        for i_init_year, init_year in enumerate(test_years):
+            # Set up the effective dec year this
+            effective_dec_year_this_val = init_year + (wyear - 1)
 
-        # Print the first and last effective dec years this
-        print(
-            f"Winter year {wyear} effective dec years: {effective_dec_years_this[0]} to {effective_dec_years_this[-1]}"
+            # Print the effective dec year this
+            print(f"Effective dec year this: {effective_dec_year_this_val}")
+
+            # Print trhe init year and the winter year
+            print(f"Init year: {init_year}, Winter year: {wyear}")
+
+            # Subset the data anomalies plus obs for this init year and winter year
+            data_anoms_plus_obs_this = data_anoms_plus_obs[
+                i_init_year, :, :, iwyear, :, :
+            ]
+
+            # Print the shape of the data anomalies plus obs this
+            print(
+                f"Shape of data anomalies plus obs this: {data_anoms_plus_obs_this.shape}"
+            )
+
+            # Store the data in the dictionary
+            model_eff_dec_years_dict[effective_dec_year_this_val].append(
+                data_anoms_plus_obs_this
+            )
+
+    # Initialize a dictionary to store the mean values for each year
+    mean_values_by_year = {}
+
+    # Iterate through the dictionary
+    for year, arrays in model_eff_dec_years_dict.items():
+        if arrays:  # Check if there are arrays for this year
+            # Stack the arrays along a new axis and compute the mean
+            mean_values_by_year[year] = np.mean(np.stack(arrays, axis=0), axis=0)
+        else:
+            # Handle the case where there are no arrays for the year
+            mean_values_by_year[year] = (
+                None  # Or np.zeros((10, 91, 63, 49)) if you prefer
+            )
+
+    # Example: Print the shape of the mean values for each year
+    for year, mean_array in mean_values_by_year.items():
+        if mean_array is not None:
+            print(f"Year: {year}, Mean shape: {mean_array.shape}")
+        else:
+            print(f"Year: {year}, No data available")
+
+    valid_years = np.arange(1960, 2028 + 1, 1)  # 1960 to 2018 inclusive
+
+    # Set up an array to store the data for the valid years
+    data_anoms_plus_obs_valid_years = np.zeros(
+        (
+            len(valid_years),
+            len(members),
+            91,
+            len(lats),
+            len(lons),
         )
+    )
 
-        sys.exit()
+    # Loop over trhe dictionary and store the data in the array
+    for i_year, year in tqdm(enumerate(valid_years)):
+        # Check if the year is in the dictionary
+        if year in mean_values_by_year:
+            # Store the data in the array
+            data_anoms_plus_obs_valid_years[i_year, :, :, :, :] = mean_values_by_year[
+                year
+            ]
+        else:
+            print(f"Year {year} not found in the dictionary. Skipping.")
 
+    # Print the shape of the data anomalies plus obs valid years
+    print(
+        f"Shape of data anomalies plus obs valid years: {data_anoms_plus_obs_valid_years.shape}"
+    )
+
+    # Print the mean, min and max of the data anomalies plus obs valid years
+    print(
+        f"Mean of data anomalies plus obs valid years: {np.mean(data_anoms_plus_obs_valid_years)}"
+    )
+    print(
+        f"Min of data anomalies plus obs valid years: {np.min(data_anoms_plus_obs_valid_years)}"
+    )
+    print(
+        f"Max of data anomalies plus obs valid years: {np.max(data_anoms_plus_obs_valid_years)}"
+    )
+
+    # Find the indices of valid years which is the same as the observed years
+    valid_years_indices = np.where(np.isin(valid_years, valid_dec_years_obs))[0]
+
+    # Subset the data anomalies plus obs valid years to these indices
+    data_anoms_plus_obs_valid_years = data_anoms_plus_obs_valid_years[
+        valid_years_indices, :, :, :, :
+    ]
+    valid_years_model_subset = valid_years[valid_years_indices]
+
+    # Print the shape of the data anomalies plus obs valid years after subsetting
+    print(
+        f"Shape of data anomalies plus obs valid years after subsetting: {data_anoms_plus_obs_valid_years.shape}"
+    )
+
+    # Create a np zeros like for data_anoms_plus_obs_dt
+    data_anoms_plus_obs_dt = np.zeros_like(data_anoms_plus_obs, dtype=np.float32)
+
+    # (69, 10, 91, 63, 49)
+    # Loop over the lats and lons
+    for ilat, lat in tqdm(enumerate(lats)):
+        for ilon, lon in enumerate(lons):
+            # Set up the data for this lat and lon
+            data_this_lat_lon = data_anoms_plus_obs_valid_years[:, :, :, ilat, ilon]
+
+            # Extract the values for data_anoms_plus_obs
+            data_this_lat_lon_for_detrend = data_anoms_plus_obs[:, :, :, :, ilat, ilon]
+
+            # Subset the observed wind data for this lat and lon
+            obs_wind_this_lat_lon = obs_wind_wmeans[:, ilat, ilon]
+
+            # Take the mean over dimensions -1, -2
+            data_this_lat_lon_mean_ts = np.mean(data_this_lat_lon, axis=(-1, -2))
+
+            model_slope_this, model_intercept_this, _, _, _ = linregress(
+                valid_years_model_subset, data_this_lat_lon_mean_ts
+            )
+
+            obs_slope_this, obs_intercept_this, _, _, _ = linregress(
+                valid_dec_years_obs, obs_wind_this_lat_lon
+            )
+
+            # Calculate the trend line
+            model_trend_this = (
+                model_slope_this * valid_years_model_subset + model_intercept_this
+            )
+            obs_trend_this = (
+                obs_slope_this * valid_dec_years_obs + obs_intercept_this
+            )
+
+            # Determine the final point for the trend line for the model
+            final_point_model = (
+                model_trend_this[-1]
+            )
+            # Determine the final point for the trend line for the obs
+            final_point_obs = (
+                obs_trend_this[-1]
+            )
+
+            # Calculate the model bias
+            model_bias = final_point_model - final_point_obs
+
+            # Add the model bias to the data for this lat and lon
+            final_point_model_bc = (
+                final_point_model - model_bias
+            )
+
+            # Loop over the winter years
+            for iwyear, wyear in tqdm(enumerate(winter_years)):
+                for i_init_year, init_year in enumerate(test_years):
+                    # Set up the effective dec year this
+                    effective_dec_year_this_val = init_year + (wyear - 1)
+
+                    # Subset the data_this_lat_lon_for_detrend
+                    data_this_lat_lon_for_detrend_this = data_this_lat_lon_for_detrend[i_init_year, :, iwyear, :]
+
+                    # Find the trend value at the effective dec year this
+                    trend_value_this = model_slope_this * effective_dec_year_this_val + model_intercept_this
+
+                    # Remove the trend value from the data for this lat and lon
+                    data_this_lat_lon_dt = (
+                        final_point_model_bc - trend_value_this + data_this_lat_lon_for_detrend_this
+                    )
+
+                    # Store the data in the data_anoms_plus_obs_dt array
+                    data_anoms_plus_obs_dt[i_init_year, :, iwyear, :, ilat, ilon] = (
+                        data_this_lat_lon_dt
+                    )
+            
+            # Print the mean, min and max of the data_anoms_plus_obs_dt for this lat and lon
+            print(
+                f"Lat: {lat}, Lon: {lon}, Mean of data_anoms_plus_obs_dt: {np.mean(data_anoms_plus_obs_dt[:, :, :, :, ilat, ilon])}"
+            )
+            print(
+                f"Lat: {lat}, Lon: {lon}, Min of data_anoms_plus_obs_dt: {np.min(data_anoms_plus_obs_dt[:, :, :, :, ilat, ilon])}"
+            )
+            print(
+                f"Lat: {lat}, Lon: {lon}, Max of data_anoms_plus_obs_dt: {np.max(data_anoms_plus_obs_dt[:, :, :, :, ilat, ilon])}"
+            )
+
+            sys.exit()
 
     # End the timer and print the execution time
     end_time = time.time()
