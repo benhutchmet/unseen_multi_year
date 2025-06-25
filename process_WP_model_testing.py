@@ -341,16 +341,33 @@ def main():
         # Find the indices of the common years in the obs years
         indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
 
-        # subset the data anomalies to these indices
-        data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
+        # # subset the data anomalies to these indices
+        # data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
 
         # Subset the obs wind data wmeans to these indices
         obs_wmeans_this = obs_wind_wmeans[indices_this_obs, :, :]
 
+        # Quantify the time mean of obs wind wmeans
+        obs_wmeans_this = np.mean(obs_wmeans_this, axis=0)
+
         # Add the obs wind wmeans to the data anomalies
         data_anoms_plus_obs_this = (
-            data_anoms_this + obs_wmeans_this[:, np.newaxis, np.newaxis, :, :]
+            data_anoms_this + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
         )
+
+        # Print the shape of the data anomalies plus obs for this winter year
+        print(
+            f"Shape of data anomalies plus obs for winter year {wyear}: {data_anoms_plus_obs_this.shape}"
+        )
+        # Print the shape of obs wmeans this
+        print(f"Shape of obs wmeans this: {obs_wmeans_this.shape}")
+        # Print the shape of data anoms this
+        print(f"Shape of data anoms this: {data_anoms_this.shape}")
+
+        # print the shape of data_anoms_plus_obs
+        print(f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}")
+        # print the shape of data_anoms_plus_obs
+        print(f"Shape of data_anoms_plus_obs: {data_anoms_plus_obs.shape}")
 
         # Store the data anomalies plus obs in the new array
         data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
