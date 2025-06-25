@@ -330,31 +330,22 @@ def main():
         # Set up the effective dec years this
         effective_dec_years_this = test_years + (wyear - 1)
 
-        # Find the indices of the effective dec years this
-        # which are in the observed years
-        indices_this = np.where(np.isin(effective_dec_years_this, valid_dec_years_obs))[
-            0
-        ]
-
-        # Find the non-overlapping years
-        non_overlapping_years = np.setdiff1d(
+        # Find the common years between the effective dec years and the obs years
+        common_years = np.intersect1d(
             effective_dec_years_this, valid_dec_years_obs
         )
 
-        # Print the non-overlapping years
-        print(f"Non-overlapping years for winter year {wyear}: {non_overlapping_years}")
+        # Find the indices of the common years in the effective dec years
+        indices_this_model = np.where(np.isin(effective_dec_years_this, common_years))[0]
 
-        # # Print the indices of the effective dec years this
-        # print(f"Indices of effective dec years this: {indices_this}")
+        # Find the indices of the common years in the obs years
+        indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
 
-        # If the indices are empty, raise an error
-        if len(indices_this) == 0:
-            raise ValueError(
-                f"No effective dec years found for winter year {wyear}. Please check the test years and valid dec years."
-            )
+        # subset the data anomalies to these indices
+        data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
 
         # Subset the obs wind data wmeans to these indices
-        obs_wmeans_this = obs_wind_wmeans[indices_this, :, :]
+        obs_wmeans_this = obs_wind_wmeans[indices_this_obs, :, :]
 
         # Add the obs wind wmeans to the data anomalies
         data_anoms_plus_obs_this = (
