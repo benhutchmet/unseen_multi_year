@@ -54,6 +54,11 @@ from process_ERA5_wind_gen import (
     convert_wind_speed_to_power_generation,
 )
 
+# more specific imports from other modules
+from plot_dnw_circ import (
+    load_obs_data,
+)
+
 # Imports from Hannah's functions
 sys.path.append(
     "/home/users/benhutch/for_martin/for_martin/creating_wind_power_generation/"
@@ -63,6 +68,7 @@ sys.path.append(
 from European_hourly_hub_height_winds_2023_model import (
     load_power_curves,
 )
+
 
 # Define a function for loading the wind speed and taking it to hub height
 def load_wind_speed_and_take_to_hubheight_model(
@@ -92,16 +98,18 @@ def load_wind_speed_and_take_to_hubheight_model(
 
     return ERA5_cube_hubheight
 
+
 # Define the main function to process the data
 def main():
     # Start a timer to measure the execution time
     start_time = time.time()
 
     # Set up a path of the test file
-    test_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/HadGEM3-GC31-MM_sfcWind_UK_2018_DJF_day.npy"
-    lats_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_UK_2018_DJF_day_lats.npy"
-    lons_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_UK_2018_DJF_day_lons.npy"
-    members_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_UK_2018_DJF_day_members.npy"
+    arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
+    test_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day.npy"
+    lats_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lats.npy"
+    lons_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_lons.npy"
+    members_file_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/HadGEM3-GC31-MM_sfcWind_Europe_2018_DJF_day_members.npy"
     test_dps_file_path = "/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppA-hindcast/s1961-r9i1p1f2/day/sfcWind/gn/files/d20200417/sfcWind_day_HadGEM3-GC31-MM_dcppA-hindcast_s1961-r9i1p1f2_gn_19720101-19720330.nc"
 
     onshore_pc_path = "/home/users/benhutch/for_martin/for_martin/creating_wind_power_generation/power_onshore.csv"
@@ -115,12 +123,52 @@ def main():
         "lat2": 80,
     }
 
+    # Set up the constant period
+    constant_years = np.arange(1970, 2017 + 1, 1)  # 1970 to 2018 inclusive
+
     # Set up the constraints
     constraint_lon = (-6.25, 4.58)  # degrees east
     constraint_lat = (50.28, 59.72)  # degrees north
 
+    # Load obs data for sfcWind
+    # Do the same for wind speed
+    obs_wind_arr = load_obs_data(
+        variable="sfcWind",
+        region="Europe",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2018),
+        winter_dim_shape=len_winter_days,
+        lat_shape=63,  # Europe region
+        lon_shape=49,  # Europe region
+        arrs_dir=winter_arrs_dir,
+    )
+
+
+    # Set up the winter years for subsetting the data
+    winter_years = np.arange(1, 11 + 1, 1)
+
+    # Set up an empty list to store the indices
+    winter_indices = []
+
+    # Loop over the years
+    for winter_year in winter_years:
+        # Set up the indices
+        indices_this = np.arange(
+            30 + ((winter_year - 1) * 360), 30 + 90 + ((winter_year - 1) * 360) + 1, 1
+        )
+
+        # print the winter year and the first lead this
+        print(winter_year, indices_this[0], indices_this[-1])
+
+        # Append the indices to the list
+        winter_indices.extend(indices_this)
+
     # Hard code the country to UK
     COUNTRY = "United Kingdom"
+
+    # Set up the test years
+    test_years = np.arange(1960, 1971 + 1, 1)  # 1960 to 1965 inclusive
 
     # Load the test data
     test_data = np.load(test_file_path)
@@ -128,6 +176,134 @@ def main():
     lats = np.load(lats_file_path)
     lons = np.load(lons_file_path)
     members = np.load(members_file_path)
+
+    # Set up the test array
+    test_array = np.zeros(
+        (
+            len(test_years),
+            test_data.shape[1],
+            len(winter_indices),
+            test_data.shape[3],
+            test_data.shape[4],
+        )
+    )
+
+    # Loop over the test years and print them
+    for year in test_years:
+        # Foprm the year as a string
+        year_str = str(year)
+
+        # Set up the fname
+        fname_this = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_str}_DJF_day.npy"
+
+        # Set up the path to the file
+        path_this = os.path.join(arrs_dir, fname_this)
+
+        # If the file exists, load it
+        if os.path.exists(path_this):
+            # Load the data
+            test_array_this = np.load(path_this)
+
+            # Subset the data for the winter indices
+            test_array_this_subset = test_array_this[:, :, winter_indices, :, :]
+
+            # Store the data in the test array
+            test_array[year - test_years[0], :, :, :, :] = test_array_this_subset
+        else:
+            raise FileNotFoundError(
+                f"File {path_this} does not exist. Please check the path and file name."
+            )
+
+    # Print the shape of the test array
+    print(f"Shape of test array: {test_array.shape}")
+
+    # # Print the values of the test array
+    # print(f"Values of test array: {test_array}")
+
+    # Reshape the test array to the desired shape
+    reshaped_test_arr = test_array.reshape(
+        len(test_years),
+        len(members),
+        len(winter_years),
+        int(len(winter_indices) / len(winter_years)),
+        test_array.shape[3],
+        test_array.shape[4],
+    )
+
+    # Print the shape of the reshaped array
+    print(f"Shape of reshaped array: {reshaped_test_arr.shape}")
+
+    # Set up the shape of the ensemble mean by wyear to append to
+    wyear_climatologies = np.zeros(
+        (
+            len(winter_years),
+            len(lats),
+            len(lons),
+        )
+    )
+
+    # Loop over the lats
+    for ilat, lat in tqdm(enumerate(lats)):
+        for ilon, lon in enumerate(lons):
+            for iwyear, wyear in enumerate(winter_years):
+                # Subset the test data for this lat, lon, and member
+                subset_data = reshaped_test_arr[
+                    :, :, iwyear, :, ilat, ilon
+                ]
+
+                # Set up the effective dec years this
+                effective_dec_years_this = test_years + (wyear - 1)
+
+                # Find the indices of the effective dec years this
+                # which are in the constant years
+                indices_this = np.where(
+                    np.isin(effective_dec_years_this, constant_years)
+                )[0]
+
+                # Extract these indices from the subset data
+                subset_data_constant = subset_data[indices_this, :, :]
+
+                # Calculate the winter mean, ensemble mean, and climatology
+                winter_mean_this = np.mean(subset_data_constant)
+
+                # Store the winter mean in the climatology array
+                wyear_climatologies[iwyear, ilat, ilon] = winter_mean_this
+
+    # Print the shape of the climatology array
+    print(f"Shape of winter year climatologies: {wyear_climatologies.shape}")
+
+    # # Print the values of the climatology array
+    # print(f"Values of winter year climatologies: {wyear_climatologies}")
+
+    # Calculate the anomalies from the mean
+    # Swap round the 2th and 3th dimensions
+    test_data = np.swapaxes(reshaped_test_arr, 2, 3)
+
+    # Print the shape of the test data
+    print(f"Shape of test data: {test_data.shape}")
+
+    # print the mean, min amd max of the test data
+    print(f"Mean of test data: {np.mean(test_data)}")
+    print(f"Min of test data: {np.min(test_data)}")
+    print(f"Max of test data: {np.max(test_data)}")
+
+    # Now remove the climatologies from the test data
+    data_anoms = (
+        test_data -
+        wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
+    )
+
+    # Print the shape of the data anomalies
+    print(f"Shape of data anomalies: {data_anoms.shape}")
+
+    # Print the mean, min and max of the data anomalies
+    print(f"Mean of data anomalies: {np.mean(data_anoms)}")
+    print(f"Min of data anomalies: {np.min(data_anoms)}")
+    print(f"Max of data anomalies: {np.max(data_anoms)}")
+
+    # Now need to load the obs data to add the values back in
+
+    sys.exit()
 
     # print the shape of the test data
     print(f"Shape of test data: {test_data.shape}")
@@ -287,11 +463,7 @@ def main():
     total_gen_MW = p_hh_total_GW / 1000.0  # Convert from GW to MW
 
     # Get the capacity factor
-    capacity_factor = (
-        total_gen_MW
-        / (np.sum(
-            rg_farm_locations.data) / 1000000.0)
-    )
+    capacity_factor = total_gen_MW / (np.sum(rg_farm_locations.data) / 1000000.0)
 
     # Flatten the capacity factor array
     capacity_factor_flat = capacity_factor.flatten()
