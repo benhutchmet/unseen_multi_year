@@ -169,208 +169,256 @@ def main():
     # # Print the shape of the obs wind climatology
     # print(f"Shape of obs wind climatology: {obs_wind_clim.shape}")
 
-    # Set up the winter years for subsetting the data
-    winter_years = np.arange(1, 11 + 1, 1)
-
-    # Set up an empty list to store the indices
-    winter_indices = []
-
-    # Loop over the years
-    for winter_year in winter_years:
-        # Set up the indices
-        indices_this = np.arange(
-            30 + ((winter_year - 1) * 360), 30 + 90 + ((winter_year - 1) * 360) + 1, 1
-        )
-
-        # print the winter year and the first lead this
-        print(winter_year, indices_this[0], indices_this[-1])
-
-        # Append the indices to the list
-        winter_indices.extend(indices_this)
-
-    # Hard code the country to UK
-    COUNTRY = "United Kingdom"
-
-    # Set up the test years
-    test_years = np.arange(1960, 2018 + 1, 1)  # Full period now
-
-    # Load the test data
-    test_data = np.load(test_file_path)
-
-    lats = np.load(lats_file_path)
-    lons = np.load(lons_file_path)
-    members = np.load(members_file_path)
-
-    # Set up the test array
-    test_array = np.zeros(
-        (
-            len(test_years),
-            test_data.shape[1],
-            len(winter_indices),
-            test_data.shape[3],
-            test_data.shape[4],
-        )
+    # Set up the fname for the data anomalies plus obs
+    current_date = time.strftime("%Y%m%d")
+    fname_data_anoms_plus_obs = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018.npy"
     )
 
-    # Loop over the test years and print them
-    for year in test_years:
-        # Foprm the year as a string
-        year_str = str(year)
+    # Set up the path to the data anomalies plus obs
+    path_data_anoms_plus_obs = os.path.join(
+        arrs_dir,
+        fname_data_anoms_plus_obs,
+    )
 
-        # Set up the fname
-        fname_this = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_str}_DJF_day.npy"
+    # If the path exists, save the data anomalies plus obs
+    if os.path.exists(path_data_anoms_plus_obs):
+        # Load the data anomalies plus obs from the path
+        data_anoms_plus_obs = np.load(path_data_anoms_plus_obs)
+        print(f"Loaded data anomalies plus obs from {path_data_anoms_plus_obs}")
+    else:
+        print(f"Path {path_data_anoms_plus_obs} does not exist. Processing data...")
+        # Set up the winter years for subsetting the data
+        winter_years = np.arange(1, 11 + 1, 1)
 
-        # Set up the path to the file
-        path_this = os.path.join(arrs_dir, fname_this)
+        # Set up an empty list to store the indices
+        winter_indices = []
 
-        # If the file exists, load it
-        if os.path.exists(path_this):
-            # Load the data
-            test_array_this = np.load(path_this)
-
-            # Subset the data for the winter indices
-            test_array_this_subset = test_array_this[:, :, winter_indices, :, :]
-
-            # Store the data in the test array
-            test_array[year - test_years[0], :, :, :, :] = test_array_this_subset
-        else:
-            raise FileNotFoundError(
-                f"File {path_this} does not exist. Please check the path and file name."
+        # Loop over the years
+        for winter_year in winter_years:
+            # Set up the indices
+            indices_this = np.arange(
+                30 + ((winter_year - 1) * 360), 30 + 90 + ((winter_year - 1) * 360) + 1, 1
             )
 
-    # Print the shape of the test array
-    print(f"Shape of test array: {test_array.shape}")
+            # print the winter year and the first lead this
+            print(winter_year, indices_this[0], indices_this[-1])
 
-    # # Print the values of the test array
-    # print(f"Values of test array: {test_array}")
+            # Append the indices to the list
+            winter_indices.extend(indices_this)
 
-    # Reshape the test array to the desired shape
-    reshaped_test_arr = test_array.reshape(
-        len(test_years),
-        len(members),
-        len(winter_years),
-        int(len(winter_indices) / len(winter_years)),
-        test_array.shape[3],
-        test_array.shape[4],
-    )
+        # Hard code the country to UK
+        COUNTRY = "United Kingdom"
 
-    # Print the shape of the reshaped array
-    print(f"Shape of reshaped array: {reshaped_test_arr.shape}")
+        # Set up the test years
+        test_years = np.arange(1960, 2018 + 1, 1)  # Full period now
 
-    # Set up the shape of the ensemble mean by wyear to append to
-    wyear_climatologies = np.zeros(
-        (
+        # Load the test data
+        test_data = np.load(test_file_path)
+
+        lats = np.load(lats_file_path)
+        lons = np.load(lons_file_path)
+        members = np.load(members_file_path)
+
+        # Set up the test array
+        test_array = np.zeros(
+            (
+                len(test_years),
+                test_data.shape[1],
+                len(winter_indices),
+                test_data.shape[3],
+                test_data.shape[4],
+            )
+        )
+
+        # Loop over the test years and print them
+        for year in test_years:
+            # Foprm the year as a string
+            year_str = str(year)
+
+            # Set up the fname
+            fname_this = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_str}_DJF_day.npy"
+
+            # Set up the path to the file
+            path_this = os.path.join(arrs_dir, fname_this)
+
+            # If the file exists, load it
+            if os.path.exists(path_this):
+                # Load the data
+                test_array_this = np.load(path_this)
+
+                # Subset the data for the winter indices
+                test_array_this_subset = test_array_this[:, :, winter_indices, :, :]
+
+                # Store the data in the test array
+                test_array[year - test_years[0], :, :, :, :] = test_array_this_subset
+            else:
+                raise FileNotFoundError(
+                    f"File {path_this} does not exist. Please check the path and file name."
+                )
+
+        # Print the shape of the test array
+        print(f"Shape of test array: {test_array.shape}")
+
+        # # Print the values of the test array
+        # print(f"Values of test array: {test_array}")
+
+        # Reshape the test array to the desired shape
+        reshaped_test_arr = test_array.reshape(
+            len(test_years),
+            len(members),
             len(winter_years),
-            len(lats),
-            len(lons),
-        )
-    )
-
-    # Loop over the lats
-    for ilat, lat in tqdm(enumerate(lats)):
-        for ilon, lon in enumerate(lons):
-            for iwyear, wyear in enumerate(winter_years):
-                # Subset the test data for this lat, lon, and member
-                subset_data = reshaped_test_arr[:, :, iwyear, :, ilat, ilon]
-
-                # Set up the effective dec years this
-                effective_dec_years_this = test_years + (wyear - 1)
-
-                # Find the indices of the effective dec years this
-                # which are in the constant years
-                indices_this = np.where(
-                    np.isin(effective_dec_years_this, constant_years)
-                )[0]
-
-                # Extract these indices from the subset data
-                subset_data_constant = subset_data[indices_this, :, :]
-
-                # Calculate the winter mean, ensemble mean, and climatology
-                winter_mean_this = np.mean(subset_data_constant)
-
-                # Store the winter mean in the climatology array
-                wyear_climatologies[iwyear, ilat, ilon] = winter_mean_this
-
-    # Print the shape of the climatology array
-    print(f"Shape of winter year climatologies: {wyear_climatologies.shape}")
-
-    # # Print the values of the climatology array
-    # print(f"Values of winter year climatologies: {wyear_climatologies}")
-
-    # Calculate the anomalies from the mean
-    # Swap round the 2th and 3th dimensions
-    test_data = np.swapaxes(reshaped_test_arr, 2, 3)
-
-    # Print the shape of the test data
-    print(f"Shape of test data: {test_data.shape}")
-
-    # print the mean, min amd max of the test data
-    print(f"Mean of test data: {np.mean(test_data)}")
-    print(f"Min of test data: {np.min(test_data)}")
-    print(f"Max of test data: {np.max(test_data)}")
-
-    # Now remove the climatologies from the test data
-    data_anoms = (
-        test_data - wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
-    )
-
-    # Set up a new array to store the anomalies
-    data_anoms_plus_obs = np.zeros_like(data_anoms, dtype=np.float32)
-
-    # Lopo over the winter years
-    for iwyear, wyear in tqdm(enumerate(winter_years)):
-        # Subset the anomalies for this winter year
-        data_anoms_this = data_anoms[:, :, :, iwyear, :, :]
-
-        # Print the shape of the data anomalies for this winter year
-        # print(
-        #     f"Shape of data anomalies for winter year {wyear}: {data_anoms_this.shape}"
-        # )
-
-        # Set up the effective dec years this
-        effective_dec_years_this = test_years + (wyear - 1)
-
-        # Find the common years between the effective dec years and the obs years
-        common_years = np.intersect1d(
-            effective_dec_years_this, valid_dec_years_obs
+            int(len(winter_indices) / len(winter_years)),
+            test_array.shape[3],
+            test_array.shape[4],
         )
 
-        # Find the indices of the common years in the effective dec years
-        indices_this_model = np.where(np.isin(effective_dec_years_this, common_years))[0]
+        # Print the shape of the reshaped array
+        print(f"Shape of reshaped array: {reshaped_test_arr.shape}")
 
-        # Find the indices of the common years in the obs years
-        indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
-
-        # # subset the data anomalies to these indices
-        # data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
-
-        # Subset the obs wind data wmeans to these indices
-        obs_wmeans_this = obs_wind_wmeans[indices_this_obs, :, :]
-
-        # Quantify the time mean of obs wind wmeans
-        obs_wmeans_this = np.mean(obs_wmeans_this, axis=0)
-
-        # Add the obs wind wmeans to the data anomalies
-        data_anoms_plus_obs_this = (
-            data_anoms_this + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
+        # Set up the shape of the ensemble mean by wyear to append to
+        wyear_climatologies = np.zeros(
+            (
+                len(winter_years),
+                len(lats),
+                len(lons),
+            )
         )
 
-        # Print the shape of the data anomalies plus obs for this winter year
-        print(
-            f"Shape of data anomalies plus obs for winter year {wyear}: {data_anoms_plus_obs_this.shape}"
+        # Loop over the lats
+        for ilat, lat in tqdm(enumerate(lats)):
+            for ilon, lon in enumerate(lons):
+                for iwyear, wyear in enumerate(winter_years):
+                    # Subset the test data for this lat, lon, and member
+                    subset_data = reshaped_test_arr[:, :, iwyear, :, ilat, ilon]
+
+                    # Set up the effective dec years this
+                    effective_dec_years_this = test_years + (wyear - 1)
+
+                    # Find the indices of the effective dec years this
+                    # which are in the constant years
+                    indices_this = np.where(
+                        np.isin(effective_dec_years_this, constant_years)
+                    )[0]
+
+                    # Extract these indices from the subset data
+                    subset_data_constant = subset_data[indices_this, :, :]
+
+                    # Calculate the winter mean, ensemble mean, and climatology
+                    winter_mean_this = np.mean(subset_data_constant)
+
+                    # Store the winter mean in the climatology array
+                    wyear_climatologies[iwyear, ilat, ilon] = winter_mean_this
+
+        # Print the shape of the climatology array
+        print(f"Shape of winter year climatologies: {wyear_climatologies.shape}")
+
+        # Print the mean, min and max of the climatology array
+        print(f"Mean of winter year climatologies: {np.mean(wyear_climatologies)}")
+        print(f"Min of winter year climatologies: {np.min(wyear_climatologies)}")
+        print(f"Max of winter year climatologies: {np.max(wyear_climatologies)}")
+
+        # Loop over the winter years and print the climatology values
+        for iwyear, wyear in enumerate(winter_years):
+            print(
+                f"Winter year {wyear} climatology mean: {np.mean(wyear_climatologies[iwyear, :, :])}"
+            )
+            print(
+                f"Winter year {wyear} climatology min: {np.min(wyear_climatologies[iwyear, :, :])}"
+            )
+            print(
+                f"Winter year {wyear} climatology max: {np.max(wyear_climatologies[iwyear, :, :])}"
+            )
+
+        # # Print the values of the climatology array
+        # print(f"Values of winter year climatologies: {wyear_climatologies}")
+
+        # Calculate the anomalies from the mean
+        # Swap round the 2th and 3th dimensions
+        test_data = np.swapaxes(reshaped_test_arr, 2, 3)
+
+        # Print the shape of the test data
+        print(f"Shape of test data: {test_data.shape}")
+
+        # print the mean, min amd max of the test data
+        print(f"Mean of test data: {np.mean(test_data)}")
+        print(f"Min of test data: {np.min(test_data)}")
+        print(f"Max of test data: {np.max(test_data)}")
+
+        # Now remove the climatologies from the test data
+        data_anoms = (
+            test_data - wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
         )
-        # Print the shape of obs wmeans this
-        print(f"Shape of obs wmeans this: {obs_wmeans_this.shape}")
-        # Print the shape of data anoms this
-        print(f"Shape of data anoms this: {data_anoms_this.shape}")
 
-        # print the shape of data_anoms_plus_obs
-        print(f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}")
-        # print the shape of data_anoms_plus_obs
-        print(f"Shape of data_anoms_plus_obs: {data_anoms_plus_obs.shape}")
+        # Print the shape of the data anomalies
+        print(f"Shape of data anomalies: {data_anoms.shape}")
 
-        # Store the data anomalies plus obs in the new array
-        data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
+        # Print the mean, min and max of the data anomalies
+        print(f"Mean of data anomalies: {np.mean(data_anoms)}")
+        print(f"Min of data anomalies: {np.min(data_anoms)}")
+        print(f"Max of data anomalies: {np.max(data_anoms)}")
+
+        # Set up a new array to store the anomalies
+        data_anoms_plus_obs = np.zeros_like(data_anoms, dtype=np.float32)
+
+        # Lopo over the winter years
+        for iwyear, wyear in tqdm(enumerate(winter_years)):
+            # Subset the anomalies for this winter year
+            data_anoms_this = data_anoms[:, :, :, iwyear, :, :]
+
+            # Print the shape of the data anomalies for this winter year
+            # print(
+            #     f"Shape of data anomalies for winter year {wyear}: {data_anoms_this.shape}"
+            # )
+
+            # Set up the effective dec years this
+            effective_dec_years_this = test_years + (wyear - 1)
+
+            # Find the common years between the effective dec years and the obs years
+            common_years = np.intersect1d(
+                effective_dec_years_this, valid_dec_years_obs
+            )
+
+            # Find the indices of the common years in the effective dec years
+            indices_this_model = np.where(np.isin(effective_dec_years_this, common_years))[0]
+
+            # Find the indices of the common years in the obs years
+            indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
+
+            # # subset the data anomalies to these indices
+            # data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
+
+            # Subset the obs wind data wmeans to these indices
+            obs_wmeans_this = obs_wind_wmeans[indices_this_obs, :, :]
+
+            # Quantify the time mean of obs wind wmeans
+            obs_wmeans_this = np.mean(obs_wmeans_this, axis=0)
+
+            # Add the obs wind wmeans to the data anomalies
+            data_anoms_plus_obs_this = (
+                data_anoms_this + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
+            )
+
+            # Print the shape of the data anomalies plus obs for this winter year
+            print(
+                f"Shape of data anomalies plus obs for winter year {wyear}: {data_anoms_plus_obs_this.shape}"
+            )
+            # Print the shape of obs wmeans this
+            print(f"Shape of obs wmeans this: {obs_wmeans_this.shape}")
+            # Print the shape of data anoms this
+            print(f"Shape of data anoms this: {data_anoms_this.shape}")
+
+            # print the shape of data_anoms_plus_obs
+            print(f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}")
+            # print the shape of data_anoms_plus_obs
+            print(f"Shape of data_anoms_plus_obs: {data_anoms_plus_obs.shape}")
+
+            # Store the data anomalies plus obs in the new array
+            data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
+        
+        # Save the data anomalies plus obs to the path
+        np.save(path_data_anoms_plus_obs, data_anoms_plus_obs)
+        print(f"Saved data anomalies plus obs to {path_data_anoms_plus_obs}")
 
     # Print the shape of the data anomalies plus obs
     print(f"Shape of data anomalies plus obs: {data_anoms_plus_obs.shape}")
