@@ -314,7 +314,7 @@ def main():
     # constraint_lat = (50.28, 59.72)  # degrees north
 
     # Set up the fname
-    fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025_daily.csv"
+    fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025_daily_test.csv"
     fpath = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind"
 
     # if the directory does not exist, create it
@@ -708,6 +708,11 @@ def main():
     print(f"Shape of ERA5 cube hub height: {ERA5_cube_hubheight_xr.shape}")
     print(f"Values of ERA5 cube hub height: {ERA5_cube_hubheight_xr}")
 
+    # print the min, max, and mean of the ERA5 cube hub height
+    print(f"ERA5 cube hub height min: {np.min(ERA5_cube_hubheight_xr.data):.2f} m/s")
+    print(f"ERA5 cube hub height max: {np.max(ERA5_cube_hubheight_xr.data):.2f} m/s")
+    print(f"ERA5 cube hub height mean: {np.mean(ERA5_cube_hubheight_xr.data):.2f} m/s")
+
     # Print the coords
     print(f"Coords of ERA5 cube hub height: {ERA5_cube_hubheight_xr.coords}")
 
@@ -725,10 +730,17 @@ def main():
         ERA5_cube_hubheight_daily,
     )
 
+    # Print the min, max, and mean of the ERA5 cube hub height after resampling
+    print(f"Daily resampled ERA5 cube hub height min: {np.min(ERA5_cube_hubheight.data):.2f} m/s")
+    print(f"Daily resampled ERA5 cube hub height max: {np.max(ERA5_cube_hubheight.data):.2f} m/s")
+    print(f"Daily resampled ERA5 cube hub height mean: {np.mean(ERA5_cube_hubheight.data):.2f} m/s")
+
     # Print the type of the ERA5 cube hub height
     print(f"Type of ERA5 cube hub height: {type(ERA5_cube_hubheight)}")
     print(f"Shape of ERA5 cube hub height: {ERA5_cube_hubheight.shape}")
     print(f"Values of ERA5 cube hub height: {ERA5_cube_hubheight}")
+
+    sys.exit()
 
     # Test the new function
     p_hh_total_GW = convert_wind_speed_to_power_generation(
