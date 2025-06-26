@@ -2511,8 +2511,10 @@ def main():
     # Print the tail of the df_model_djf_new
     print(df_model_djf_new.tail())
 
-    sys.exit()
+    # sys.exit()
 
+    # Set the df_model_djf to the new df
+    df_model_djf = df_model_djf_new
 
     # Subset the model data to the common_wyears
     df_model_djf = df_model_djf[df_model_djf["effective_dec_year"].isin(common_wyears)]
@@ -2855,9 +2857,14 @@ def main():
     # ch_df["onshore_gen"] = ch_df["ons_cfs"] * onshore_cap_gw
     # ch_df["offshore_gen"] = ch_df["ofs_cfs"] * offshore_cap_gw
 
-    # Sum to give the total generation
-    full_wp_gen_df["total_gen"] = (
-        full_wp_gen_df["capacity_factor"] * (onshore_cap_gw + offshore_cap_gw)
+    # # Sum to give the total generation
+    # full_wp_gen_df["total_gen"] = (
+    #     full_wp_gen_df["capacity_factor"] * (onshore_cap_gw + offshore_cap_gw)
+    # )
+
+    # Get the total generation from the full wp generation df
+    df_model_djf["total_gen"] = (
+        df_model_djf["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
 
     # # Make sure that date is a datetime
@@ -3093,40 +3100,39 @@ def main():
         df_obs["data_c_dt_UK_demand"] - df_obs["data_wp_generation_dt"]
     )
 
-    # Join up model wp gen data with model df
-
-
-
-    sys.exit()
-
     # # Set up the hdd_coeffs again
     # hdd_coeffs = np.linspace(0.60, 0.90, num=1000)
+
+    # Print the columns in the df_model_djf
+    print(df_model_djf.columns)
+
+    # sys.exit()
 
     # Calculate demand net wind for the NON-BIAS CORRECTED model data
     df_model_djf["demand_net_wind"] = (
         df_model_djf["data_tas_c_dt_UK_demand"]
-        - df_model_djf["data_sfcWind_dt_sigmoid_total_wind_gen"]
+        - df_model_djf["total_gen"]
     )
 
     # Calculate demand net wind for the BIAS CORRECTED model data
     df_model_djf["demand_net_wind_bc"] = (
         df_model_djf["data_tas_c_drift_bc_dt_UK_demand"]
-        - df_model_djf["data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen"]
+        - df_model_djf["total_gen"]
     )
 
-    # Loop over the hdd_coeffs
-    for hdd_coeff in hdd_coeffs:
-        # Calculate the demand net wind for the model data
-        df_model_djf[f"demand_net_wind_hdd_{hdd_coeff}"] = (
-            df_model_djf[f"data_tas_c_dt_UK_demand_{hdd_coeff}"]
-            - df_model_djf["data_sfcWind_dt_sigmoid_total_wind_gen"]
-        )
+    # # Loop over the hdd_coeffs
+    # for hdd_coeff in hdd_coeffs:
+    #     # Calculate the demand net wind for the model data
+    #     df_model_djf[f"demand_net_wind_hdd_{hdd_coeff}"] = (
+    #         df_model_djf[f"data_tas_c_dt_UK_demand_{hdd_coeff}"]
+    #         - df_model_djf["data_sfcWind_dt_sigmoid_total_wind_gen"]
+    #     )
 
-        # Calculate the demand net wind for the bias corrected model data
-        df_model_djf[f"demand_net_wind_bc_hdd_{hdd_coeff}"] = (
-            df_model_djf[f"data_tas_c_drift_bc_dt_UK_demand_{hdd_coeff}"]
-            - df_model_djf["data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen"]
-        )
+    #     # Calculate the demand net wind for the bias corrected model data
+    #     df_model_djf[f"demand_net_wind_bc_hdd_{hdd_coeff}"] = (
+    #         df_model_djf[f"data_tas_c_drift_bc_dt_UK_demand_{hdd_coeff}"]
+    #         - df_model_djf["data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen"]
+    #     )
 
     # Print the head of the df_model_djf
     print(df_model_djf.head())
@@ -3270,7 +3276,7 @@ def main():
         time_name="effective_dec_year",
         min_max_var_name="demand_net_wind",
         new_df_cols=[
-            "data_sfcWind_dt_sigmoid_total_wind_gen",
+            "data_wp_generation_from_cfs",
             "data_c_dt_UK_demand",
             "time",
             "data_c_dt",
@@ -3286,11 +3292,11 @@ def main():
         time_name="init_year",
         min_max_var_name="demand_net_wind_bc",
         new_df_cols=[
-            "data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
+            "total_gen",
             "data_tas_c_drift_bc_dt_UK_demand",
             "lead",
             "data_tas_c_drift_bc_dt",
-            "data_sfcWind_drift_bc_dt",
+            "total_gen",
             "delta_p_hpa",
             "data_uas",
             "data_vas",
@@ -3444,7 +3450,7 @@ def main():
         figsize=(10, 5),
     )
 
-    # sys.exit()
+    sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
