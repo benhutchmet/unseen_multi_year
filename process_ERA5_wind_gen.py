@@ -32,20 +32,25 @@ import os
 import sys
 import glob
 import time
+import argparse
 
 # Third-party imports
 import iris
+import cftime
 import iris.analysis
 import iris.analysis.cartography
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
+import cartopy.io.shapereader as shpreader
+import shapely.geometry
 
 # Specific imports
 from tqdm import tqdm
 from iris import cube
 from iris.util import equalise_attributes
+from iris.cube import Cube, CubeList
 
 # Imports from Hannah's functions
 sys.path.append(
@@ -65,6 +70,8 @@ def process_area_weighted_mean(
     path_to_farm_locations_ons: str,
     path_to_farm_locations_ofs: str,
     cube: iris.cube.Cube,
+    lats: np.ndarray = None,
+    lons: np.ndarray = None,
 ) -> iris.cube.Cube:
     """
     Process area weighted mean for wind farm locations.
@@ -98,9 +105,29 @@ def process_area_weighted_mean(
         cube=cube,
     )
 
+    # Print the cube
+    print(f"Cube shape: {cube.shape}")
+    # Print the type of the cube
+    print(f"Cube type: {type(cube)}")
+
+    # Debugging statements to verify inputs
+    print(f"Type of onshore_farm_locations: {type(onshore_farm_locations)}")
+    print(f"Type of offshore_farm_locations: {type(offshore_farm_locations)}")
+    print(f"Type of combined_farm_locations: {type(combined_farm_locations)}")
+    print(f"Type of cube: {type(cube)}")
+
+    # Ensure the cube is valid
+    if not isinstance(cube, Cube):
+        raise TypeError("The 'cube' parameter is not an Iris Cube. Please check the input.")
+
+    # Print the type of the subset cube
+    # print(f"Type of cube[0, :, :]: {type(cube[0, :, :])}")
+    # print(f"Shape of cube[0, :, :]: {cube[0, :, :].shape}")
+    # print(f"Values of cube[0, :, :]: {cube[0, :, :]}")
+
     # Get the area weights of the target drig
     wind_weights = iris.analysis.cartography.area_weights(
-        cube=cube[0, :, :],
+        cube=cube,
     )
 
     # Get the weights of the wind farm grid
@@ -108,8 +135,20 @@ def process_area_weighted_mean(
         cube=combined_farm_locations,
     )
 
+    # Print the shapes of the weights
+    print(f"Shape of wind_weights: {wind_weights.shape}")
+    print(f"Shape of wf_weights: {wf_weights.shape}")
+
+    # Print the shape of the combined farm locations
+    print(f"Shape of combined_farm_locations: {combined_farm_locations.shape}")
+
     # Get the wind farms total over the area
     wind_farm_total_over_area = combined_farm_locations / wf_weights
+
+    # Print the shape of the wind farm total over area
+    print(f"Shape of wind_farm_total_over_area: {wind_farm_total_over_area.shape}")
+    # Print the shape of the cube
+    print(f"Shape of cube: {cube.shape}")
 
     # Regrid the wind farm locations to the wind speed cube
     regridded_farm_locations = wind_farm_total_over_area.regrid(
@@ -257,9 +296,12 @@ def main():
         "lat2": 80,
     }
 
-    # Set up the constraints
-    constraint_lon = (-6.25, 4.58)  # degrees east
-    constraint_lat = (50.28, 59.72)  # degrees north
+    # Set the country for the mask
+    COUNTRY = "United Kingdom"
+    
+    # # Set up the constraints
+    # constraint_lon = (-6.25, 4.58)  # degrees east
+    # constraint_lat = (50.28, 59.72)  # degrees north
 
     # Set up the fname
     fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025.csv"
@@ -322,18 +364,23 @@ def main():
     obs_cube_u10 = obs_cubelist_u10.concatenate_cube()
     obs_cube_v10 = obs_cubelist_v10.concatenate_cube()
 
-    # Calculate the wind speed from the data
-    # Calculate wind speed
-    windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
-    windspeed_10m.rename("si10")
+    # # SUbset the cubes to the first time step
+    # obs_cube_u10_first = obs_cube_u10[0, :, :]  # Subset the first time step
+    # obs_cube_v10_first = obs_cube_v10[0, :, :]  # Subset the first time step
 
-    # rename as obs cube
-    obs_cube = windspeed_10m
+    # # Print the shapes of the cubes
+    # print(f"Shape of obs_cube_u10: {obs_cube_u10.shape}")
+    # print(f"Shape of obs_cube_v10: {obs_cube_v10.shape}")
+    # print(f"Shape of obs_cube_u10_first: {obs_cube_u10_first.shape}")
+    # print(f"Shape of obs_cube_v10_first: {obs_cube_v10_first.shape}")
 
-    # print the obs cube
-    print(obs_cube)
+    # # Calculate the wind speed from the data
+    # # Calculate wind speed
+    # windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
+    # windspeed_10m.rename("si10")
 
-    sys.exit()
+    # # rename as obs cube
+    # ERA5_cube = windspeed_10m
 
     # # If the test file path ERA5 exists, then load it
     # if os.path.exists(ERA5_file_path):
@@ -349,43 +396,249 @@ def main():
     else:
         print(f"Test DPS file not found at {test_dps_file_path}")
 
-    # Intersect the cubes
-    ERA5_cube = ERA5_cube.intersection(longitude=(-180, 180), latitude=(0, 90))
+    # Intersect the u10 and v10 cubes
+    obs_cube_u10 = obs_cube_u10.intersection(longitude=(-180, 180), latitude=(0, 90))
+    obs_cube_v10 = obs_cube_v10.intersection(longitude=(-180, 180), latitude=(0, 90))
+
     dps_cube = dps_cube.intersection(longitude=(-180, 180), latitude=(0, 90))
 
     # Limit the depresys cube to the first time step
     dps_cube = dps_cube[0, :, :]
 
-    # Intersect to the European grid
-    ERA5_cube = ERA5_cube.intersection(
-        longitude=(eu_grid["lon1"], eu_grid["lon2"]),
-        latitude=(eu_grid["lat1"], eu_grid["lat2"]),
-    )
+    # Find the min and max lon and lat for the obs cube
+    min_lon_obs = np.min(obs_cube_u10.coord("longitude").points)
+    max_lon_obs = np.max(obs_cube_u10.coord("longitude").points)
+    min_lat_obs = np.min(obs_cube_u10.coord("latitude").points)
+    max_lat_obs = np.max(obs_cube_u10.coord("latitude").points)
+
+    # # Intersect to the European grid
+    # obs_cube_u10 = obs_cube_u10.intersection(
+    #     longitude=(eu_grid["lon1"], eu_grid["lon2"]),
+    #     latitude=(eu_grid["lat1"], eu_grid["lat2"]),
+    # )
+    # obs_cube_v10 = obs_cube_v10.intersection(
+    #     longitude=(eu_grid["lon1"], eu_grid["lon2"]),
+    #     latitude=(eu_grid["lat1"], eu_grid["lat2"]),
+    # )
 
     # Same for the depresys cube
     dps_cube = dps_cube.intersection(
-        longitude=(eu_grid["lon1"], eu_grid["lon2"]),
-        latitude=(eu_grid["lat1"], eu_grid["lat2"]),
+        longitude=(min_lon_obs, max_lon_obs),
+        latitude=(min_lat_obs, max_lat_obs),
     )
+
+#    # Set up a figure with two subplots, sharing the same cbar
+#     fig, ax = plt.subplots(
+#         nrows=1,
+#         ncols=2,
+#         figsize=(12, 6),
+#         subplot_kw={"projection": ccrs.PlateCarree()},
+#     )
+
+#     # Plot the u10 data
+#     mesh_u10_original = ax[0].pcolormesh(
+#         dps_cube.coord("longitude").points,
+#         dps_cube.coord("latitude").points,
+#         dps_cube.data[:, :],
+#         cmap="viridis",
+#         transform=ccrs.PlateCarree(),
+#     )
+
+#     ax[0].set_title("U10 Wind Speed (m/s) - Depresys")
+
+#     ax[0].coastlines()
+#     ax[0].set_extent(
+#         [
+#             eu_grid["lon1"],
+#             eu_grid["lon2"],
+#             eu_grid["lat1"],
+#             eu_grid["lat2"],
+#         ],
+#         crs=ccrs.PlateCarree(),
+#     )
+
+#     # Plot the regridded u10 data
+#     mesh_u10_regridded = ax[1].pcolormesh(
+#         obs_cube_u10.coord("longitude").points,
+#         obs_cube_u10.coord("latitude").points,
+#         obs_cube_u10.data[0, :, :],
+#         cmap="viridis",
+#         transform=ccrs.PlateCarree(),
+#     )
+
+#     ax[1].set_title("U10 Wind Speed (m/s) - ERA5 U10")
+#     ax[1].coastlines()
+
+#     ax[1].set_extent(
+#         [
+#             eu_grid["lon1"],
+#             eu_grid["lon2"],
+#             eu_grid["lat1"],
+#             eu_grid["lat2"],
+#         ],
+#         crs=ccrs.PlateCarree(),
+#     )
+
+#     # # Insert a colorbar for both plots
+#     # cbar = fig.colorbar(
+#     #     mesh_u10_original,
+#     #     ax=ax,
+#     #     orientation="horizontal",
+#     #     fraction=0.02,
+#     #     pad=0.1,
+#     #     label="Wind Speed (m/s)",
+#     # )
+#     # cbar.set_ticks(np.arange(0, 30, 5))  # Set ticks for the colorbar
+#     # cbar.ax.tick_params(labelsize=10)  # Set colorbar tick label size
+
+#     # Set a seperate colorbar for each plot
+#     cbar_u10_original = fig.colorbar(
+#         mesh_u10_original,
+#         ax=ax[0],
+#         orientation="horizontal",
+#         fraction=0.02,
+#         pad=0.1,
+#         label="Wind Speed (m/s)",
+#     )
+
+#     # Set up the otehr colorbar
+#     cbar_u10_regridded = fig.colorbar(
+#         mesh_u10_regridded,
+#         ax=ax[1],
+#         orientation="horizontal",
+#         fraction=0.02,
+#         pad=0.1,
+#         label="Wind Speed (m/s)",
+#     )
+
+#     plt.tight_layout()
+
+#     plt.show()
+
+#     # sys.exit()
+
+    # Calculate the wind speed from the data
+    # Calculate wind speed
+    # windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
+    # ERA5_cube = windspeed_10m
 
     # Regrid the ERA5 data to the DePreSys grid
-    ERA5_cube_rg = ERA5_cube.regrid(dps_cube, iris.analysis.Linear())
+    # ERA5_cube_rg = ERA5_cube.regrid(dps_cube, iris.analysis.Linear())
 
-    # Limit the ERA5 cube to the constrained region
-    ERA5_cube_rg = ERA5_cube_rg.intersection(
-        longitude=constraint_lon,
-        latitude=constraint_lat,
-    )
+    # Print the min, max, and mean of the ERA5 data before regridding
+    print(f"U10 data min: {np.min(obs_cube_u10.data):.2f} m/s")
+    print(f"U10 data max: {np.max(obs_cube_u10.data):.2f} m/s")
+    print(f"U10 data mean: {np.mean(obs_cube_u10.data):.2f} m/s")
+    print(f"V10 data min: {np.min(obs_cube_v10.data):.2f} m/s")
+    print(f"V10 data max: {np.max(obs_cube_v10.data):.2f} m/s")
+    print(f"V10 data mean: {np.mean(obs_cube_v10.data):.2f} m/s")
 
-    # If any values are negative, set them to zero
-    if np.any(ERA5_cube_rg.data < 0):
-        print("Negative values found in ERA5 data. Setting them to zero.")
-        ERA5_cube_rg.data[ERA5_cube_rg.data < 0] = 0
+    # Regrid the u10 and v10 data
+    obs_cube_u10_rg = obs_cube_u10.regrid(dps_cube, iris.analysis.Linear())
+    obs_cube_v10_rg = obs_cube_v10.regrid(dps_cube, iris.analysis.Linear())
 
-    # print the min, max, and mean of the ERA5 data
-    print(f"ERA5 data min: {np.min(ERA5_cube_rg.data):.2f} m/s")
-    print(f"ERA5 data max: {np.max(ERA5_cube_rg.data):.2f} m/s")
-    print(f"ERA5 data mean: {np.mean(ERA5_cube_rg.data):.2f} m/s")
+    # Test the subsettting of these datasets
+    # Subset the first time step of the u10 and v10 cubes
+    u10_first_test = obs_cube_u10_rg[0, :, :]  # Subset the first time step
+    v10_first_test = obs_cube_v10_rg[0, :, :]  # Subset the first time step
+
+    # Print the shapes of the cubes
+    print(f"Shape of obs_cube_u10: {obs_cube_u10_rg.shape}")
+    print(f"Shape of obs_cube_v10: {obs_cube_v10_rg.shape}")
+
+    # Print the min, max, and mean of the u10 and v10 cubes
+    print(f"U10 data min: {np.min(obs_cube_u10_rg.data):.2f} m/s")
+    print(f"U10 data max: {np.max(obs_cube_u10_rg.data):.2f} m/s")
+    print(f"U10 data mean: {np.mean(obs_cube_u10_rg.data):.2f} m/s")
+    print(f"V10 data min: {np.min(obs_cube_v10_rg.data):.2f} m/s")
+    print(f"V10 data max: {np.max(obs_cube_v10_rg.data):.2f} m/s")
+    print(f"V10 data mean: {np.mean(obs_cube_v10_rg.data):.2f} m/s")
+
+#    # Set up a figure with two subplots, sharing the same cbar
+#     fig, ax = plt.subplots(
+#         nrows=1,
+#         ncols=2,
+#         figsize=(12, 6),
+#         subplot_kw={"projection": ccrs.PlateCarree()},
+#     )
+
+#     # Plot the u10 data
+#     mesh_u10_original = ax[0].pcolormesh(
+#         obs_cube_u10.coord("longitude").points,
+#         obs_cube_u10.coord("latitude").points,
+#         obs_cube_u10.data[0, :, :],
+#         cmap="viridis",
+#         transform=ccrs.PlateCarree(),
+#     )
+
+#     ax[0].set_title("U10 Wind Speed (m/s) - Original")
+
+#     ax[0].coastlines()
+#     ax[0].set_extent(
+#         [
+#             eu_grid["lon1"],
+#             eu_grid["lon2"],
+#             eu_grid["lat1"],
+#             eu_grid["lat2"],
+#         ],
+#         crs=ccrs.PlateCarree(),
+#     )
+
+#     # Plot the regridded u10 data
+#     mesh_u10_regridded = ax[1].pcolormesh(
+#         obs_cube_u10_rg.coord("longitude").points,
+#         obs_cube_u10_rg.coord("latitude").points,
+#         obs_cube_u10_rg.data[0, :, :],
+#         cmap="viridis",
+#         transform=ccrs.PlateCarree(),
+#     )
+
+#     ax[1].set_title("U10 Wind Speed (m/s) - Regridded")
+#     ax[1].coastlines()
+
+#     ax[1].set_extent(
+#         [
+#             eu_grid["lon1"],
+#             eu_grid["lon2"],
+#             eu_grid["lat1"],
+#             eu_grid["lat2"],
+#         ],
+#         crs=ccrs.PlateCarree(),
+#     )
+
+#     # Insert a colorbar for both plots
+#     cbar = fig.colorbar(
+#         mesh_u10_original,
+#         ax=ax,
+#         orientation="horizontal",
+#         fraction=0.02,
+#         pad=0.1,
+#         label="Wind Speed (m/s)",
+#     )
+#     cbar.set_ticks(np.arange(0, 30, 5))  # Set ticks for the colorbar
+#     cbar.ax.tick_params(labelsize=10)  # Set colorbar tick label size
+
+#     plt.tight_layout()
+
+#     plt.show()
+
+#     sys.exit()
+
+    # # Limit the ERA5 cube to the constrained region
+    # ERA5_cube_rg = ERA5_cube_rg.intersection(
+    #     longitude=constraint_lon,
+    #     latitude=constraint_lat,
+    # )
+
+    # # If any values are negative, set them to zero
+    # if np.any(ERA5_cube_rg.data < 0):
+    #     print("Negative values found in ERA5 data. Setting them to zero.")
+    #     ERA5_cube_rg.data[ERA5_cube_rg.data < 0] = 0
+
+    # # print the min, max, and mean of the ERA5 data
+    # print(f"ERA5 data min: {np.min(ERA5_cube_rg.data):.2f} m/s")
+    # print(f"ERA5 data max: {np.max(ERA5_cube_rg.data):.2f} m/s")
+    # print(f"ERA5 data mean: {np.mean(ERA5_cube_rg.data):.2f} m/s")
 
     # Load the power curves
     pc_winds, pc_power_ons, pc_power_ofs = load_power_curves(
@@ -399,22 +652,24 @@ def main():
     # # Check whether the bin intervals are evenly spaced
     # if not np.all(np.diff(pc_winds) == np.diff(pc_winds)[0]):
     #     raise ValueError("Wind speed bins in power curves must be evenly spaced.")
-    
-    # sys.exit()
 
-    # Make a country mask for the UK
+    # # Make a country mask for the UK
     MASK_MATRIX_RESHAPE, LONS, LATS = country_mask(
-        dataset=ERA5_cube_rg,
+        dataset=obs_cube_u10_rg,
         COND="si10",
         COUNTRY="United Kingdom",
     )
+
+    # sys.exit()
 
     # Tets the new function to process area weighted mean for wind farm locations
     regridded_farm_locations = process_area_weighted_mean(
         path_to_farm_locations_ons=path_to_farm_locations_ons,
         path_to_farm_locations_ofs=path_to_farm_locations_ofs,
-        cube=ERA5_cube_rg,
+        cube=obs_cube_u10_rg[0, :, :],  # Use the first time step of the regridded u10 cube
     )
+
+    sys.exit()
 
     # print the regridded farm locations
     print(f"Regridded farm locations shape: {regridded_farm_locations.shape}")
