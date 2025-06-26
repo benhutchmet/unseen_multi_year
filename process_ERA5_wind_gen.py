@@ -709,9 +709,9 @@ def main():
     print(f"Values of ERA5 cube hub height: {ERA5_cube_hubheight_xr}")
 
     # print the min, max, and mean of the ERA5 cube hub height
-    print(f"ERA5 cube hub height min: {np.min(ERA5_cube_hubheight_xr.data):.2f} m/s")
-    print(f"ERA5 cube hub height max: {np.max(ERA5_cube_hubheight_xr.data):.2f} m/s")
-    print(f"ERA5 cube hub height mean: {np.mean(ERA5_cube_hubheight_xr.data):.2f} m/s")
+    print(f"ERA5 cube hub height min: {np.min(ERA5_cube_hubheight_xr.values):.2f} m/s")
+    print(f"ERA5 cube hub height max: {np.max(ERA5_cube_hubheight_xr.values):.2f} m/s")
+    print(f"ERA5 cube hub height mean: {np.mean(ERA5_cube_hubheight_xr.values):.2f} m/s")
 
     # Print the coords
     print(f"Coords of ERA5 cube hub height: {ERA5_cube_hubheight_xr.coords}")

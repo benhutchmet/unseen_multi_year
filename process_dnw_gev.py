@@ -1970,8 +1970,11 @@ def main():
     # Hardcode the new path to the alternate WP generation data
     # Using Hannah's spatially aggregated method
     obs_wp_generation_path = (
-        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2020.csv"
+        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2025_daily.csv"
     )
+
+    # Set up the directory in which the model df data is stored
+    wp_output_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/model/WP_gen"
 
     # load the dfs
     df_obs_tas_block_min = pd.read_csv(obs_tas_block_min_path)
@@ -2116,7 +2119,41 @@ def main():
     # print the statistics of the df
     print(df_delta_p_full.describe())
 
-    # sys.exit()
+    # ------------------------------------
+    # Load in the data for WP generation for the UK
+    # ------------------------------------
+    # Set up a df
+    full_wp_gen_df = pd.DataFrame()
+
+    # Set up the years
+    model_init_years = np.arange(1960, 2018 + 1, 1)
+
+    # Loop through the years
+    for year in tqdm(model_init_years):
+        # Set up the fname here
+        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_dt.csv"
+
+        # If the full path does not exist, raise an error
+        if not os.path.exists(os.path.join(wp_output_dir, fname_this)):
+            raise FileNotFoundError(
+                f"File {fname_this} does not exist in {wp_output_dir}. Please check the path."
+            )
+        
+        # Load in the data
+        wp_gen_df_this = pd.read_csv(os.path.join(wp_output_dir, fname_this))
+
+        # Concatenate this df to the full df
+        full_wp_gen_df = pd.concat([full_wp_gen_df, wp_gen_df_this],
+                                ignore_index=True)
+        
+    # Print the head of the full wp generation df
+    print(full_wp_gen_df.head())
+
+    # Print the tail of the full wp generation df
+    print(full_wp_gen_df.tail())
+
+    # Describe the full wp generation df
+    print(full_wp_gen_df.describe())
 
     # Load the model temperature data
     df_model_tas = pd.read_csv(
