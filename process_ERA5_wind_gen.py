@@ -45,6 +45,8 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
 import shapely.geometry
+import iris.coord_categorisation
+import xarray as xr
 
 # Specific imports
 from tqdm import tqdm
@@ -312,7 +314,7 @@ def main():
     # constraint_lat = (50.28, 59.72)  # degrees north
 
     # Set up the fname
-    fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025.csv"
+    fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025_daily.csv"
     fpath = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind"
 
     # if the directory does not exist, create it
@@ -533,13 +535,13 @@ def main():
     # Regrid the ERA5 data to the DePreSys grid
     # ERA5_cube_rg = ERA5_cube.regrid(dps_cube, iris.analysis.Linear())
 
-    # Print the min, max, and mean of the ERA5 data before regridding
-    print(f"U10 data min: {np.min(obs_cube_u10.data):.2f} m/s")
-    print(f"U10 data max: {np.max(obs_cube_u10.data):.2f} m/s")
-    print(f"U10 data mean: {np.mean(obs_cube_u10.data):.2f} m/s")
-    print(f"V10 data min: {np.min(obs_cube_v10.data):.2f} m/s")
-    print(f"V10 data max: {np.max(obs_cube_v10.data):.2f} m/s")
-    print(f"V10 data mean: {np.mean(obs_cube_v10.data):.2f} m/s")
+    # # Print the min, max, and mean of the ERA5 data before regridding
+    # print(f"U10 data min: {np.min(obs_cube_u10.data):.2f} m/s")
+    # print(f"U10 data max: {np.max(obs_cube_u10.data):.2f} m/s")
+    # print(f"U10 data mean: {np.mean(obs_cube_u10.data):.2f} m/s")
+    # print(f"V10 data min: {np.min(obs_cube_v10.data):.2f} m/s")
+    # print(f"V10 data max: {np.max(obs_cube_v10.data):.2f} m/s")
+    # print(f"V10 data mean: {np.mean(obs_cube_v10.data):.2f} m/s")
 
     # Regrid the u10 and v10 data
     obs_cube_u10_rg = obs_cube_u10.regrid(dps_cube, iris.analysis.Linear())
@@ -554,13 +556,13 @@ def main():
     print(f"Shape of obs_cube_u10: {obs_cube_u10_rg.shape}")
     print(f"Shape of obs_cube_v10: {obs_cube_v10_rg.shape}")
 
-    # Print the min, max, and mean of the u10 and v10 cubes
-    print(f"U10 data min: {np.min(obs_cube_u10_rg.data):.2f} m/s")
-    print(f"U10 data max: {np.max(obs_cube_u10_rg.data):.2f} m/s")
-    print(f"U10 data mean: {np.mean(obs_cube_u10_rg.data):.2f} m/s")
-    print(f"V10 data min: {np.min(obs_cube_v10_rg.data):.2f} m/s")
-    print(f"V10 data max: {np.max(obs_cube_v10_rg.data):.2f} m/s")
-    print(f"V10 data mean: {np.mean(obs_cube_v10_rg.data):.2f} m/s")
+    # # Print the min, max, and mean of the u10 and v10 cubes
+    # print(f"U10 data min: {np.min(obs_cube_u10_rg.data):.2f} m/s")
+    # print(f"U10 data max: {np.max(obs_cube_u10_rg.data):.2f} m/s")
+    # print(f"U10 data mean: {np.mean(obs_cube_u10_rg.data):.2f} m/s")
+    # print(f"V10 data min: {np.min(obs_cube_v10_rg.data):.2f} m/s")
+    # print(f"V10 data max: {np.max(obs_cube_v10_rg.data):.2f} m/s")
+    # print(f"V10 data mean: {np.mean(obs_cube_v10_rg.data):.2f} m/s")
 
 #    # Set up a figure with two subplots, sharing the same cbar
 #     fig, ax = plt.subplots(
@@ -677,13 +679,13 @@ def main():
         cube=obs_cube_u10_rg[0, :, :],  # Use the first time step of the regridded u10 cube
     )
 
-    # print the regridded farm locations
-    print(f"Regridded farm locations shape: {regridded_farm_locations.shape}")
-    print(f"Regridded farm locations min: {np.min(regridded_farm_locations.data):.2f}")
-    print(f"Regridded farm locations max: {np.max(regridded_farm_locations.data):.2f}")
-    print(
-        f"Regridded farm locations mean: {np.mean(regridded_farm_locations.data):.2f}"
-    )
+    # # print the regridded farm locations
+    # print(f"Regridded farm locations shape: {regridded_farm_locations.shape}")
+    # print(f"Regridded farm locations min: {np.min(regridded_farm_locations.data):.2f}")
+    # print(f"Regridded farm locations max: {np.max(regridded_farm_locations.data):.2f}")
+    # print(
+    #     f"Regridded farm locations mean: {np.mean(regridded_farm_locations.data):.2f}"
+    # )
 
     # Load the wind speed and take it to hub height
     ERA5_cube_hubheight = load_wind_speed_and_take_to_hubheight(
@@ -694,11 +696,39 @@ def main():
         v_cube=obs_cube_v10_rg,  # Use the first time step of the regridded v10 cube
     )
 
-    # print the ERA5 cube hub height
-    print(f"ERA5 cube hub height shape: {ERA5_cube_hubheight.shape}")
-    print(f"ERA5 cube hub height min: {np.min(ERA5_cube_hubheight.data):.2f} m/s")
-    print(f"ERA5 cube hub height max: {np.max(ERA5_cube_hubheight.data):.2f} m/s")
-    print(f"ERA5 cube hub height mean: {np.mean(ERA5_cube_hubheight.data):.2f} m/s")
+    # Print the ERA5 cube hub height
+    print(f"ERA5 cube hub height shape: {ERA5_cube_hubheight}")
+
+    # Convert the iris cube to an xarry dataarray
+    ERA5_cube_hubheight_xr = xr.DataArray.from_iris(
+        ERA5_cube_hubheight,
+    )
+
+    print(f"Type of ERA5 cube hub height: {type(ERA5_cube_hubheight_xr)}")
+    print(f"Shape of ERA5 cube hub height: {ERA5_cube_hubheight_xr.shape}")
+    print(f"Values of ERA5 cube hub height: {ERA5_cube_hubheight_xr}")
+
+    # Print the coords
+    print(f"Coords of ERA5 cube hub height: {ERA5_cube_hubheight_xr.coords}")
+
+    # Resample into daily data
+    ERA5_cube_hubheight_daily = ERA5_cube_hubheight_xr.resample(
+        valid_time="1D",  # Resample to daily data
+    ).mean()
+
+    # Print the daily resampled ERA5 cube hub height
+    print(f"Daily resampled ERA5 cube hub height shape: {ERA5_cube_hubheight_daily.shape}")
+    print(f"Daily resampled ERA5 cube hub height: {ERA5_cube_hubheight_daily}")
+
+    # Convert back to iris cube
+    ERA5_cube_hubheight = xr.DataArray.to_iris(
+        ERA5_cube_hubheight_daily,
+    )
+
+    # Print the type of the ERA5 cube hub height
+    print(f"Type of ERA5 cube hub height: {type(ERA5_cube_hubheight)}")
+    print(f"Shape of ERA5 cube hub height: {ERA5_cube_hubheight.shape}")
+    print(f"Values of ERA5 cube hub height: {ERA5_cube_hubheight}")
 
     # Test the new function
     p_hh_total_GW = convert_wind_speed_to_power_generation(
