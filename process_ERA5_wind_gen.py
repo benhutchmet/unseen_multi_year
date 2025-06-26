@@ -45,6 +45,7 @@ import cartopy.crs as ccrs
 # Specific imports
 from tqdm import tqdm
 from iris import cube
+from iris.util import equalise_attributes
 
 # Imports from Hannah's functions
 sys.path.append(
@@ -261,7 +262,7 @@ def main():
     constraint_lat = (50.28, 59.72)  # degrees north
 
     # Set up the fname
-    fname = "ERA5_UK_wind_power_generation_cfs_constrained_1952_2020.csv"
+    fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025.csv"
     fpath = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind"
 
     # if the directory does not exist, create it
@@ -275,12 +276,71 @@ def main():
         print(f"File {full_path} already exists. Exiting.")
         return None
 
-    # If the test file path ERA5 exists, then load it
-    if os.path.exists(ERA5_file_path):
-        print(f"Loading test ERA5 file from {ERA5_file_path}")
-        ERA5_cube = iris.load_cube(ERA5_file_path)
-    else:
-        print(f"Test ERA5 file not found at {ERA5_file_path}")
+        # Load and process the observed data to compare against
+    # Set up the path to the observed data
+    base_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/"
+
+    # Set up the remaining years
+    remaining_years = [str(year) for year in range(2021, 2025 + 1)]
+
+    # Set up the path to the observed data
+    remaining_files_dir = os.path.join(base_path, "year_month")
+
+    # Set up an empty cubelist
+    obs_cubelist_u10 = []
+    obs_cubelist_v10 = []
+
+    # Loop over the remaining years
+    for year in tqdm(remaining_years):
+        for month in ["01", "02", "12"]:
+            # if the year is 2025 and the month is 12, then skip
+            if year == "2025" and month == "12":
+                continue
+            
+            # Set up the fname this
+            fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}.nc"
+
+            # Set up the path to the observed data
+            obs_path_this = os.path.join(remaining_files_dir, fname_this)
+
+            # Load the observed data
+            obs_cube_u10 = iris.load_cube(obs_path_this, "u10")
+            obs_cube_v10 = iris.load_cube(obs_path_this, "v10")
+
+            # Append to the cubelist
+            obs_cubelist_u10.append(obs_cube_u10)
+            obs_cubelist_v10.append(obs_cube_v10)
+
+    # convert the list to a cube list
+    obs_cubelist_u10 = iris.cube.CubeList(obs_cubelist_u10)
+    obs_cubelist_v10 = iris.cube.CubeList(obs_cubelist_v10)
+
+    # removed the attributes
+    removed_attrs_u10 = equalise_attributes(obs_cubelist_u10)
+    removed_attrs_v10 = equalise_attributes(obs_cubelist_v10)
+
+    obs_cube_u10 = obs_cubelist_u10.concatenate_cube()
+    obs_cube_v10 = obs_cubelist_v10.concatenate_cube()
+
+    # Calculate the wind speed from the data
+    # Calculate wind speed
+    windspeed_10m = (obs_cube_u10 ** 2 + obs_cube_v10 ** 2) ** 0.5
+    windspeed_10m.rename("si10")
+
+    # rename as obs cube
+    obs_cube = windspeed_10m
+
+    # print the obs cube
+    print(obs_cube)
+
+    sys.exit()
+
+    # # If the test file path ERA5 exists, then load it
+    # if os.path.exists(ERA5_file_path):
+    #     print(f"Loading test ERA5 file from {ERA5_file_path}")
+    #     ERA5_cube = iris.load_cube(ERA5_file_path)
+    # else:
+    #     print(f"Test ERA5 file not found at {ERA5_file_path}")
 
     # If the test file path dps exists, then load it
     if os.path.exists(test_dps_file_path):
