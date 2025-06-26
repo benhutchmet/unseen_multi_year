@@ -166,6 +166,8 @@ def load_wind_speed_and_take_to_hubheight(
     ERA5_cube: iris.cube.Cube,
     land_mask: np.ndarray,
     height_of_wind_speed: float = 10.0,
+    u_cube: iris.cube.Cube = None,
+    v_cube: iris.cube.Cube = None,
 ) -> iris.cube.Cube:
     """
     Load wind speed data and take it to hub height.
@@ -183,6 +185,12 @@ def load_wind_speed_and_take_to_hubheight(
     correction_hubheight = land_mask * (71.0 / height_of_wind_speed) ** (
         1.0 / 7.0
     ) + abs(land_mask - 1) * (92.0 / height_of_wind_speed) ** (1.0 / 7.0)
+
+    # If u_cube and v_cube are provided, calculate the wind speed
+    if u_cube is not None and v_cube is not None:
+        # Calculate the wind speed from u and v components
+        wind_speed = (u_cube ** 2 + v_cube ** 2) ** 0.5
+        ERA5_cube = wind_speed
 
     # Calculate the speed at hub height
     ERA5_cube_hubheight = ERA5_cube * correction_hubheight
@@ -669,8 +677,6 @@ def main():
         cube=obs_cube_u10_rg[0, :, :],  # Use the first time step of the regridded u10 cube
     )
 
-    sys.exit()
-
     # print the regridded farm locations
     print(f"Regridded farm locations shape: {regridded_farm_locations.shape}")
     print(f"Regridded farm locations min: {np.min(regridded_farm_locations.data):.2f}")
@@ -681,9 +687,11 @@ def main():
 
     # Load the wind speed and take it to hub height
     ERA5_cube_hubheight = load_wind_speed_and_take_to_hubheight(
-        ERA5_cube=ERA5_cube_rg,
+        ERA5_cube=None,  # Use None since we are using the regridded u10 cube
         land_mask=MASK_MATRIX_RESHAPE,
         height_of_wind_speed=10.0,
+        u_cube=obs_cube_u10_rg,  # Use the first time step of the regridded u10 cube
+        v_cube=obs_cube_v10_rg,  # Use the first time step of the regridded v10 cube
     )
 
     # print the ERA5 cube hub height
