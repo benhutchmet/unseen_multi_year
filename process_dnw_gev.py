@@ -2571,6 +2571,9 @@ def main():
     # Subset the model data to the common_wyears
     df_model_djf_new = df_model_djf_new[df_model_djf_new["effective_dec_year"].isin(common_wyears)]
 
+    # Reset this
+    df_model_djf = df_model_djf_new
+
     # # do the same for tjhe wind speed data
     # df_model_djf = model_drift_corr_plot(
     #     model_df=df_model_djf,
@@ -2649,13 +2652,13 @@ def main():
         df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
 
-    # # rename "Capacity Factor" as combined_cfs
-    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+    # # # rename "Capacity Factor" as combined_cfs
+    # df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
-    # # quantify wp_generation from the capacity factor
-    df_obs["total_gen"] = (
-        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    )
+    # # # quantify wp_generation from the capacity factor
+    # df_obs["total_gen"] = (
+    #     df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    # )
 
     # Extract the unique effective dec years from the model df
     unique_effective_dec_years = df_model_djf_new["effective_dec_year"].unique()
@@ -2704,11 +2707,13 @@ def main():
         inplace=True,
     )
 
-    # Pivot detrend the obs for wind power generation
+    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+
+    # Pivot detrend the obs for capacity factors
     df_obs = gev_funcs.pivot_detrend_obs(
         df=df_obs,
         x_axis_name="effective_dec_year",
-        y_axis_name="data_wp_generation",
+        y_axis_name="combined_cfs",
     )
 
     # perform the detrending on the model data
@@ -2927,13 +2932,13 @@ def main():
     # Print the tail of df obs
     print(df_obs.tail())
 
-    # # # rename "Capacity Factor" as combined_cfs
+    # # # # rename "Capacity Factor" as combined_cfs
     # df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
-    # # # quantify wp_generation from the capacity factor
-    # df_obs["data_wp_generation_from_cfs"] = (
-    #     df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    # )
+    # # quantify wp_generation from the capacity factor
+    df_obs["total_gen"] = (
+        df_obs["combined_cfs_dt"] * (onshore_cap_gw + offshore_cap_gw)
+    )
 
     # # find the min and max of the effective_dec_year
     # min_year = ch_df["effective_dec_year"].min()
@@ -3132,11 +3137,9 @@ def main():
     # Print the columns in df_obs
     print(df_obs.columns)
 
-    sys.exit()
-
     # Calculate demand net wind for the observations
     df_obs["demand_net_wind"] = (
-        df_obs["data_c_dt_UK_demand"] - df_obs["data_wp_generation_dt"]
+        df_obs["data_c_dt_UK_demand"] - df_obs["total_gen"]
     )
 
     # # Set up the hdd_coeffs again
@@ -3315,7 +3318,7 @@ def main():
         time_name="effective_dec_year",
         min_max_var_name="demand_net_wind",
         new_df_cols=[
-            "data_wp_generation_from_cfs",
+            "total_gen",
             "data_c_dt_UK_demand",
             "time",
             "data_c_dt",
@@ -3489,7 +3492,7 @@ def main():
         figsize=(10, 5),
     )
 
-    # sys.exit()
+    sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
