@@ -193,13 +193,13 @@ def main():
 
     # Set up the fname for the data anomalies plus obs
     current_date = time.strftime("%Y%m%d")
-    fname_data_anoms_plus_obs = f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018.npy"
+    fname_data_anoms_plus_obs = f"HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_drift_bc_anoms_1960-2018.npy"
 
     # Set up the path to the data anomalies plus obs
-    # path_data_anoms_plus_obs = os.path.join(
-    #     arrs_dir,
-    #     fname_data_anoms_plus_obs,
-    # )
+    path_data_anoms_plus_obs = os.path.join(
+        arrs_dir,
+        fname_data_anoms_plus_obs,
+    )
 
     # Set up a fname for the data anomalies dt
     fname_data_anoms_plus_obs_dt = f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018_NO_DETREND.npy"
@@ -214,7 +214,7 @@ def main():
     if os.path.exists(path_data_anoms_plus_obs_dt):
         print(f"Path {path_data_anoms_plus_obs_dt} already exists. Exiting.")
 
-        # Load the fpath
+        # Load the data
         data_anoms_plus_obs_dt = np.load(path_data_anoms_plus_obs_dt)
 
         print(f"Loaded data anomalies plus obs dt from {path_data_anoms_plus_obs_dt}")
@@ -260,8 +260,41 @@ def main():
 
     # If the path exists, save the data anomalies plus obs
     if os.path.exists(path_data_anoms_plus_obs):
-        # Load the data anomalies plus obs from the path
+        print(f"Path {path_data_anoms_plus_obs} already exists. Loading data...")
+        
+        # Load the data
         data_anoms_plus_obs = np.load(path_data_anoms_plus_obs)
+
+        # Print the shape of the data anomalies plus obs
+        print(f"Shape of data anomalies plus obs: {data_anoms_plus_obs.shape}")
+
+        # Directory to save the split arrays
+        output_dir = "/home/users/benhutch/unseen_multi_year/split_data_anomalies"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Assuming `data_anoms_plus_obs_dt` is the array with shape (59, 10, 91, 11, 63, 49)
+        for year_idx in tqdm(range(data_anoms_plus_obs.shape[0])):
+            # Extract the array for the current year
+            year_data = data_anoms_plus_obs[year_idx]
+
+            # Define the filename for the current year
+            fname = os.path.join(
+                output_dir, f"data_anoms_plus_obs_year_{year_idx + 1}_no_dt.npy"
+            )
+
+            # Save the array to the file
+            np.save(fname, year_data)
+
+            print(f"Saved year {year_idx + 1} data to {fname}")
+
+        # Print the amount of time taken
+        end_time = time.time()
+
+        print(f"Execution time: {end_time - start_time:.2f} seconds")
+
+        # Exit the script
+        sys.exit()
+
         print(f"Loaded data anomalies plus obs from {path_data_anoms_plus_obs}")
     else:
         print(f"Path {path_data_anoms_plus_obs} does not exist. Processing data...")

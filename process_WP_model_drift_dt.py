@@ -90,6 +90,9 @@ def main():
     # Set up the hard-coded variables
     subset_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/subset_WP/"
 
+    # Set up the directory in which the model data is stored
+    store_dir = "/home/users/benhutch/unseen_multi_year/split_data_anomalies/"
+
     # Set up the output df path
     output_df_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/model/WP_gen"
 
@@ -153,7 +156,7 @@ def main():
         # Set up the output path for the model data
         output_model_data_path = os.path.join(
             output_df_path,
-            f"HadGEM3-GC31-MM_WP_gen_{COUNTRY_str}_{year_this}_drift_bc_dt.csv",
+            f"HadGEM3-GC31-MM_WP_gen_{COUNTRY_str}_{year_this}_drift_bc_no_dt.csv",
         )
 
         # If the output model data path already exists, remove it
@@ -163,10 +166,13 @@ def main():
             )
             continue
 
-        # Set up the fname for the array data to load
-        fname_year = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_this}_DJF_day_drift_bc_anoms_1960-2018_dt.npy"
+        # Set up the year_no_this
+        year_no_this = (int(year_this) - 1960) + 1
 
-        fpath = os.path.join(subset_arrs_dir, fname_year)
+        # Set up the fname for the array data to load
+        fname_year = f"data_anoms_plus_obs_year_{year_no_this}_no_dt.npy"
+
+        fpath = os.path.join(store_dir, fname_year)
 
         # If the file does not exist, raise an error
         if not os.path.exists(fpath):
