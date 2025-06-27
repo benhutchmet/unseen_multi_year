@@ -2244,6 +2244,19 @@ def main():
         full_wp_gen_df["wyear"] - 1
     )
 
+    # Extract the Unique efefctive dec years from trhe df_model_djf and
+    # Full wind power gen df
+    unique_effective_dec_years_model = df_model_djf["effective_dec_year"].unique()
+    unique_effective_dec_years_wp_gen = full_wp_gen_df["effective_dec_year"].unique()
+
+    # print the first and last of these
+    print(f"Unique effective dec years in model df: {unique_effective_dec_years_model[:5]} ... {unique_effective_dec_years_model[-5:]}")
+    print(f"Unique effective dec years in wp gen df: {unique_effective_dec_years_wp_gen[:5]} ... {unique_effective_dec_years_wp_gen[-5:]}")
+    
+    # Print the head nad tail of df_obs_wp_gen
+    print(df_obs_wp_generation.head())
+    print(df_obs_wp_generation.tail())
+    
     # print the head of the df_model_djf
     print(df_model_djf.head())
     # print the tail of the df_model_djf
@@ -2457,9 +2470,15 @@ def main():
         lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
     )
 
+    #  Extract the unique effective_dec_years from the df_obs
+    unique_effective_dec_years_obs = df_obs["effective_dec_year"].unique()
+
+    # Print the unique effective_dec_years in the obs data
+    print(f"Unique effective_dec_years in obs data: {unique_effective_dec_years_obs[:5]} ... {unique_effective_dec_years_obs[-5:]}")
+
     # Limit the obs data to the same years as the model data
     # NOTE: LIMITED FOR WP GENERATION TESTING
-    common_wyears = np.arange(1961, 2019 + 1)  # test full period first
+    common_wyears = np.arange(1961, 2024 + 1)  # test full period first
 
     # Subset the obs data to the common_wyears
     df_obs = df_obs[df_obs["effective_dec_year"].isin(common_wyears)]
@@ -2652,13 +2671,13 @@ def main():
         df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
 
-    # # # rename "Capacity Factor" as combined_cfs
-    # df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+    # # rename "Capacity Factor" as combined_cfs
+    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
-    # # # quantify wp_generation from the capacity factor
-    # df_obs["total_gen"] = (
-    #     df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    # )
+    # # quantify wp_generation from the capacity factor
+    df_obs["total_gen"] = (
+        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    )
 
     # Extract the unique effective dec years from the model df
     unique_effective_dec_years = df_model_djf_new["effective_dec_year"].unique()
@@ -2671,21 +2690,21 @@ def main():
         unique_effective_dec_years, unique_effective_dec_years_obs
     ), "The effective dec years in the model and obs dataframes do not match!"
 
-    # # Test the new function before all detrending takes place
-    # pivot_emp_rps_dnw(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf_new,
-    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-    #     obs_var_name_tas="data_c",
-    #     model_var_name_wind="total_gen", # no detrend model WP gen var
-    #     model_var_name_tas="data_tas_c_drift_bc",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    # )
+    # Test the new function before all detrending takes place
+    pivot_emp_rps_dnw(
+        obs_df=df_obs,
+        model_df=df_model_djf_new,
+        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+        obs_var_name_tas="data_c",
+        model_var_name_wind="total_gen", # no detrend model WP gen var
+        model_var_name_tas="data_tas_c_drift_bc",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        nsamples=1000,
+        figsize=(5, 5),
+    )
 
-    # sys.exit()
+    sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
