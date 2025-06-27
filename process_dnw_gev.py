@@ -1751,7 +1751,7 @@ def plot_multi_var_perc(
     ax.legend(
         handles=handles,
         labels=labels,
-        loc="upper right",
+        loc="upper left",
         fontsize=12,
     )
 
@@ -3492,7 +3492,7 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
@@ -3628,24 +3628,39 @@ def main():
     #     inverse_flag=True,
     # )
 
+    # Print the head of block max model dnw
+    print(block_max_model_dnw.head())
+
+    # Print the columns of block max mdoel dnw
+    print(block_max_model_dnw.columns)
+
+    # Where there are duplicate columns, drop one of these
+    if block_max_model_dnw.columns.duplicated().any():
+        block_max_model_dnw = block_max_model_dnw.loc[:, ~block_max_model_dnw.columns.duplicated()]
+
+    # Print the columns of block max model dnw
+    print(block_max_model_dnw.columns)
+
     # # Do the same but with uas
     plot_multi_var_perc(
         obs_df=block_max_obs_dnw,
         model_df=block_max_model_dnw,
         x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="data_tas_c_drift_bc_dt",
-        y_var_name_model="data_uas",
-        xlabel="Temperature",
-        ylabel="U10m (m/s)",
-        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
-        y_var_name_model_2="data_vas",
-        ylabel_2="V10m (m/s)",
-        y2_var_name_model="data_sfcWind_drift_bc_dt",
-        y2_label="10m Wind Speed (m/s)",
+        y_var_name_obs="total_gen",
+        x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
+        y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
+        xlabel="Demand net wind percentiles",
+        ylabel="Demand (GW)",
+        title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+        legend_y1="Demand (GW)",
+        legend_y2="Wind Power Generation (GW)",
+        y2_var_name_model="total_gen",
+        y2_label="Wind Power Generation (GW)",
         figsize=(5, 6),
-        inverse_flag=True,
+        inverse_flag=False,
     )
+
+    # sys.exit()
 
     # plot_multi_var_perc(
     #     obs_df=block_max_obs_dnw,
@@ -3665,7 +3680,7 @@ def main():
     #     inverse_flag=True,
     # )
 
-    sys.exit()
+    # sys.exit()
 
     # Do the same but with vas
     # plot_multi_var_perc(
@@ -3998,6 +4013,10 @@ def main():
         wind_2005_toggle=False,
         title="e) Chance > 1995-96 DnW"
     )
+
+    # print the block max obs dnw max row
+    print("Block max obs dnw max row")
+    print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
 
     sys.exit()
 
