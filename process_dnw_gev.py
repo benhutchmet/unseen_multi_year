@@ -2671,13 +2671,13 @@ def main():
         df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
 
-    # # rename "Capacity Factor" as combined_cfs
-    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+    # # # rename "Capacity Factor" as combined_cfs
+    # df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
-    # # quantify wp_generation from the capacity factor
-    df_obs["total_gen"] = (
-        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    )
+    # # # quantify wp_generation from the capacity factor
+    # df_obs["total_gen"] = (
+    #     df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    # )
 
     # Extract the unique effective dec years from the model df
     unique_effective_dec_years = df_model_djf_new["effective_dec_year"].unique()
@@ -2690,21 +2690,21 @@ def main():
         unique_effective_dec_years, unique_effective_dec_years_obs
     ), "The effective dec years in the model and obs dataframes do not match!"
 
-    # Test the new function before all detrending takes place
-    pivot_emp_rps_dnw(
-        obs_df=df_obs,
-        model_df=df_model_djf_new,
-        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-        obs_var_name_tas="data_c",
-        model_var_name_wind="total_gen", # no detrend model WP gen var
-        model_var_name_tas="data_tas_c_drift_bc",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        nsamples=1000,
-        figsize=(5, 5),
-    )
+    # # Test the new function before all detrending takes place
+    # pivot_emp_rps_dnw(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf_new,
+    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+    #     obs_var_name_tas="data_c",
+    #     model_var_name_wind="total_gen", # no detrend model WP gen var
+    #     model_var_name_tas="data_tas_c_drift_bc",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
@@ -4058,6 +4058,18 @@ def main():
 
     # sys.exit()
 
+    # Susbet to effective dec years 2020-2024 inclusive
+    block_max_obs_dnw = block_max_obs_dnw[
+        block_max_obs_dnw["effective_dec_year"].dt.year.isin(
+            np.arange(2020, 2025)
+        )
+    ]
+    block_max_model_dnw = block_max_model_dnw[
+        block_max_model_dnw["effective_dec_year"].dt.year.isin(
+            np.arange(2020, 2025)
+        )
+    ]
+
     # ensure the effective dec year is a datetime and is just the year in the
     # model
     block_max_model_dnw["effective_dec_year"] = pd.to_datetime(
@@ -4082,13 +4094,25 @@ def main():
     #     bad_min=False,
     # )
 
+    # print the head of the df
+    print("Block maxima obs demand net wind data")
+    print(block_max_obs_dnw.head())
+    print("Block maxima model demand net wind data")
+    print(block_max_model_dnw.head())
+
+    # print the tails of the df
+    print("Block maxima obs demand net wind data tail")
+    print(block_max_obs_dnw.tail())
+    print("Block maxima model demand net wind data tail")
+    print(block_max_model_dnw.tail())
+
     # set up a fname for the obs dnw df
     obs_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_obs_demand_net_wind_27-06-2025.csv"
+        dfs_dir, "block_maxima_obs_demand_net_wind_27-06-2025_2020-2024.csv"
     )
     # set up a fname for the model dnw df
     model_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_model_demand_net_wind_27-06-2025.csv"
+        dfs_dir, "block_maxima_model_demand_net_wind_27-06-2025_2020-2024.csv"
     )
 
     # if the fpath does not exist, svae the dtaa

@@ -55,7 +55,7 @@ def main():
     start_time = time.time()
 
     # Set up the hard coded variables
-    maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind_27-06-2025.csv"
+    maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind_27-06-2025_2020-2024.csv"
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     subset_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
     model = "HadGEM3-GC31-MM"
