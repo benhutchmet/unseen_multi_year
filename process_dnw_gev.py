@@ -191,7 +191,7 @@ def pivot_emp_rps_dnw(
 
     # Convert the temperature to demand
     df_obs, _ = temp_to_demand(
-        obs_df=df_obs,
+        obs_df=obs_df_copy,
         model_df=model_df_copy,
         obs_temp_col=f"{obs_var_name_tas}_dt_pivot",
         model_temp_col=f"{model_var_name_tas}",
@@ -2648,6 +2648,9 @@ def main():
     df_model_djf_new["total_gen"] = (
         df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
+
+    # # rename "Capacity Factor" as combined_cfs
+    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
     # # quantify wp_generation from the capacity factor
     df_obs["total_gen"] = (

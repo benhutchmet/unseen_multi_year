@@ -498,7 +498,7 @@ def model_block_min_max(
     block_df = pd.DataFrame()
 
     if winter_year is not None:
-        print(f"Assuming winter year column name: {winter_year}")
+        # print(f"Assuming winter year column name: {winter_year}")
 
         grouped_df = df.groupby([time_name, winter_year, member_name])
 
