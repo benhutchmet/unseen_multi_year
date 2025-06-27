@@ -2141,7 +2141,7 @@ def main():
     for year in tqdm(model_init_years):
         # Set up the fname here
         # NOTE: Updated for no dt option here
-        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_no_dt.csv"
+        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_dt.csv"
 
         # If the full path does not exist, raise an error
         if not os.path.exists(os.path.join(wp_output_dir, fname_this)):
@@ -2668,21 +2668,21 @@ def main():
         unique_effective_dec_years, unique_effective_dec_years_obs
     ), "The effective dec years in the model and obs dataframes do not match!"
 
-    # Test the new function before all detrending takes place
-    pivot_emp_rps_dnw(
-        obs_df=df_obs,
-        model_df=df_model_djf_new,
-        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-        obs_var_name_tas="data_c",
-        model_var_name_wind="total_gen", # no detrend model WP gen var
-        model_var_name_tas="data_tas_c_drift_bc",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        nsamples=1000,
-        figsize=(5, 5),
-    )
+    # # Test the new function before all detrending takes place
+    # pivot_emp_rps_dnw(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf_new,
+    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+    #     obs_var_name_tas="data_c",
+    #     model_var_name_wind="total_gen", # no detrend model WP gen var
+    #     model_var_name_tas="data_tas_c_drift_bc",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
@@ -2899,10 +2899,10 @@ def main():
     #     full_wp_gen_df["capacity_factor"] * (onshore_cap_gw + offshore_cap_gw)
     # )
 
-    # Get the total generation from the full wp generation df
-    df_model_djf["total_gen"] = (
-        df_model_djf["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    )
+    # # Get the total generation from the full wp generation df
+    # df_model_djf["total_gen"] = (
+    #     df_model_djf["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    # )
 
     # # Make sure that date is a datetime
     # ch_df["date"] = pd.to_datetime(ch_df["date"])
@@ -2927,13 +2927,13 @@ def main():
     # Print the tail of df obs
     print(df_obs.tail())
 
-    # # rename "Capacity Factor" as combined_cfs
-    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+    # # # rename "Capacity Factor" as combined_cfs
+    # df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
-    # # quantify wp_generation from the capacity factor
-    df_obs["data_wp_generation_from_cfs"] = (
-        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    )
+    # # # quantify wp_generation from the capacity factor
+    # df_obs["data_wp_generation_from_cfs"] = (
+    #     df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    # )
 
     # # find the min and max of the effective_dec_year
     # min_year = ch_df["effective_dec_year"].min()
@@ -3131,6 +3131,8 @@ def main():
 
     # Print the columns in df_obs
     print(df_obs.columns)
+
+    sys.exit()
 
     # Calculate demand net wind for the observations
     df_obs["demand_net_wind"] = (
@@ -3624,23 +3626,23 @@ def main():
     # )
 
     # # Do the same but with uas
-    # plot_multi_var_perc(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     x_var_name_obs="data_c_dt",
-    #     y_var_name_obs="data_sfcWind_dt",
-    #     x_var_name_model="data_tas_c_drift_bc_dt",
-    #     y_var_name_model="data_uas",
-    #     xlabel="Temperature",
-    #     ylabel="U10m (m/s)",
-    #     title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
-    #     y_var_name_model_2="data_vas",
-    #     ylabel_2="V10m (m/s)",
-    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
-    #     y2_label="10m Wind Speed (m/s)",
-    #     figsize=(5, 6),
-    #     inverse_flag=True,
-    # )
+    plot_multi_var_perc(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="data_sfcWind_dt",
+        x_var_name_model="data_tas_c_drift_bc_dt",
+        y_var_name_model="data_uas",
+        xlabel="Temperature",
+        ylabel="U10m (m/s)",
+        title="Percentiles of (inverted) temperature vs 10m wind speed, DnW days",
+        y_var_name_model_2="data_vas",
+        ylabel_2="V10m (m/s)",
+        y2_var_name_model="data_sfcWind_drift_bc_dt",
+        y2_label="10m Wind Speed (m/s)",
+        figsize=(5, 6),
+        inverse_flag=True,
+    )
 
     # plot_multi_var_perc(
     #     obs_df=block_max_obs_dnw,
@@ -3660,7 +3662,7 @@ def main():
     #     inverse_flag=True,
     # )
 
-    # sys.exit()
+    sys.exit()
 
     # Do the same but with vas
     # plot_multi_var_perc(
