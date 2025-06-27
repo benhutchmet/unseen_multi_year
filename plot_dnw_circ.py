@@ -6549,6 +6549,7 @@ def main():
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
     obs_df_fname = "block_maxima_obs_demand_net_wind_07-05-2025.csv"
     model_df_fname = "block_maxima_model_demand_net_wind_07-05-2025.csv"
+    model_df_fname_extension = "block_maxima_model_demand_net_wind_27-06-2025_2020-2024.csv"
     low_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_lowest_0-10_percentile_wind_speed.csv"
     higher_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_40-60_percentile_wind_speed.csv"
     winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
@@ -6579,8 +6580,26 @@ def main():
     # If the path esists, load in the model df
     if os.path.exists(os.path.join(dfs_dir, model_df_fname)):
         model_df = pd.read_csv(os.path.join(dfs_dir, model_df_fname))
+
+        # Load in the model df with the extension
+        if os.path.exists(os.path.join(dfs_dir, model_df_fname_extension)):
+            model_df_extension = pd.read_csv(
+                os.path.join(dfs_dir, model_df_fname_extension)
+            )
+
+        # Concatenate the two model dfs
+        model_df = pd.concat([model_df, model_df_extension], ignore_index=True)
+        model_df.reset_index(drop=True, inplace=True)
     else:
         raise FileNotFoundError(f"File {model_df_fname} does not exist in {dfs_dir}")
+
+    # Print the head of the model df
+    print("Model DataFrame Head:")
+    print(model_df.head())
+
+    # Print the tail of the model df
+    print("Model DataFrame Tail:")
+    print(model_df.tail())
 
     # Load in the low wind data
     if os.path.exists(low_wind_path):
@@ -6698,21 +6717,21 @@ def main():
         df_delta_p_full["data_n"] - df_delta_p_full["data_s"]
     ) / 100
 
-    # merge the delta p with the model df
-    model_df = model_df.merge(
-        df_delta_p_full,
-        on=["init_year", "member", "lead"],
-        suffixes=("", ""),
-    )
+    # # merge the delta p with the model df
+    # model_df = model_df.merge(
+    #     df_delta_p_full,
+    #     on=["init_year", "member", "lead"],
+    #     suffixes=("", ""),
+    # )
 
-    # print the columns of the low wind df
-    print(f"Columns in low wind df: {low_wind_df.columns}")
+    # # print the columns of the low wind df
+    # print(f"Columns in low wind df: {low_wind_df.columns}")
 
-    # print the columns of the high wind df
-    print(f"Columns in higher wind df: {higher_wind_df.columns}")
+    # # print the columns of the high wind df
+    # print(f"Columns in higher wind df: {higher_wind_df.columns}")
 
-    # print the columns of the model df
-    print(f"Columns in model df: {model_df.columns}")
+    # # print the columns of the model df
+    # print(f"Columns in model df: {model_df.columns}")
 
     # sys.exit()
 
@@ -6768,197 +6787,197 @@ def main():
 
     # sys.exit()
 
-    # Load the psl data for the north atlantic region
-    obs_psl_arr = load_obs_data(
-        variable="psl",
-        region="NA",
-        season=season,
-        time_freq=time_freq,
-        winter_years=(1960, 2018),
-        winter_dim_shape=len_winter_days,
-        lat_shape=90,  # NA region
-        lon_shape=96,  # NA region
-        arrs_dir=winter_arrs_dir,
-    )
+    # # Load the psl data for the north atlantic region
+    # obs_psl_arr = load_obs_data(
+    #     variable="psl",
+    #     region="NA",
+    #     season=season,
+    #     time_freq=time_freq,
+    #     winter_years=(1960, 2018),
+    #     winter_dim_shape=len_winter_days,
+    #     lat_shape=90,  # NA region
+    #     lon_shape=96,  # NA region
+    #     arrs_dir=winter_arrs_dir,
+    # )
 
-    # Do the same for temperature
-    obs_temp_arr = load_obs_data(
-        variable="tas",
-        region="Europe",
-        season=season,
-        time_freq=time_freq,
-        winter_years=(1960, 2018),
-        winter_dim_shape=len_winter_days,
-        lat_shape=63,  # Europe region
-        lon_shape=49,  # Europe region
-        arrs_dir=winter_arrs_dir,
-    )
+    # # Do the same for temperature
+    # obs_temp_arr = load_obs_data(
+    #     variable="tas",
+    #     region="Europe",
+    #     season=season,
+    #     time_freq=time_freq,
+    #     winter_years=(1960, 2018),
+    #     winter_dim_shape=len_winter_days,
+    #     lat_shape=63,  # Europe region
+    #     lon_shape=49,  # Europe region
+    #     arrs_dir=winter_arrs_dir,
+    # )
 
-    # Do the same for wind speed
-    obs_wind_arr = load_obs_data(
-        variable="sfcWind",
-        region="Europe",
-        season=season,
-        time_freq=time_freq,
-        winter_years=(1960, 2018),
-        winter_dim_shape=len_winter_days,
-        lat_shape=63,  # Europe region
-        lon_shape=49,  # Europe region
-        arrs_dir=winter_arrs_dir,
-    )
+    # # Do the same for wind speed
+    # obs_wind_arr = load_obs_data(
+    #     variable="sfcWind",
+    #     region="Europe",
+    #     season=season,
+    #     time_freq=time_freq,
+    #     winter_years=(1960, 2018),
+    #     winter_dim_shape=len_winter_days,
+    #     lat_shape=63,  # Europe region
+    #     lon_shape=49,  # Europe region
+    #     arrs_dir=winter_arrs_dir,
+    # )
 
-    # Calculate the psl climatology
-    obs_psl_clim = np.mean(obs_psl_arr, axis=0)
-    obs_tas_clim = np.mean(obs_temp_arr, axis=0)
-    obs_wind_clim = np.mean(obs_wind_arr, axis=0)
+    # # Calculate the psl climatology
+    # obs_psl_clim = np.mean(obs_psl_arr, axis=0)
+    # obs_tas_clim = np.mean(obs_temp_arr, axis=0)
+    # obs_wind_clim = np.mean(obs_wind_arr, axis=0)
 
-    # print the head of the dfs
-    print("Head of the obs df:")
-    print(obs_df.head())
+    # # print the head of the dfs
+    # print("Head of the obs df:")
+    # print(obs_df.head())
 
-    # print the tail of the dfs
-    print("Tail of the obs df:")
-    print(obs_df.tail())
+    # # print the tail of the dfs
+    # print("Tail of the obs df:")
+    # print(obs_df.tail())
 
-    # extract the current date
-    # NOTE: Hardcode the current date for now
-    # current_date = "2025-05-08"
-    # current_date = datetime.now().strftime("%Y-%m-%d")
-    # current_date = f"{current_date}_cold_temps"
-    current_date = "2025-05-28_cold_temps"
+    # # extract the current date
+    # # NOTE: Hardcode the current date for now
+    # # current_date = "2025-05-08"
+    # # current_date = datetime.now().strftime("%Y-%m-%d")
+    # # current_date = f"{current_date}_cold_temps"
+    # current_date = "2025-05-28_cold_temps"
 
-    # Set up fnames for the psl data
-    psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
-    psl_times_fname = (
-        f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
-    )
+    # # Set up fnames for the psl data
+    # psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    # psl_times_fname = (
+    #     f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    # )
 
-    # set up fnames for the temperature data
-    # NOTE: Detrended temperature here
-    temp_fname = (
-        f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
-    )
-    temp_times_fname = (
-        f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
-    )
+    # # set up fnames for the temperature data
+    # # NOTE: Detrended temperature here
+    # temp_fname = (
+    #     f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
+    # )
+    # temp_times_fname = (
+    #     f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
+    # )
 
-    # set up fnames for the wind data
-    wind_fname = (
-        f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
-    )
-    wind_times_fname = (
-        f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
-    )
+    # # set up fnames for the wind data
+    # wind_fname = (
+    #     f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    # )
+    # wind_times_fname = (
+    #     f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    # )
 
-    # if the psl files do not exist then  create them
-    if not os.path.exists(
-        os.path.join(arrs_persist_dir, psl_fname)
-    ) and not os.path.exists(os.path.join(arrs_persist_dir, psl_times_fname)):
-        # Call the function to load the obs data
-        psl_subset, psl_dates_list = extract_obs_data(
-            obs_df=obs_df_low_temp,
-            variable="psl",
-            region="NA",
-            time_freq=time_freq,
-            season=season,
-            lat_shape=90,
-            lon_shape=96,
-            arrs_dir=winter_arrs_dir,
-            metadata_dir=metadata_dir,
-            lats_path=os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-            ),
-            lons_path=os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-            ),
-        )
+    # # if the psl files do not exist then  create them
+    # if not os.path.exists(
+    #     os.path.join(arrs_persist_dir, psl_fname)
+    # ) and not os.path.exists(os.path.join(arrs_persist_dir, psl_times_fname)):
+    #     # Call the function to load the obs data
+    #     psl_subset, psl_dates_list = extract_obs_data(
+    #         obs_df=obs_df_low_temp,
+    #         variable="psl",
+    #         region="NA",
+    #         time_freq=time_freq,
+    #         season=season,
+    #         lat_shape=90,
+    #         lon_shape=96,
+    #         arrs_dir=winter_arrs_dir,
+    #         metadata_dir=metadata_dir,
+    #         lats_path=os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         lons_path=os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #     )
 
-        # Save the data to the arrs_persist_dir
-        np.save(os.path.join(arrs_persist_dir, psl_fname), psl_subset)
-        np.save(os.path.join(arrs_persist_dir, psl_times_fname), psl_dates_list)
+    #     # Save the data to the arrs_persist_dir
+    #     np.save(os.path.join(arrs_persist_dir, psl_fname), psl_subset)
+    #     np.save(os.path.join(arrs_persist_dir, psl_times_fname), psl_dates_list)
 
-    # if the temperature files do not exist then  create them
-    if not os.path.exists(
-        os.path.join(arrs_persist_dir, temp_fname)
-    ) and not os.path.exists(os.path.join(arrs_persist_dir, temp_times_fname)):
-        # Call the function to load the obs data
-        temp_subset, temp_dates_list = extract_obs_data(
-            obs_df=obs_df_low_temp,
-            variable="tas",
-            region="Europe",
-            time_freq=time_freq,
-            season=season,
-            lat_shape=63,
-            lon_shape=49,
-            arrs_dir=winter_arrs_dir,
-            metadata_dir=metadata_dir,
-            lats_path=os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-            ),
-            lons_path=os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-            ),
-        )
+    # # if the temperature files do not exist then  create them
+    # if not os.path.exists(
+    #     os.path.join(arrs_persist_dir, temp_fname)
+    # ) and not os.path.exists(os.path.join(arrs_persist_dir, temp_times_fname)):
+    #     # Call the function to load the obs data
+    #     temp_subset, temp_dates_list = extract_obs_data(
+    #         obs_df=obs_df_low_temp,
+    #         variable="tas",
+    #         region="Europe",
+    #         time_freq=time_freq,
+    #         season=season,
+    #         lat_shape=63,
+    #         lon_shape=49,
+    #         arrs_dir=winter_arrs_dir,
+    #         metadata_dir=metadata_dir,
+    #         lats_path=os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         lons_path=os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     )
 
-        # Save the data to the arrs_persist_dir
-        np.save(os.path.join(arrs_persist_dir, temp_fname), temp_subset)
-        np.save(os.path.join(arrs_persist_dir, temp_times_fname), temp_dates_list)
+    #     # Save the data to the arrs_persist_dir
+    #     np.save(os.path.join(arrs_persist_dir, temp_fname), temp_subset)
+    #     np.save(os.path.join(arrs_persist_dir, temp_times_fname), temp_dates_list)
 
-    # if the wind files do not exist then  create them
-    if not os.path.exists(
-        os.path.join(arrs_persist_dir, wind_fname)
-    ) and not os.path.exists(os.path.join(arrs_persist_dir, wind_times_fname)):
-        # Call the function to load the obs data
-        wind_subset, wind_dates_list = extract_obs_data(
-            obs_df=obs_df_low_temp,
-            variable="sfcWind",
-            region="Europe",
-            time_freq=time_freq,
-            season=season,
-            lat_shape=63,
-            lon_shape=49,
-            arrs_dir=winter_arrs_dir,
-            metadata_dir=metadata_dir,
-            lats_path=os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-            ),
-            lons_path=os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-            ),
-        )
+    # # if the wind files do not exist then  create them
+    # if not os.path.exists(
+    #     os.path.join(arrs_persist_dir, wind_fname)
+    # ) and not os.path.exists(os.path.join(arrs_persist_dir, wind_times_fname)):
+    #     # Call the function to load the obs data
+    #     wind_subset, wind_dates_list = extract_obs_data(
+    #         obs_df=obs_df_low_temp,
+    #         variable="sfcWind",
+    #         region="Europe",
+    #         time_freq=time_freq,
+    #         season=season,
+    #         lat_shape=63,
+    #         lon_shape=49,
+    #         arrs_dir=winter_arrs_dir,
+    #         metadata_dir=metadata_dir,
+    #         lats_path=os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         lons_path=os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     )
 
-        # Save the data to the arrs_persist_dir
-        np.save(os.path.join(arrs_persist_dir, wind_fname), wind_subset)
-        np.save(os.path.join(arrs_persist_dir, wind_times_fname), wind_dates_list)
+    #     # Save the data to the arrs_persist_dir
+    #     np.save(os.path.join(arrs_persist_dir, wind_fname), wind_subset)
+    #     np.save(os.path.join(arrs_persist_dir, wind_times_fname), wind_dates_list)
 
-    # load the psl data
-    obs_psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
-    obs_psl_dates_list = np.load(
-        os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
-    )
+    # # load the psl data
+    # obs_psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
+    # obs_psl_dates_list = np.load(
+    #     os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
+    # )
 
-    # print the shape of psl sset
-    print(f"Shape of psl subset: {obs_psl_subset.shape}")
+    # # print the shape of psl sset
+    # print(f"Shape of psl subset: {obs_psl_subset.shape}")
 
-    # print the shape of psl dates list
-    print(f"Shape of psl dates list: {obs_psl_dates_list.shape}")
+    # # print the shape of psl dates list
+    # print(f"Shape of psl dates list: {obs_psl_dates_list.shape}")
 
-    # print the values of psl dates list
-    print(f"PSL dates list: {obs_psl_dates_list}")
+    # # print the values of psl dates list
+    # print(f"PSL dates list: {obs_psl_dates_list}")
 
-    # sys.exit()
+    # # sys.exit()
 
-    # load the temperature data
-    obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
-    obs_temp_dates_list = np.load(
-        os.path.join(arrs_persist_dir, temp_times_fname), allow_pickle=True
-    )
+    # # load the temperature data
+    # obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
+    # obs_temp_dates_list = np.load(
+    #     os.path.join(arrs_persist_dir, temp_times_fname), allow_pickle=True
+    # )
 
-    # load the wind data
-    obs_wind_subset = np.load(os.path.join(arrs_persist_dir, wind_fname))
-    obs_wind_dates_list = np.load(
-        os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
-    )
+    # # load the wind data
+    # obs_wind_subset = np.load(os.path.join(arrs_persist_dir, wind_fname))
+    # obs_wind_dates_list = np.load(
+    #     os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
+    # )
 
     # # assert that the dates list arrays are equal
     # assert np.array_equal(
@@ -6972,35 +6991,83 @@ def main():
 
     # load in the model subset files
     # NOTE: Updated for longer period
-    model_psl_subset_fname = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_2025-05-14.npy"
+    model_psl_subset_fname_early = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-06-27.npy"
     )
-    model_psl_subset_json_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-05-14.json"
+    model_psl_subset_json_fname_early = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
+
+    model_psl_subset_fname_late = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_2025-06-27.npy"
+    )
+    model_psl_subset_json_fname_late = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
+    )
+
 
     # if the file does not exist then raise an error
-    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname_early)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_psl_subset_fname)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_psl_subset_fname_early)} does not exist."
         )
 
     # load the model psl subset
-    model_psl_subset = np.load(os.path.join(subset_model_dir, model_psl_subset_fname))
+    model_psl_subset_early = np.load(os.path.join(subset_model_dir, model_psl_subset_fname_early))
 
     # print the shape of the model psl subset
-    print(f"Shape of model psl subset: {model_psl_subset.shape}")
+    print(f"Shape of model psl subset: {model_psl_subset_early.shape}")
 
     # print the values of the model psl subset
-    print(f"Model psl subset: {model_psl_subset}")
+    print(f"Model psl subset: {model_psl_subset_early}")
 
     # if the json
-    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_json_fname)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_json_fname_early)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_psl_subset_json_fname)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_psl_subset_json_fname_early)} does not exist."
         )
 
     # load the json file
-    with open(os.path.join(subset_model_dir, model_psl_subset_json_fname), "r") as f:
-        model_psl_subset_index_list = json.load(f)
+    with open(os.path.join(subset_model_dir, model_psl_subset_json_fname_early), "r") as f:
+        model_psl_subset_index_list_early = json.load(f)
+
+    # Load the late file
+    model_psl_subset_late = np.load(
+        os.path.join(subset_model_dir, model_psl_subset_fname_late)
+    )
+
+    # Load the json file for the late file
+    with open(
+        os.path.join(subset_model_dir, model_psl_subset_json_fname_late), "r"
+    ) as f:
+        model_psl_subset_index_list_late = json.load(f)
+
+    # Combine the early and late model psl subsets on the 0th axis
+    model_psl_subset = np.concatenate(
+        (model_psl_subset_early, model_psl_subset_late), axis=0
+    )
+
+    # Print the json keys
+    print(f"Keys in model psl subset index list: {model_psl_subset_index_list_early.keys()}")
+    print(f"Keys in model psl subset index list late: {model_psl_subset_index_list_late.keys()}")
+
+    # Combine the dictionaries
+    model_psl_combined_dict = {
+        key: model_psl_subset_index_list_early[key] + model_psl_subset_index_list_late[key]
+        for key in model_psl_subset_index_list_early.keys()
+    }
+
+    # Print the combined dictionary keys to verify
+    print(f"Keys in combined dictionary: {model_psl_combined_dict.keys()}")
+
+    # Print the shape of the model psl subset
+    print(f"Shape of model psl subset: {model_psl_subset.shape}")
+
+    # Print the shape of the early file
+    print(f"Shape of early model psl subset: {model_psl_subset_early.shape}")
+    # Print the shape of the late file
+    print(f"Shape of late model psl subset: {model_psl_subset_late.shape}")
+
+    # Set up the model psl subset index list
+    model_psl_subset_index_list = model_psl_combined_dict
 
     # print the length of the model psl subset index list
     # Print the length of the model psl subset index list
@@ -7015,19 +7082,36 @@ def main():
     print(f"model_psl_subset index list keys: {model_psl_subset_index_list.keys()}")
 
     # set up the fnames for sfcWind
-    model_wind_subset_fname = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_2025-05-14.npy"
+    model_wind_subset_fname_early = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-06-27.npy"
     )
-    model_wind_subset_json_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-14.json"
+    model_wind_subset_json_fname_early = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-06-27.json"
+
+    model_wind_subset_fname_late = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_2025-06-27.npy"
+    )
+    model_wind_subset_json_fname_late = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
+    )
 
     # if the file does not exist then raise an error
-    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname_early)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_wind_subset_fname)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_wind_subset_fname_early)} does not exist."
         )
 
     # load the model wind subset
-    model_wind_subset = np.load(os.path.join(subset_model_dir, model_wind_subset_fname))
+    model_wind_subset_early = np.load(os.path.join(subset_model_dir, model_wind_subset_fname_early))
+
+    # Load the model wind subset late
+    model_wind_subset_late = np.load(
+        os.path.join(subset_model_dir, model_wind_subset_fname_late)
+    )
+
+    # Combine teh early and late model wind subsets on the 0th axis
+    model_wind_subset = np.concatenate(
+        (model_wind_subset_early, model_wind_subset_late), axis=0
+    )
 
     # # print the shape of the model wind subset
     # print(f"Shape of model wind subset: {model_wind_subset.shape}")
@@ -7036,14 +7120,28 @@ def main():
     # print(f"Model wind subset: {model_wind_subset}")
 
     # if the json
-    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_json_fname)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_json_fname_early)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_wind_subset_json_fname)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_wind_subset_json_fname_early)} does not exist."
         )
 
     # load the json file
-    with open(os.path.join(subset_model_dir, model_wind_subset_json_fname), "r") as f:
-        model_wind_subset_index_list = json.load(f)
+    with open(os.path.join(subset_model_dir, model_wind_subset_json_fname_early), "r") as f:
+        model_wind_subset_index_list_early = json.load(f)
+
+    # Load the json file for the late file
+    with open(
+        os.path.join(subset_model_dir, model_wind_subset_json_fname_late), "r"
+    ) as f:
+        model_wind_subset_index_list_late = json.load(f)
+
+    # Combine the dictionaries
+    model_wind_combined_dict = {
+        key: model_wind_subset_index_list_early[key] + model_wind_subset_index_list_late[key]
+        for key in model_wind_subset_index_list_early.keys()
+    }
+
+    model_wind_subset_index_list = model_wind_combined_dict
 
     # # print the length of the model wind subset index list
     # # Print the length of the model wind subset index list
@@ -7057,19 +7155,39 @@ def main():
 
     # set up the fnames for tas
     # NOTE: Updated for longer period
-    model_temp_subset_fname = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-14.npy"
+    model_temp_subset_fname_early = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-06-27.npy"
     )
-    model_temp_subset_json_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-14.json"
+    model_temp_subset_json_fname_early = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-06-27.json"
+    )
+
+    model_temp_subset_fname_late = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-27.npy"
+    )
+    model_temp_subset_json_fname_late = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
+    )
+
 
     # if the file does not exist then raise an error
-    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname_early)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_temp_subset_fname)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_temp_subset_fname_early)} does not exist."
         )
 
     # load the model temperature subset
-    model_temp_subset = np.load(os.path.join(subset_model_dir, model_temp_subset_fname))
+    model_temp_subset_early = np.load(os.path.join(subset_model_dir, model_temp_subset_fname_early))
+
+    # Load the model temperature subset late
+    model_temp_subset_late = np.load(
+        os.path.join(subset_model_dir, model_temp_subset_fname_late)
+    )
+
+    # Combine the early and late model temperature subsets on the 0th axis
+    model_temp_subset = np.concatenate(
+        (model_temp_subset_early, model_temp_subset_late), axis=0
+    )
 
     # # print the shape of the model temperature subset
     # print(f"Shape of model temperature subset: {model_temp_subset.shape}")
@@ -7078,313 +7196,327 @@ def main():
     # print(f"Model temperature subset: {model_temp_subset}")
 
     # if the json
-    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_json_fname)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_json_fname_early)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_temp_subset_json_fname)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_temp_subset_json_fname_early)} does not exist."
         )
 
     # load the json file
-    with open(os.path.join(subset_model_dir, model_temp_subset_json_fname), "r") as f:
-        model_temp_subset_index_list = json.load(f)
+    with open(os.path.join(subset_model_dir, model_temp_subset_json_fname_early), "r") as f:
+        model_temp_subset_index_list_early = json.load(f)
 
-    # Set up the fnames for the vas data
-    model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
-    model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
-
-    # if the model subset file does not exist
-    if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_fname)):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_vas_subset_fname)} does not exist."
-        )
-
-    # load the model vas subset
-    model_vas_subset = np.load(os.path.join(subset_model_dir, model_vas_subset_fname))
-
-    # If the json does not exist
-    if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_json_fname)):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_vas_subset_json_fname)} does not exist."
-        )
-
-    # load the json file
-    with open(os.path.join(subset_model_dir, model_vas_subset_json_fname), "r") as f:
-        model_vas_subset_index_list = json.load(f)
-
-    # Set up the fnames for the uas data
-    model_uas_subset_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
-    model_uas_subset_json_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
-
-    # if the model subset file does not exist
-    if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_fname)):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_uas_subset_fname)} does not exist."
-        )
-
-    # load the model uas subset
-    model_uas_subset = np.load(os.path.join(subset_model_dir, model_uas_subset_fname))
-
-    # If the json does not exist
-    if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_json_fname)):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_uas_subset_json_fname)} does not exist."
-        )
-
-    # load the json file
-    with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
-        model_uas_subset_index_list = json.load(f)
-
-    # Set up the fnames for the psl low wind subset
-    model_low_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-22.npy"
-    model_low_wind_psl_subset_json_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-22.json"
-
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)} does not exist."
-        )
-
-    # load the model low wind psl subset
-    model_low_wind_psl_subset = np.load(
-        os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)
-    )
-
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)} does not exist."
-        )
-
-    # load the json file
+    # Load the json file for the late file
     with open(
-        os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname), "r"
+        os.path.join(subset_model_dir, model_temp_subset_json_fname_late), "r"
     ) as f:
-        model_low_wind_psl_subset_index_list = json.load(f)
+        model_temp_subset_index_list_late = json.load(f)
 
-    # Set up the fnames for the psl higher wind subset
-    model_higher_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-22.npy"
-    model_higher_wind_psl_subset_json_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-22.json"
+    # Combine the dictionaries
+    model_temp_combined_dict = {
+        key: model_temp_subset_index_list_early[key] + model_temp_subset_index_list_late[key]
+        for key in model_temp_subset_index_list_early.keys()
+    }
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)} does not exist."
-        )
+    model_temp_subset_index_list = model_temp_combined_dict
 
-    # load the model higher wind psl subset
-    model_higher_wind_psl_subset = np.load(
-        os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
-    )
-    # print the shape of the model higher wind psl subset
-    print(
-        f"Shape of model higher wind psl subset: {model_higher_wind_psl_subset.shape}"
-    )
+    # # Set up the fnames for the vas data
+    # model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
+    # model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)} does not exist."
-        )
+    # # if the model subset file does not exist
+    # if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_fname)):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_vas_subset_fname)} does not exist."
+    #     )
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname), "r"
-    ) as f:
-        model_higher_wind_psl_subset_index_list = json.load(f)
+    # # load the model vas subset
+    # model_vas_subset = np.load(os.path.join(subset_model_dir, model_vas_subset_fname))
 
-    # Set up the fnames for uas/vas high wind/low wind subsets
-    # First for low wind uas and vas
-    model_low_wind_uas_subset_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
-    model_low_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
+    # # If the json does not exist
+    # if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_json_fname)):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_vas_subset_json_fname)} does not exist."
+    #     )
 
-    # Fnames for low wind vas
-    model_low_wind_vas_subset_fname = (
-        "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-23.npy"
-    )
-    model_low_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-23.json"
+    # # load the json file
+    # with open(os.path.join(subset_model_dir, model_vas_subset_json_fname), "r") as f:
+    #     model_vas_subset_index_list = json.load(f)
 
-    # Fnames for high wind uas
-    model_higher_wind_uas_subset_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
-    model_higher_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
+    # # Set up the fnames for the uas data
+    # model_uas_subset_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
+    # model_uas_subset_json_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
 
-    # Fnames for high wind vas
-    model_higher_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
-    model_higher_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
+    # # if the model subset file does not exist
+    # if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_fname)):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_uas_subset_fname)} does not exist."
+    #     )
 
-    model_lower_wind_sfcWind_subset_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
-    model_lower_wind_sfcWind_subset_json_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
+    # # load the model uas subset
+    # model_uas_subset = np.load(os.path.join(subset_model_dir, model_uas_subset_fname))
 
-    model_higher_wind_sfcWind_subset_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
-    model_higher_wind_sfcWind_subset_json_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
+    # # If the json does not exist
+    # if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_json_fname)):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_uas_subset_json_fname)} does not exist."
+    #     )
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)} does not exist."
-        )
+    # # load the json file
+    # with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
+    #     model_uas_subset_index_list = json.load(f)
 
-    # load the model low wind uas subset
-    model_low_wind_uas_subset = np.load(
-        os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
-    )
+    # # Set up the fnames for the psl low wind subset
+    # model_low_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-22.npy"
+    # model_low_wind_psl_subset_json_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-22.json"
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname)} does not exist."
-        )
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)} does not exist."
+    #     )
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname), "r"
-    ) as f:
-        model_low_wind_uas_subset_index_list = json.load(f)
+    # # load the model low wind psl subset
+    # model_low_wind_psl_subset = np.load(
+    #     os.path.join(subset_model_dir, model_low_wind_psl_subset_fname)
+    # )
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)} does not exist."
-        )
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname)} does not exist."
+    #     )
 
-    # load the model low wind vas subset
-    model_low_wind_vas_subset = np.load(
-        os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
-    )
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_low_wind_psl_subset_json_fname), "r"
+    # ) as f:
+    #     model_low_wind_psl_subset_index_list = json.load(f)
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname)} does not exist."
-        )
+    # # Set up the fnames for the psl higher wind subset
+    # model_higher_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-22.npy"
+    # model_higher_wind_psl_subset_json_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-22.json"
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname), "r"
-    ) as f:
-        model_low_wind_vas_subset_index_list = json.load(f)
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)} does not exist."
+    #     )
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)} does not exist."
-        )
+    # # load the model higher wind psl subset
+    # model_higher_wind_psl_subset = np.load(
+    #     os.path.join(subset_model_dir, model_higher_wind_psl_subset_fname)
+    # )
+    # # print the shape of the model higher wind psl subset
+    # print(
+    #     f"Shape of model higher wind psl subset: {model_higher_wind_psl_subset.shape}"
+    # )
 
-    # load the model higher wind uas subset
-    model_higher_wind_uas_subset = np.load(
-        os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)
-    )
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname)} does not exist."
+    #     )
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname)} does not exist."
-        )
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_higher_wind_psl_subset_json_fname), "r"
+    # ) as f:
+    #     model_higher_wind_psl_subset_index_list = json.load(f)
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname), "r"
-    ) as f:
-        model_higher_wind_uas_subset_index_list = json.load(f)
+    # # Set up the fnames for uas/vas high wind/low wind subsets
+    # # First for low wind uas and vas
+    # model_low_wind_uas_subset_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
+    # model_low_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)} does not exist."
-        )
+    # # Fnames for low wind vas
+    # model_low_wind_vas_subset_fname = (
+    #     "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-05-23.npy"
+    # )
+    # model_low_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-23.json"
 
-    # load the model higher wind vas subset
-    model_higher_wind_vas_subset = np.load(
-        os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
-    )
+    # # Fnames for high wind uas
+    # model_higher_wind_uas_subset_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    # model_higher_wind_uas_subset_json_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)} does not exist."
-        )
+    # # Fnames for high wind vas
+    # model_higher_wind_vas_subset_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    # model_higher_wind_vas_subset_json_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname), "r"
-    ) as f:
-        model_higher_wind_vas_subset_index_list = json.load(f)
+    # model_lower_wind_sfcWind_subset_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-23.npy"
+    # model_lower_wind_sfcWind_subset_json_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-05-23.json"
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)} does not exist."
-        )
+    # model_higher_wind_sfcWind_subset_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_2025-05-23.npy"
+    # model_higher_wind_sfcWind_subset_json_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_higher_wind_40-60_index_list_2025-05-23.json"
 
-    # load the model lower wind sfcWind subset
-    model_lower_wind_sfcWind_subset = np.load(
-        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)
-    )
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)} does not exist."
+    #     )
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname)} does not exist."
-        )
+    # # load the model low wind uas subset
+    # model_low_wind_uas_subset = np.load(
+    #     os.path.join(subset_model_dir, model_low_wind_uas_subset_fname)
+    # )
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname), "r"
-    ) as f:
-        model_lower_wind_sfcWind_subset_index_list = json.load(f)
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname)} does not exist."
+    #     )
 
-    # if the model subset file does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)} does not exist."
-        )
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_low_wind_uas_subset_json_fname), "r"
+    # ) as f:
+    #     model_low_wind_uas_subset_index_list = json.load(f)
 
-    # load the model higher wind sfcWind subset
-    model_higher_wind_sfcWind_subset = np.load(
-        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
-    )
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)} does not exist."
+    #     )
 
-    # if the json does not exist
-    if not os.path.exists(
-        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)
-    ):
-        raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)} does not exist."
-        )
+    # # load the model low wind vas subset
+    # model_low_wind_vas_subset = np.load(
+    #     os.path.join(subset_model_dir, model_low_wind_vas_subset_fname)
+    # )
 
-    # load the json file
-    with open(
-        os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname), "r"
-    ) as f:
-        model_higher_wind_sfcWind_subset_index_list = json.load(f)
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname)} does not exist."
+    #     )
+
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_low_wind_vas_subset_json_fname), "r"
+    # ) as f:
+    #     model_low_wind_vas_subset_index_list = json.load(f)
+
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)} does not exist."
+    #     )
+
+    # # load the model higher wind uas subset
+    # model_higher_wind_uas_subset = np.load(
+    #     os.path.join(subset_model_dir, model_higher_wind_uas_subset_fname)
+    # )
+
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname)} does not exist."
+    #     )
+
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_higher_wind_uas_subset_json_fname), "r"
+    # ) as f:
+    #     model_higher_wind_uas_subset_index_list = json.load(f)
+
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)} does not exist."
+    #     )
+
+    # # load the model higher wind vas subset
+    # model_higher_wind_vas_subset = np.load(
+    #     os.path.join(subset_model_dir, model_higher_wind_vas_subset_fname)
+    # )
+
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname)} does not exist."
+    #     )
+
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_higher_wind_vas_subset_json_fname), "r"
+    # ) as f:
+    #     model_higher_wind_vas_subset_index_list = json.load(f)
+
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)} does not exist."
+    #     )
+
+    # # load the model lower wind sfcWind subset
+    # model_lower_wind_sfcWind_subset = np.load(
+    #     os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_fname)
+    # )
+
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname)} does not exist."
+    #     )
+
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_lower_wind_sfcWind_subset_json_fname), "r"
+    # ) as f:
+    #     model_lower_wind_sfcWind_subset_index_list = json.load(f)
+
+    # # if the model subset file does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)} does not exist."
+    #     )
+
+    # # load the model higher wind sfcWind subset
+    # model_higher_wind_sfcWind_subset = np.load(
+    #     os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_fname)
+    # )
+
+    # # if the json does not exist
+    # if not os.path.exists(
+    #     os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)
+    # ):
+    #     raise FileNotFoundError(
+    #         f"File {os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname)} does not exist."
+    #     )
+
+    # # load the json file
+    # with open(
+    #     os.path.join(subset_model_dir, model_higher_wind_sfcWind_subset_json_fname), "r"
+    # ) as f:
+    #     model_higher_wind_sfcWind_subset_index_list = json.load(f)
 
     # # print the length of the model temperature subset index list
     # # Print the length of the model temperature subset index list
@@ -7435,15 +7567,15 @@ def main():
     model_psl_clim = np.load(os.path.join(model_clim_dir, psl_clim_fname))
     model_wind_clim = np.load(os.path.join(model_clim_dir, sfcWind_clim_fname))
     model_tas_clim = np.load(os.path.join(model_clim_dir, tas_clim_fname))
-    model_vas_clim = np.load(os.path.join(model_clim_dir, vas_clim_fname))
-    model_uas_clim = np.load(os.path.join(model_clim_dir, uas_clim_fname))
+    # model_vas_clim = np.load(os.path.join(model_clim_dir, vas_clim_fname))
+    # model_uas_clim = np.load(os.path.join(model_clim_dir, uas_clim_fname))
 
     # print the shape of the climatology data
     print(f"Shape of obs psl climatology data: {model_psl_clim.shape}")
     print(f"Shape of obs wind climatology data: {model_wind_clim.shape}")
     print(f"Shape of obs tas climatology data: {model_tas_clim.shape}")
-    print(f"Shape of obs vas climatology data: {model_vas_clim.shape}")
-    print(f"Shape of obs uas climatology data: {model_uas_clim.shape}")
+    # print(f"Shape of obs vas climatology data: {model_vas_clim.shape}")
+    # print(f"Shape of obs uas climatology data: {model_uas_clim.shape}")
 
     # # print the values of the climatology data
     # print(f"Obs psl climatology data: {obs_psl_clim}")
@@ -7463,23 +7595,23 @@ def main():
     obs_dnw_5th = obs_df["demand_net_wind_max"].quantile(0.05)
 
     # do the same for the model
-    model_dnw_5th = model_df["demand_net_wind_bc_max_bc"].quantile(0.05)
+    model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.05)
 
     # Find the maximum of the demand net wind max for the obs
     obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
 
     # Find the maximum of the demand net wind max for the model
-    model_dnw_95th = model_df["demand_net_wind_bc_max_bc"].quantile(0.95)
+    model_dnw_95th = model_df["demand_net_wind_bc_max"].quantile(0.95)
 
     # find the 99th percentile of the demand net wind max
     obs_dnw_99th = obs_df["demand_net_wind_max"].quantile(0.99)
 
     # do the same for the model
-    model_dnw_99th = model_df["demand_net_wind_bc_max_bc"].quantile(0.99)
+    model_dnw_99th = model_df["demand_net_wind_bc_max"].quantile(0.99)
 
     # subset the model df to grey points
     model_df_subset_grey = model_df[
-        model_df["demand_net_wind_bc_max_bc"] < model_dnw_5th
+        model_df["demand_net_wind_bc_max"] < model_dnw_5th
     ]
 
     # do the same for the obs
@@ -7487,8 +7619,8 @@ def main():
 
     # subset the model df to yellow points
     model_df_subset_yellow = model_df[
-        (model_df["demand_net_wind_bc_max_bc"] >= model_dnw_95th)
-        & (model_df["demand_net_wind_bc_max_bc"] < model_dnw_99th)
+        (model_df["demand_net_wind_bc_max"] >= model_dnw_95th)
+        & (model_df["demand_net_wind_bc_max"] < model_dnw_99th)
     ]
 
     # do the same for the obs
@@ -7499,7 +7631,7 @@ def main():
 
     # subset the model df to red points
     model_df_subset_red = model_df[
-        model_df["demand_net_wind_bc_max_bc"] >= model_dnw_99th
+        model_df["demand_net_wind_bc_max"] >= model_dnw_99th
     ]
 
     # do the same for the obs
@@ -7588,28 +7720,28 @@ def main():
         model_psl_clim_zeros,
     ]
 
-    # Set up zeros like obs psl clim
-    obs_psl_clim_zeros = np.zeros_like(obs_psl_clim)
+    # # Set up zeros like obs psl clim
+    # obs_psl_clim_zeros = np.zeros_like(obs_psl_clim)
 
-    clim_arrs_obs_zeros = [
-        obs_psl_clim_zeros,
-        obs_psl_clim_zeros,
-        obs_psl_clim_zeros,
-    ]
+    # clim_arrs_obs_zeros = [
+    #     obs_psl_clim_zeros,
+    #     obs_psl_clim_zeros,
+    #     obs_psl_clim_zeros,
+    # ]
 
-    # Set up the clim arrs obs
-    clim_arrs_obs = [
-        obs_psl_clim,
-        obs_psl_clim,
-        obs_psl_clim,
-    ]
+    # # Set up the clim arrs obs
+    # clim_arrs_obs = [
+    #     obs_psl_clim,
+    #     obs_psl_clim,
+    #     obs_psl_clim,
+    # ]
 
-    # Set up the dates lists obs
-    dates_lists_obs = [
-        obs_psl_dates_list,
-        obs_psl_dates_list,
-        obs_psl_dates_list,
-    ]
+    # # Set up the dates lists obs
+    # dates_lists_obs = [
+    #     obs_psl_dates_list,
+    #     obs_psl_dates_list,
+    #     obs_psl_dates_list,
+    # ]
 
     # Set up the model index dicts
     model_index_dicts = [
@@ -7967,26 +8099,26 @@ def main():
         model_df_subset_red,
     ]
 
-    # Set up the subset arrs obs
-    subset_arrs_obs = [
-        obs_psl_subset,
-        obs_psl_subset,
-        obs_psl_subset,
-    ]
+    # # Set up the subset arrs obs
+    # subset_arrs_obs = [
+    #     obs_psl_subset,
+    #     obs_psl_subset,
+    #     obs_psl_subset,
+    # ]
 
-    # Set up the subset arrs obs tas
-    subset_arrs_obs_tas = [
-        obs_temp_subset,
-        obs_temp_subset,
-        obs_temp_subset,
-    ]
+    # # Set up the subset arrs obs tas
+    # subset_arrs_obs_tas = [
+    #     obs_temp_subset,
+    #     obs_temp_subset,
+    #     obs_temp_subset,
+    # ]
 
-    # Set up the subset arrs obs wind
-    subset_arrs_obs_wind = [
-        obs_wind_subset,
-        obs_wind_subset,
-        obs_wind_subset,
-    ]
+    # # Set up the subset arrs obs wind
+    # subset_arrs_obs_wind = [
+    #     obs_wind_subset,
+    #     obs_wind_subset,
+    #     obs_wind_subset,
+    # ]
 
     # Set up the subset arrs model
     subset_arrs_model = [
@@ -8009,40 +8141,40 @@ def main():
         model_wind_subset,
     ]
 
-    # Set up the subset arrs model vas
-    subset_arrs_model_vas = [
-        model_vas_subset,
-        model_vas_subset,
-        model_vas_subset,
-    ]
+    # # Set up the subset arrs model vas
+    # subset_arrs_model_vas = [
+    #     model_vas_subset,
+    #     model_vas_subset,
+    #     model_vas_subset,
+    # ]
 
-    # Set up the subset arrs model uas
-    subset_arrs_model_uas = [
-        model_uas_subset,
-        model_uas_subset,
-        model_uas_subset,
-    ]
+    # # Set up the subset arrs model uas
+    # subset_arrs_model_uas = [
+    #     model_uas_subset,
+    #     model_uas_subset,
+    #     model_uas_subset,
+    # ]
 
-    # Set up the clim arrs obs
-    clim_arrs_obs = [
-        obs_psl_clim,
-        obs_psl_clim,
-        obs_psl_clim,
-    ]
+    # # Set up the clim arrs obs
+    # clim_arrs_obs = [
+    #     obs_psl_clim,
+    #     obs_psl_clim,
+    #     obs_psl_clim,
+    # ]
 
-    # set up the clim arrs obs tas
-    clim_arrs_obs_tas = [
-        obs_tas_clim,
-        obs_tas_clim,
-        obs_tas_clim,
-    ]
+    # # set up the clim arrs obs tas
+    # clim_arrs_obs_tas = [
+    #     obs_tas_clim,
+    #     obs_tas_clim,
+    #     obs_tas_clim,
+    # ]
 
-    # Set up the clim arrs obs wind
-    clim_arrs_obs_wind = [
-        obs_wind_clim,
-        obs_wind_clim,
-        obs_wind_clim,
-    ]
+    # # Set up the clim arrs obs wind
+    # clim_arrs_obs_wind = [
+    #     obs_wind_clim,
+    #     obs_wind_clim,
+    #     obs_wind_clim,
+    # ]
 
     # Set up the clim arrs model
     clim_arrs_model = [
@@ -8065,40 +8197,40 @@ def main():
         model_wind_clim,
     ]
 
-    # Set up the clim arrs model vas
-    clim_arrs_model_vas = [
-        model_vas_clim,
-        model_vas_clim,
-        model_vas_clim,
-    ]
+    # # Set up the clim arrs model vas
+    # clim_arrs_model_vas = [
+    #     model_vas_clim,
+    #     model_vas_clim,
+    #     model_vas_clim,
+    # ]
 
-    # Set up the clim arrs model uas
-    clim_arrs_model_uas = [
-        model_uas_clim,
-        model_uas_clim,
-        model_uas_clim,
-    ]
+    # # Set up the clim arrs model uas
+    # clim_arrs_model_uas = [
+    #     model_uas_clim,
+    #     model_uas_clim,
+    #     model_uas_clim,
+    # ]
 
-    # Set up the dates lists obs
-    dates_lists_obs = [
-        obs_psl_dates_list,
-        obs_psl_dates_list,
-        obs_psl_dates_list,
-    ]
+    # # Set up the dates lists obs
+    # dates_lists_obs = [
+    #     obs_psl_dates_list,
+    #     obs_psl_dates_list,
+    #     obs_psl_dates_list,
+    # ]
 
-    # set up the dates list obs tas
-    dates_lists_obs_tas = [
-        obs_temp_dates_list,
-        obs_temp_dates_list,
-        obs_temp_dates_list,
-    ]
+    # # set up the dates list obs tas
+    # dates_lists_obs_tas = [
+    #     obs_temp_dates_list,
+    #     obs_temp_dates_list,
+    #     obs_temp_dates_list,
+    # ]
 
-    # Set up the dates lists obs wind
-    dates_lists_obs_wind = [
-        obs_wind_dates_list,
-        obs_wind_dates_list,
-        obs_wind_dates_list,
-    ]
+    # # Set up the dates lists obs wind
+    # dates_lists_obs_wind = [
+    #     obs_wind_dates_list,
+    #     obs_wind_dates_list,
+    #     obs_wind_dates_list,
+    # ]
 
     # Set up the model index dicts
     model_index_dicts = [
@@ -8121,19 +8253,19 @@ def main():
         model_wind_subset_index_list,
     ]
 
-    # Set up the model index dicts vas
-    model_index_dicts_vas = [
-        model_vas_subset_index_list,
-        model_vas_subset_index_list,
-        model_vas_subset_index_list,
-    ]
+    # # Set up the model index dicts vas
+    # model_index_dicts_vas = [
+    #     model_vas_subset_index_list,
+    #     model_vas_subset_index_list,
+    #     model_vas_subset_index_list,
+    # ]
 
-    # Set up the model index dicts uas
-    model_index_dicts_uas = [
-        model_uas_subset_index_list,
-        model_uas_subset_index_list,
-        model_uas_subset_index_list,
-    ]
+    # # Set up the model index dicts uas
+    # model_index_dicts_uas = [
+    #     model_uas_subset_index_list,
+    #     model_uas_subset_index_list,
+    #     model_uas_subset_index_list,
+    # ]
 
     # Set up the lats path
     lats_paths = [
@@ -8241,27 +8373,27 @@ def main():
     #     inverse_flag=True,
     # )
 
-    # # do the same for the higher wind days
-    pdg_funcs.plot_multi_var_perc(
-        obs_df=obs_df,
-        model_df=model_df,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="data_sfcWind_dt",
-        x_var_name_model="demand_net_wind_bc_max",
-        y_var_name_model="data_tas_c_drift_bc_dt",
-        xlabel="Demand net wind percentiles",
-        ylabel="Temperature (°C)",
-        title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
-        legend_y1="Temperature (°C)",
-        legend_y2="10m wind speed (m/s)",
-        y2_var_name_model="data_sfcWind_drift_bc_dt",
-        y2_label="10m wind speed (m/s)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        y1_zero_line=True,
-    )
+    # # # do the same for the higher wind days
+    # pdg_funcs.plot_multi_var_perc(
+    #     obs_df=obs_df,
+    #     model_df=model_df,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="data_sfcWind_dt",
+    #     x_var_name_model="demand_net_wind_bc_max",
+    #     y_var_name_model="data_tas_c_drift_bc_dt",
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Temperature (°C)",
+    #     title="Percentiles of DnW vs temperature and wind speed, block max DnW DJF days",
+    #     legend_y1="Temperature (°C)",
+    #     legend_y2="10m wind speed (m/s)",
+    #     y2_var_name_model="data_sfcWind_drift_bc_dt",
+    #     y2_label="10m wind speed (m/s)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     y1_zero_line=True,
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # # # PLot the deamnd net wind on the y-axis and the delta P on the y2 axis
     # pdg_funcs.plot_multi_var_perc(
@@ -8588,7 +8720,6 @@ def main():
     print(f"Shape of subset arrs tas: {subset_arrs_model_tas[0].shape}")
     print(f"Shape of subset arrs wind: {subset_arrs_model_wind[0].shape}")
 
-
     # # Plot the var composites for psl
     # plot_var_composites_model(
     #     subset_dfs_model=subset_dfs_model,
@@ -8624,6 +8755,8 @@ def main():
     #     var_name="sfcWind",
     #     figsize=(10, 10),
     # )
+
+    # Print the 
 
     # # test the new function for plotting multiple variables
     plot_multi_var_composites_model(
