@@ -4018,26 +4018,26 @@ def main():
     print("Block max obs dnw max row")
     print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
 
-    sys.exit()
+    # sys.exit()
 
-    # # plot the GEV fitted return periods
-    # plot_gev_rps(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     obs_val_name="demand_net_wind_max",
-    #     model_val_name="demand_net_wind_bc_max_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Demand net wind (GW)",
-    #     nsamples=1000,
-    #     ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
-    #     blue_line=np.max,
-    #     high_values_rare=True,
-    #     figsize=(5, 5),
-    #     bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
-    # )
+    # # # plot the GEV fitted return periods
+    # # plot_gev_rps(
+    # #     obs_df=block_max_obs_dnw,
+    # #     model_df=block_max_model_dnw,
+    # #     obs_val_name="demand_net_wind_max",
+    # #     model_val_name="demand_net_wind_bc_max_bc",
+    # #     obs_time_name="effective_dec_year",
+    # #     model_time_name="effective_dec_year",
+    # #     ylabel="Demand net wind (GW)",
+    # #     nsamples=1000,
+    # #     ylims=(jan_8_2025["demand_net_wind_bc"].values[0] - 1, 52),
+    # #     blue_line=np.max,
+    # #     high_values_rare=True,
+    # #     figsize=(5, 5),
+    # #     bonus_line=jan_8_2025["demand_net_wind_bc"].values[0],
+    # # )
 
-    sys.exit()
+    # sys.exit()
 
     # ensure the effective dec year is a datetime and is just the year in the
     # model
@@ -4065,20 +4065,22 @@ def main():
 
     # set up a fname for the obs dnw df
     obs_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_obs_demand_net_wind_07-05-2025.csv"
+        dfs_dir, "block_maxima_obs_demand_net_wind_27-06-2025.csv"
     )
     # set up a fname for the model dnw df
     model_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_model_demand_net_wind_07-05-2025.csv"
+        dfs_dir, "block_maxima_model_demand_net_wind_27-06-2025.csv"
     )
 
     # if the fpath does not exist, svae the dtaa
     if not os.path.exists(obs_dnw_fpath):
+        print("Saving obs data to", obs_dnw_fpath)
         # Save the obs data
         block_max_obs_dnw.to_csv(obs_dnw_fpath, index=True)
 
     # if the fpath does not exist, svae the dtaa
     if not os.path.exists(model_dnw_fpath):
+        print("Saving model data to", model_dnw_fpath)
         # Save the model data
         block_max_model_dnw.to_csv(model_dnw_fpath, index=True)
 
