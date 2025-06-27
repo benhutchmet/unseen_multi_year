@@ -178,16 +178,16 @@ def pivot_emp_rps_dnw(
         obs_df_copy[f"{obs_var_name_wind}_dt"] + final_point_obs_trend_wind
     )
 
-    # Quantify the block maxima for the obs
-    # To identify the worst eevent/day
-    # Translate the wind speed to wind power generation
-    df_obs, _ = ws_to_wp_gen(
-        obs_df=obs_df_copy,
-        model_df=model_df_copy,
-        obs_ws_col=f"{obs_var_name_wind}_dt_pivot",
-        model_ws_col=f"{model_var_name_wind}",
-        date_range=("1961-12-01", "2018-03-01"),
-    )
+    # # Quantify the block maxima for the obs
+    # # To identify the worst eevent/day
+    # # Translate the wind speed to wind power generation
+    # df_obs, _ = ws_to_wp_gen(
+    #     obs_df=obs_df_copy,
+    #     model_df=model_df_copy,
+    #     obs_ws_col=f"{obs_var_name_wind}_dt_pivot",
+    #     model_ws_col=f"{model_var_name_wind}",
+    #     date_range=("1961-12-01", "2018-03-01"),
+    # )
 
     # Convert the temperature to demand
     df_obs, _ = temp_to_demand(
@@ -204,7 +204,7 @@ def pivot_emp_rps_dnw(
     # Calculate the demand net wind
     df_obs["dnw"] = (
         df_obs[f"{obs_var_name_tas}_UK_demand"]
-        - df_obs[f"{obs_var_name_wind}_sigmoid_total_wind_gen"]
+        - df_obs[f"{obs_var_name_wind}"]
     )
 
     # Calculate the block maxima for the obs
@@ -233,60 +233,60 @@ def pivot_emp_rps_dnw(
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
 
-    # Set up the sigmoid fit for wind speed pre-iterable
-    ch_df = pd.read_csv(
-        "/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv"
-    )
+    # # Set up the sigmoid fit for wind speed pre-iterable
+    # ch_df = pd.read_csv(
+    #     "/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv"
+    # )
 
-    # Set up the onshore and offshore capacities in gw
-    onshore_cap_gw = 15710.69 / 1000
-    offshore_cap_gw = 14733.02 / 1000
+    # # Set up the onshore and offshore capacities in gw
+    # onshore_cap_gw = 15710.69 / 1000
+    # offshore_cap_gw = 14733.02 / 1000
 
-    # Set up the generation in CH
-    ch_df["onshore_gen"] = ch_df["ons_cfs"] * onshore_cap_gw
-    ch_df["offshore_gen"] = ch_df["ofs_cfs"] * offshore_cap_gw
+    # # Set up the generation in CH
+    # ch_df["onshore_gen"] = ch_df["ons_cfs"] * onshore_cap_gw
+    # ch_df["offshore_gen"] = ch_df["ofs_cfs"] * offshore_cap_gw
 
-    # Sum to give the total generation
-    ch_df["total_gen"] = ch_df["onshore_gen"] + ch_df["offshore_gen"]
+    # # Sum to give the total generation
+    # ch_df["total_gen"] = ch_df["onshore_gen"] + ch_df["offshore_gen"]
 
-    # Make sure that date is a datetime
-    ch_df["date"] = pd.to_datetime(ch_df["date"])
+    # # Make sure that date is a datetime
+    # ch_df["date"] = pd.to_datetime(ch_df["date"])
 
-    # Set the date as the index and remove the title
-    ch_df.set_index("date", inplace=True)
+    # # Set the date as the index and remove the title
+    # ch_df.set_index("date", inplace=True)
 
-    # Subset the data to the relevant months
-    ch_df = ch_df[ch_df.index.month.isin([12, 1, 2])]
+    # # Subset the data to the relevant months
+    # ch_df = ch_df[ch_df.index.month.isin([12, 1, 2])]
 
-    # Subset the data to the relevant date range
-    ch_df = ch_df[(ch_df.index >= "1961-12-01") & (ch_df.index <= "2018-03-01")]
+    # # Subset the data to the relevant date range
+    # ch_df = ch_df[(ch_df.index >= "1961-12-01") & (ch_df.index <= "2018-03-01")]
 
-    # Set up an initial guess for the parameters for the sigmoid fit
-    p0 = [
-        max(ch_df["total_gen"]),
-        np.median(obs_df_copy[obs_var_name_wind]),
-        1,
-        min(ch_df["total_gen"]),
-    ]
+    # # Set up an initial guess for the parameters for the sigmoid fit
+    # p0 = [
+    #     max(ch_df["total_gen"]),
+    #     np.median(obs_df_copy[obs_var_name_wind]),
+    #     1,
+    #     min(ch_df["total_gen"]),
+    # ]
 
-    # Extract the first and last years (i.e., YYYY) from the date range
-    start_year = int("1961-12-01".split("-")[0])
-    end_year = int("2018-03-01".split("-")[0])
+    # # Extract the first and last years (i.e., YYYY) from the date range
+    # start_year = int("1961-12-01".split("-")[0])
+    # end_year = int("2018-03-01".split("-")[0])
 
-    # set up the obs df copy subset
-    obs_df_copy_subset = obs_df_copy[
-        (obs_df_copy["effective_dec_year"] >= start_year)
-        & (obs_df_copy["effective_dec_year"] < end_year)
-    ]
+    # # set up the obs df copy subset
+    # obs_df_copy_subset = obs_df_copy[
+    #     (obs_df_copy["effective_dec_year"] >= start_year)
+    #     & (obs_df_copy["effective_dec_year"] < end_year)
+    # ]
 
-    # Fit the sigmoid curve to the observed data
-    popt, pcov = curve_fit(
-        sigmoid,
-        obs_df_copy_subset[obs_var_name_wind],
-        ch_df["total_gen"],
-        p0=p0,
-        method="dogbox",
-    )
+    # # Fit the sigmoid curve to the observed data
+    # popt, pcov = curve_fit(
+    #     sigmoid,
+    #     obs_df_copy_subset[obs_var_name_wind],
+    #     ch_df["total_gen"],
+    #     p0=p0,
+    #     method="dogbox",
+    # )
 
     # DO the same for demand
     df_regr = pd.read_csv(
@@ -357,10 +357,10 @@ def pivot_emp_rps_dnw(
         #     date_range=("1961-12-01", "2018-03-01"),
         # )
 
-        # Apply the sigmoid fit to the model data
-        model_df_copy[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"] = sigmoid(
-            model_df_copy[model_var_name_wind_this], *popt
-        )
+        # # Apply the sigmoid fit to the model data
+        # model_df_copy[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"] = sigmoid(
+        #     model_df_copy[model_var_name_wind_this], *popt
+        # )
 
         # Convert the temperature to demand
         # _, model_df_copy_this = temp_to_demand(
@@ -386,9 +386,10 @@ def pivot_emp_rps_dnw(
         )
 
         # Calculate the demand net wind
+        # Wind power generation, as detrended at this time point
         model_df_copy[f"dnw_{time_point}"] = (
             model_df_copy[f"{model_var_name_tas_this}_UK_demand"]
-            - model_df_copy[f"{model_var_name_wind_this}_sigmoid_total_wind_gen"]
+            - model_df_copy[f"{model_var_name_wind}_dt_this_{time_point}"]
         )
 
         # Calculate the block maxima for the model
@@ -574,7 +575,7 @@ def pivot_emp_rps_dnw(
 
     # Set up the title
     ax.set_title(
-        f"f) Chance of > 2010 DnW by year",
+        f"f) Chance of > 1995-96 DnW by year",
         fontsize=12,
     )
 
@@ -2625,21 +2626,31 @@ def main():
     #     figsize=(10, 5),
     # )
 
-    # # Test the new function before all detrending takes place
-    # pivot_emp_rps_dnw(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf,
-    #     obs_var_name_wind="data_sfcWind",
-    #     obs_var_name_tas="data_c",
-    #     model_var_name_wind="data_sfcWind_drift_bc",
-    #     model_var_name_tas="data_tas_c_drift_bc",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    # )
 
-    # sys.exit()
+    # Pipe in temp - detrend and convert to demand
+    # Pipe in wind power generation (for both obs and model) - with no detrend
+    # and then apply the detrend year by year - no need to convert
+    
+    # Convert both obs and model capacity factors to WP generation pre-entering
+    # function below
+
+
+
+    # Test the new function before all detrending takes place
+    pivot_emp_rps_dnw(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        obs_var_name_wind="data_sfcWind",
+        obs_var_name_tas="data_c",
+        model_var_name_wind="data_sfcWind_drift_bc",
+        model_var_name_tas="data_tas_c_drift_bc",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        nsamples=100,
+        figsize=(5, 5),
+    )
+
+    sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
