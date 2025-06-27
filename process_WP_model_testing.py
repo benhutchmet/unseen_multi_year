@@ -9,7 +9,7 @@ wind power generation/capacity factors.
 Usage:
 ------
 
-    $ python process_WP_model_testing.py --year <year>
+    $ python process_WP_model_testing.py
 
 Arguments:
 ----------
@@ -32,7 +32,6 @@ import os
 import sys
 import glob
 import time
-import argparse
 
 # Third-party imports
 import iris
@@ -153,30 +152,6 @@ def main():
     constraint_lon = (-6.25, 4.58)  # degrees east
     constraint_lat = (50.28, 59.72)  # degrees north
 
-    # Set up the argument parser
-    parser = argparse.ArgumentParser(
-        description="Process model data for wind power generation in the UK."
-    )
-    parser.add_argument(
-        "--year",
-        type=int,
-        required=True,
-        help="The initialisation year of the model data to process, e.g. 1961, 1971, 1981, 1991, 2001, 2011, 2021.",
-    )
-
-    # Check if running in IPython
-    if "ipykernel_launcher" in sys.argv[0]:
-        # Manually set arguments for IPython
-        args = parser.parse_args(["--year", "1960"])  # Default to 1960 for testing
-        print("Running in IPython, using default arguments.")
-        print(f"Using initialisation year: {args.year}")
-    else:
-        # Parse arguments normally
-        args = parser.parse_args()
-
-    # Print the year we are processing the data for
-    print(f"Processing data for initialisation year: {args.year}")
-
     # Load the test data
     test_data = np.load(test_file_path)
     lats = np.load(lats_file_path)
@@ -225,8 +200,6 @@ def main():
     #     arrs_dir,
     #     fname_data_anoms_plus_obs,
     # )
-    # FIXME: temporarily set the path to None for loading data
-    path_data_anoms_plus_obs = "None"
 
     # Set up a fname for the data anomalies dt
     fname_data_anoms_plus_obs_dt = f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018_NO_DETREND.npy"
@@ -316,6 +289,7 @@ def main():
         # Set up the test array
         test_array = np.zeros(
             (
+                len(test_years),
                 test_data.shape[1],
                 len(winter_indices),
                 test_data.shape[3],
@@ -323,37 +297,37 @@ def main():
             )
         )
 
-        # Foprm the year as a string
-        year_str = str(args.year)
+        # Loop over the test years and print them
+        for year in test_years:
+            # Foprm the year as a string
+            year_str = str(year)
 
-        # Set up the fname
-        fname_this = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_str}_DJF_day.npy"
+            # Set up the fname
+            fname_this = f"HadGEM3-GC31-MM_sfcWind_Europe_{year_str}_DJF_day.npy"
 
-        # Set up the path to the file
-        path_this = os.path.join(arrs_dir, fname_this)
+            # Set up the path to the file
+            path_this = os.path.join(arrs_dir, fname_this)
 
-        # If the file exists, load it
-        if os.path.exists(path_this):
-            # Load the data
-            test_array_this = np.load(path_this)
+            # If the file exists, load it
+            if os.path.exists(path_this):
+                # Load the data
+                test_array_this = np.load(path_this)
 
-            # Subset the data for the winter indices
-            test_array_this_subset = test_array_this[:, :, winter_indices, :, :]
-        else:
-            raise FileNotFoundError(
-                f"File {path_this} does not exist. Please check the path and file name."
-            )
+                # Subset the data for the winter indices
+                test_array_this_subset = test_array_this[:, :, winter_indices, :, :]
 
-        # Set up the test array with the subsetted data
-        test_array = test_array_this_subset
+                # Store the data in the test array
+                test_array[year - test_years[0], :, :, :, :] = test_array_this_subset
+            else:
+                raise FileNotFoundError(
+                    f"File {path_this} does not exist. Please check the path and file name."
+                )
 
         # Print the shape of the test array
         print(f"Shape of test array: {test_array.shape}")
 
         # # Print the values of the test array
-        print(f"Values of test array: {test_array[0, 0, :, :, :]}")
-
-        sys.exit()
+        # print(f"Values of test array: {test_array}")
 
         # Reshape the test array to the desired shape
         reshaped_test_arr = test_array.reshape(
