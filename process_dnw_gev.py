@@ -2678,7 +2678,7 @@ def main():
         model_var_name_tas="data_tas_c_drift_bc",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
-        nsamples=10,
+        nsamples=1000,
         figsize=(5, 5),
     )
 
