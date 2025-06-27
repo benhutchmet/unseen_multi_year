@@ -1962,6 +1962,10 @@ def main():
     # Start the timer
     start = time.time()
 
+    # Set up the onshore and offshore capacities in gw
+    onshore_cap_gw = 15710.69 / 1000
+    offshore_cap_gw = 14733.02 / 1000
+
     # Hardcode the paths
     obs_tas_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_obs_tas_UK_1961-2024_DJF_detrended.csv_06-05-2025"
     obs_wind_block_min_path = "/home/users/benhutch/unseen_multi_year/dfs/block_minima_obs_wind_UK_1961-2024_DJF_detrended.csv_06-05-2025"
@@ -2129,10 +2133,15 @@ def main():
     # Set up the years
     model_init_years = np.arange(1960, 2018 + 1, 1)
 
+    # ---------------------------
+    # Import the non-detrended data here
+    # ---------------------------
+
     # Loop through the years
     for year in tqdm(model_init_years):
         # Set up the fname here
-        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_dt.csv"
+        # NOTE: Updated for no dt option here
+        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_no_dt.csv"
 
         # If the full path does not exist, raise an error
         if not os.path.exists(os.path.join(wp_output_dir, fname_this)):
@@ -2463,6 +2472,53 @@ def main():
 
     # sys.exit()
 
+    # sys.exit()
+
+    # Create a new column for data_tas_c in df_model_full_djf
+    df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
+
+    # Plot the lead pdfs to visualise the biases/drifts
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_tas_c",
+    #     obs_var_name="data_c",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (°C)",
+    #     suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
+    #     figsize=(10, 5),
+    #     # )
+
+    # # Plot the lead pdfs to visualise the biases/drifts
+    # # but for wind speed
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind",
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    #     xlabel="10m Wind Speed (m/s)",
+    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
+    #     figsize=(10, 5),
+    # )
+
+    # Apply the dirft correction to the model data
+    df_model_djf = model_drift_corr_plot(
+        model_df=df_model_djf,
+        model_var_name="data_tas_c",
+        obs_df=df_obs,
+        obs_var_name="data_c",
+        lead_name="winter_year",
+        xlabel="Temperature (°C)",
+        year1_year2_tuple=(1970, 2017),
+        lead_day_name="lead",
+        constant_period=True,
+    )
+
+    # --------------------------------
+    # Append the model WP generation data to the df_model_djf
+    # --------------------------------
+    
     # New df
     df_model_djf_new = pd.DataFrame()
 
@@ -2512,54 +2568,8 @@ def main():
     # Print the tail of the df_model_djf_new
     print(df_model_djf_new.tail())
 
-    # sys.exit()
-
-    # Set the df_model_djf to the new df
-    df_model_djf = df_model_djf_new
-
     # Subset the model data to the common_wyears
-    df_model_djf = df_model_djf[df_model_djf["effective_dec_year"].isin(common_wyears)]
-
-    # Create a new column for data_tas_c in df_model_full_djf
-    df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
-
-    # Plot the lead pdfs to visualise the biases/drifts
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_tas_c",
-    #     obs_var_name="data_c",
-    #     lead_name="winter_year",
-    #     xlabel="Temperature (°C)",
-    #     suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
-    #     figsize=(10, 5),
-    #     # )
-
-    # # Plot the lead pdfs to visualise the biases/drifts
-    # # but for wind speed
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_sfcWind",
-    #     obs_var_name="data_sfcWind",
-    #     lead_name="winter_year",
-    #     xlabel="10m Wind Speed (m/s)",
-    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
-    #     figsize=(10, 5),
-    # )
-
-    # Apply the dirft correction to the model data
-    df_model_djf = model_drift_corr_plot(
-        model_df=df_model_djf,
-        model_var_name="data_tas_c",
-        obs_df=df_obs,
-        obs_var_name="data_c",
-        lead_name="winter_year",
-        xlabel="Temperature (°C)",
-        year1_year2_tuple=(1970, 2017),
-        lead_day_name="lead",
-        constant_period=True,
-    )
+    df_model_djf_new = df_model_djf_new[df_model_djf_new["effective_dec_year"].isin(common_wyears)]
 
     # # do the same for tjhe wind speed data
     # df_model_djf = model_drift_corr_plot(
@@ -2634,19 +2644,38 @@ def main():
     # Convert both obs and model capacity factors to WP generation pre-entering
     # function below
 
+    # Get the total generation from the full wp generation df
+    df_model_djf_new["total_gen"] = (
+        df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    )
 
+    # # quantify wp_generation from the capacity factor
+    df_obs["total_gen"] = (
+        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    )
+
+    # Extract the unique effective dec years from the model df
+    unique_effective_dec_years = df_model_djf_new["effective_dec_year"].unique()
+
+    # Extract the unique effective dec years from the obs
+    unique_effective_dec_years_obs = df_obs["effective_dec_year"].unique()
+
+    # Assert that these are the same
+    assert np.array_equal(
+        unique_effective_dec_years, unique_effective_dec_years_obs
+    ), "The effective dec years in the model and obs dataframes do not match!"
 
     # Test the new function before all detrending takes place
     pivot_emp_rps_dnw(
         obs_df=df_obs,
-        model_df=df_model_djf,
-        obs_var_name_wind="data_sfcWind",
+        model_df=df_model_djf_new,
+        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
         obs_var_name_tas="data_c",
-        model_var_name_wind="data_sfcWind_drift_bc",
+        model_var_name_wind="total_gen", # no detrend model WP gen var
         model_var_name_tas="data_tas_c_drift_bc",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
-        nsamples=100,
+        nsamples=10,
         figsize=(5, 5),
     )
 
@@ -2857,12 +2886,6 @@ def main():
     # ch_df = pd.read_csv(
     #     "/home/users/benhutch/unseen_multi_year/dfs/UK_clearheads_data_daily_1960_2018_ONDJFM.csv"
     # )
-
-
-
-    # Set up the onshore and offshore capacities in gw
-    onshore_cap_gw = 15710.69 / 1000
-    offshore_cap_gw = 14733.02 / 1000
 
     # # Set up the generation in CH
     # ch_df["onshore_gen"] = ch_df["ons_cfs"] * onshore_cap_gw
