@@ -3450,7 +3450,7 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
+    # sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
@@ -3954,7 +3954,7 @@ def main():
         high_values_rare=True,
         figsize=(5, 5),
         wind_2005_toggle=False,
-        title="e) Chance > 2010-11 DnW"
+        title="e) Chance > 1995-96 DnW"
     )
 
     sys.exit()
