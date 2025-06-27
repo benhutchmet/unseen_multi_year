@@ -234,11 +234,16 @@ def main():
         # Reshape the mask to match the shape of the data
         MASK_MATRIX_RESHAPE = MASK_MATRIX_TMP
 
+        # Load the cibe
+        print(f"Loading test cube from {test_dps_file_path}...")
+        test_cube = iris.load_cube(test_dps_file_path)
+        subset_cube_locs = test_cube[0, :, :]
+
         # Process the area weighted means for the wind farm locations
         rg_farm_locations = process_area_weighted_mean(
             path_to_farm_locations_ons=path_to_farm_locations_ons,
             path_to_farm_locations_ofs=path_to_farm_locations_ofs,
-            cube=iris.load_cube(test_dps_file_path),
+            cube=subset_cube_locs,
         )
 
         # Find the min and max latitudes and longitudes
