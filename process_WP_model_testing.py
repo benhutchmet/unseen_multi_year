@@ -202,7 +202,7 @@ def main():
     )
 
     # Set up a fname for the data anomalies dt
-    fname_data_anoms_plus_obs_dt = f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018_dt.npy"
+    fname_data_anoms_plus_obs_dt = f"HadGEM3-GC31-MM_sfcWind_Europe_{current_date}_DJF_day_drift_bc_anoms_1960-2018_NO_DETREND.npy"
 
     # Set up the path to the data anomalies plus obs dt
     path_data_anoms_plus_obs_dt = os.path.join(
@@ -503,6 +503,37 @@ def main():
     # Count the number of values below 0 in the data anomalies plus obs
     num_below_zero = np.sum(data_anoms_plus_obs < 0)
     print(f"Number of values below 0 in data anomalies plus obs: {num_below_zero}")
+
+    # -----------------------------------
+    # FIXME: Now just save without detrending in this case
+    # -----------------------------------
+
+    # Directory to save the split arrays
+    output_dir = "/home/users/benhutch/unseen_multi_year/split_data_anomalies"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Assuming `data_anoms_plus_obs_dt` is the array with shape (59, 10, 91, 11, 63, 49)
+    for year_idx in range(data_anoms_plus_obs.shape[0]):
+        # Extract the array for the current year
+        year_data = data_anoms_plus_obs[year_idx]
+
+        # Define the filename for the current year
+        fname = os.path.join(
+            output_dir, f"data_anoms_plus_obs_year_{year_idx + 1}_no_dt.npy"
+        )
+
+        # Save the array to the file
+        np.save(fname, year_data)
+
+        print(f"Saved year {year_idx + 1} data to {fname}")
+
+    # End the timer and print the execution time
+    end_time = time.time()
+
+    print(f"Execution time: {end_time - start_time:.2f} seconds")
+
+    sys.exit()
+
 
     # -------------------------------
     # Now perform pivot detrending on the model array
