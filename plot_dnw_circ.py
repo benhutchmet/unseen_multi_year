@@ -6547,9 +6547,8 @@ def main():
 
     # Set up the hard coded variables
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
-    obs_df_fname = "block_maxima_obs_demand_net_wind_07-05-2025.csv"
-    model_df_fname = "block_maxima_model_demand_net_wind_07-05-2025.csv"
-    model_df_fname_extension = "block_maxima_model_demand_net_wind_27-06-2025_2020-2024.csv"
+    obs_df_fname = "block_maxima_obs_demand_net_wind_30-06-2025.csv"
+    model_df_fname = "block_maxima_model_demand_net_wind_30-06-2025.csv"
     low_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_lowest_0-10_percentile_wind_speed.csv"
     higher_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_40-60_percentile_wind_speed.csv"
     winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
@@ -6580,16 +6579,6 @@ def main():
     # If the path esists, load in the model df
     if os.path.exists(os.path.join(dfs_dir, model_df_fname)):
         model_df = pd.read_csv(os.path.join(dfs_dir, model_df_fname))
-
-        # Load in the model df with the extension
-        if os.path.exists(os.path.join(dfs_dir, model_df_fname_extension)):
-            model_df_extension = pd.read_csv(
-                os.path.join(dfs_dir, model_df_fname_extension)
-            )
-
-        # Concatenate the two model dfs
-        model_df = pd.concat([model_df, model_df_extension], ignore_index=True)
-        model_df.reset_index(drop=True, inplace=True)
     else:
         raise FileNotFoundError(f"File {model_df_fname} does not exist in {dfs_dir}")
 
@@ -6991,157 +6980,60 @@ def main():
 
     # load in the model subset files
     # NOTE: Updated for longer period
-    model_psl_subset_fname_early = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-06-27.npy"
+    model_psl_subset_fname = (
+        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
     )
-    model_psl_subset_json_fname_early = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
-
-    model_psl_subset_fname_late = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_2025-06-27.npy"
-    )
-    model_psl_subset_json_fname_late = (
-        f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
-    )
-
+    model_psl_subset_json_fname = f"HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
     # if the file does not exist then raise an error
-    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname_early)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_fname)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_psl_subset_fname_early)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_psl_subset_fname)} does not exist."
         )
 
     # load the model psl subset
-    model_psl_subset_early = np.load(os.path.join(subset_model_dir, model_psl_subset_fname_early))
+    model_psl_subset = np.load(os.path.join(subset_model_dir, model_psl_subset_fname))
 
     # print the shape of the model psl subset
-    print(f"Shape of model psl subset: {model_psl_subset_early.shape}")
+    print(f"Shape of model psl subset: {model_psl_subset.shape}")
 
     # print the values of the model psl subset
-    print(f"Model psl subset: {model_psl_subset_early}")
+    print(f"Model psl subset: {model_psl_subset}")
 
     # if the json
-    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_json_fname_early)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_psl_subset_json_fname)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_psl_subset_json_fname_early)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_psl_subset_json_fname)} does not exist."
         )
 
     # load the json file
-    with open(os.path.join(subset_model_dir, model_psl_subset_json_fname_early), "r") as f:
-        model_psl_subset_index_list_early = json.load(f)
-
-    # Load the late file
-    model_psl_subset_late = np.load(
-        os.path.join(subset_model_dir, model_psl_subset_fname_late)
-    )
-
-    # Load the json file for the late file
-    with open(
-        os.path.join(subset_model_dir, model_psl_subset_json_fname_late), "r"
-    ) as f:
-        model_psl_subset_index_list_late = json.load(f)
-
-    # Combine the early and late model psl subsets on the 0th axis
-    model_psl_subset = np.concatenate(
-        (model_psl_subset_early, model_psl_subset_late), axis=0
-    )
-
-    # Print the json keys
-    print(f"Keys in model psl subset index list: {model_psl_subset_index_list_early.keys()}")
-    print(f"Keys in model psl subset index list late: {model_psl_subset_index_list_late.keys()}")
-
-    # Combine the dictionaries
-    model_psl_combined_dict = {
-        key: model_psl_subset_index_list_early[key] + model_psl_subset_index_list_late[key]
-        for key in model_psl_subset_index_list_early.keys()
-    }
-
-    # Print the combined dictionary keys to verify
-    print(f"Keys in combined dictionary: {model_psl_combined_dict.keys()}")
-
-    # Print the shape of the model psl subset
-    print(f"Shape of model psl subset: {model_psl_subset.shape}")
-
-    # Print the shape of the early file
-    print(f"Shape of early model psl subset: {model_psl_subset_early.shape}")
-    # Print the shape of the late file
-    print(f"Shape of late model psl subset: {model_psl_subset_late.shape}")
-
-    # Set up the model psl subset index list
-    model_psl_subset_index_list = model_psl_combined_dict
-
-    # print the length of the model psl subset index list
-    # Print the length of the model psl subset index list
-    print(
-        f"Length of model psl subset index list: {np.shape(model_psl_subset_index_list['init_year'])}"
-    )
-
-    # print the values of the model psl subset index list
-    print(f"Model psl subset index list: {model_psl_subset_index_list}")
-
-    # print the keys in the index list
-    print(f"model_psl_subset index list keys: {model_psl_subset_index_list.keys()}")
+    with open(os.path.join(subset_model_dir, model_psl_subset_json_fname), "r") as f:
+        model_psl_subset_index_list = json.load(f)
 
     # set up the fnames for sfcWind
-    model_wind_subset_fname_early = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-06-27.npy"
+    model_wind_subset_fname = (
+        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
     )
-    model_wind_subset_json_fname_early = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-06-27.json"
-
-    model_wind_subset_fname_late = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_2025-06-27.npy"
-    )
-    model_wind_subset_json_fname_late = (
-        f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
-    )
+    model_wind_subset_json_fname = f"HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
     # if the file does not exist then raise an error
-    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname_early)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_fname)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_wind_subset_fname_early)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_wind_subset_fname)} does not exist."
         )
 
     # load the model wind subset
-    model_wind_subset_early = np.load(os.path.join(subset_model_dir, model_wind_subset_fname_early))
-
-    # Load the model wind subset late
-    model_wind_subset_late = np.load(
-        os.path.join(subset_model_dir, model_wind_subset_fname_late)
-    )
-
-    # Combine teh early and late model wind subsets on the 0th axis
-    model_wind_subset = np.concatenate(
-        (model_wind_subset_early, model_wind_subset_late), axis=0
-    )
-
-    # # print the shape of the model wind subset
-    # print(f"Shape of model wind subset: {model_wind_subset.shape}")
-
-    # # print the values of the model wind subset
-    # print(f"Model wind subset: {model_wind_subset}")
+    model_wind_subset = np.load(os.path.join(subset_model_dir, model_wind_subset_fname))
 
     # if the json
-    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_json_fname_early)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_wind_subset_json_fname)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_wind_subset_json_fname_early)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_wind_subset_json_fname)} does not exist."
         )
 
     # load the json file
-    with open(os.path.join(subset_model_dir, model_wind_subset_json_fname_early), "r") as f:
-        model_wind_subset_index_list_early = json.load(f)
-
-    # Load the json file for the late file
-    with open(
-        os.path.join(subset_model_dir, model_wind_subset_json_fname_late), "r"
-    ) as f:
-        model_wind_subset_index_list_late = json.load(f)
-
-    # Combine the dictionaries
-    model_wind_combined_dict = {
-        key: model_wind_subset_index_list_early[key] + model_wind_subset_index_list_late[key]
-        for key in model_wind_subset_index_list_early.keys()
-    }
-
-    model_wind_subset_index_list = model_wind_combined_dict
+    with open(os.path.join(subset_model_dir, model_wind_subset_json_fname), "r") as f:
+        model_wind_subset_index_list = json.load(f)
 
     # # print the length of the model wind subset index list
     # # Print the length of the model wind subset index list
@@ -7155,70 +7047,32 @@ def main():
 
     # set up the fnames for tas
     # NOTE: Updated for longer period
-    model_temp_subset_fname_early = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-06-27.npy"
+    model_temp_subset_fname = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
     )
-    model_temp_subset_json_fname_early = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_low_wind_0-10_index_list_2025-06-27.json"
+    model_temp_subset_json_fname = (
+        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
     )
-
-    model_temp_subset_fname_late = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-27.npy"
-    )
-    model_temp_subset_json_fname_late = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-27.json"
-    )
-
 
     # if the file does not exist then raise an error
-    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname_early)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_temp_subset_fname_early)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_temp_subset_fname)} does not exist."
         )
 
     # load the model temperature subset
-    model_temp_subset_early = np.load(os.path.join(subset_model_dir, model_temp_subset_fname_early))
-
-    # Load the model temperature subset late
-    model_temp_subset_late = np.load(
-        os.path.join(subset_model_dir, model_temp_subset_fname_late)
-    )
-
-    # Combine the early and late model temperature subsets on the 0th axis
-    model_temp_subset = np.concatenate(
-        (model_temp_subset_early, model_temp_subset_late), axis=0
-    )
-
-    # # print the shape of the model temperature subset
-    # print(f"Shape of model temperature subset: {model_temp_subset.shape}")
-
-    # # print the values of the model temperature subset
-    # print(f"Model temperature subset: {model_temp_subset}")
+    model_temp_subset = np.load(os.path.join(subset_model_dir, model_temp_subset_fname))
 
     # if the json
-    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_json_fname_early)):
+    if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_json_fname)):
         raise FileNotFoundError(
-            f"File {os.path.join(subset_model_dir, model_temp_subset_json_fname_early)} does not exist."
+            f"File {os.path.join(subset_model_dir, model_temp_subset_json_fname)} does not exist."
         )
 
     # load the json file
-    with open(os.path.join(subset_model_dir, model_temp_subset_json_fname_early), "r") as f:
-        model_temp_subset_index_list_early = json.load(f)
-
-    # Load the json file for the late file
-    with open(
-        os.path.join(subset_model_dir, model_temp_subset_json_fname_late), "r"
-    ) as f:
-        model_temp_subset_index_list_late = json.load(f)
-
-    # Combine the dictionaries
-    model_temp_combined_dict = {
-        key: model_temp_subset_index_list_early[key] + model_temp_subset_index_list_late[key]
-        for key in model_temp_subset_index_list_early.keys()
-    }
-
-    model_temp_subset_index_list = model_temp_combined_dict
-
+    with open(os.path.join(subset_model_dir, model_temp_subset_json_fname), "r") as f:
+        model_temp_subset_index_list = json.load(f)
+        
     # # Set up the fnames for the vas data
     # model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
     # model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
