@@ -7073,51 +7073,51 @@ def main():
     with open(os.path.join(subset_model_dir, model_temp_subset_json_fname), "r") as f:
         model_temp_subset_index_list = json.load(f)
 
-    # # Set up the fnames for the vas data
-    # model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
-    # model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
+    # Set up the fnames for the vas data
+    model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
+    model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
-    # # if the model subset file does not exist
-    # if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_fname)):
-    #     raise FileNotFoundError(
-    #         f"File {os.path.join(subset_model_dir, model_vas_subset_fname)} does not exist."
-    #     )
+    # if the model subset file does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_vas_subset_fname)} does not exist."
+        )
 
-    # # load the model vas subset
-    # model_vas_subset = np.load(os.path.join(subset_model_dir, model_vas_subset_fname))
+    # load the model vas subset
+    model_vas_subset = np.load(os.path.join(subset_model_dir, model_vas_subset_fname))
 
-    # # If the json does not exist
-    # if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_json_fname)):
-    #     raise FileNotFoundError(
-    #         f"File {os.path.join(subset_model_dir, model_vas_subset_json_fname)} does not exist."
-    #     )
+    # If the json does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_vas_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_vas_subset_json_fname)} does not exist."
+        )
 
-    # # load the json file
-    # with open(os.path.join(subset_model_dir, model_vas_subset_json_fname), "r") as f:
-    #     model_vas_subset_index_list = json.load(f)
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_vas_subset_json_fname), "r") as f:
+        model_vas_subset_index_list = json.load(f)
 
-    # # Set up the fnames for the uas data
-    # model_uas_subset_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
-    # model_uas_subset_json_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
+    # Set up the fnames for the uas data
+    model_uas_subset_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
+    model_uas_subset_json_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
-    # # if the model subset file does not exist
-    # if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_fname)):
-    #     raise FileNotFoundError(
-    #         f"File {os.path.join(subset_model_dir, model_uas_subset_fname)} does not exist."
-    #     )
+    # if the model subset file does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_uas_subset_fname)} does not exist."
+        )
 
-    # # load the model uas subset
-    # model_uas_subset = np.load(os.path.join(subset_model_dir, model_uas_subset_fname))
+    # load the model uas subset
+    model_uas_subset = np.load(os.path.join(subset_model_dir, model_uas_subset_fname))
 
-    # # If the json does not exist
-    # if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_json_fname)):
-    #     raise FileNotFoundError(
-    #         f"File {os.path.join(subset_model_dir, model_uas_subset_json_fname)} does not exist."
-    #     )
+    # If the json does not exist
+    if not os.path.exists(os.path.join(subset_model_dir, model_uas_subset_json_fname)):
+        raise FileNotFoundError(
+            f"File {os.path.join(subset_model_dir, model_uas_subset_json_fname)} does not exist."
+        )
 
-    # # load the json file
-    # with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
-    #     model_uas_subset_index_list = json.load(f)
+    # load the json file
+    with open(os.path.join(subset_model_dir, model_uas_subset_json_fname), "r") as f:
+        model_uas_subset_index_list = json.load(f)
 
     # # Set up the fnames for the psl low wind subset
     # model_low_wind_psl_subset_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_DnW_subset_low_wind_0-10_2025-05-22.npy"
@@ -7421,8 +7421,8 @@ def main():
     model_psl_clim = np.load(os.path.join(model_clim_dir, psl_clim_fname))
     model_wind_clim = np.load(os.path.join(model_clim_dir, sfcWind_clim_fname))
     model_tas_clim = np.load(os.path.join(model_clim_dir, tas_clim_fname))
-    # model_vas_clim = np.load(os.path.join(model_clim_dir, vas_clim_fname))
-    # model_uas_clim = np.load(os.path.join(model_clim_dir, uas_clim_fname))
+    model_vas_clim = np.load(os.path.join(model_clim_dir, vas_clim_fname))
+    model_uas_clim = np.load(os.path.join(model_clim_dir, uas_clim_fname))
 
     # print the shape of the climatology data
     print(f"Shape of obs psl climatology data: {model_psl_clim.shape}")
