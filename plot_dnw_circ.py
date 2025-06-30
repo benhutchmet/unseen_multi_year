@@ -5095,7 +5095,7 @@ def plot_var_composites_model(
         subset_arr_this_model_mean = np.mean(subset_arr_this_model_full, axis=0)
 
         # if the variable is not psl
-        if var_name != "psl":
+        if var_name not in ["psl", "uas", "vas"]:
             # Calculate the model anoms
             anoms_this_model = subset_arr_this_model_mean - clim_arrs_model[i]
         else:
