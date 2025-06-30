@@ -7995,19 +7995,19 @@ def main():
         model_wind_subset,
     ]
 
-    # # Set up the subset arrs model vas
-    # subset_arrs_model_vas = [
-    #     model_vas_subset,
-    #     model_vas_subset,
-    #     model_vas_subset,
-    # ]
+    # Set up the subset arrs model vas
+    subset_arrs_model_vas = [
+        model_vas_subset,
+        model_vas_subset,
+        model_vas_subset,
+    ]
 
-    # # Set up the subset arrs model uas
-    # subset_arrs_model_uas = [
-    #     model_uas_subset,
-    #     model_uas_subset,
-    #     model_uas_subset,
-    # ]
+    # Set up the subset arrs model uas
+    subset_arrs_model_uas = [
+        model_uas_subset,
+        model_uas_subset,
+        model_uas_subset,
+    ]
 
     # # Set up the clim arrs obs
     # clim_arrs_obs = [
@@ -8051,19 +8051,19 @@ def main():
         model_wind_clim,
     ]
 
-    # # Set up the clim arrs model vas
-    # clim_arrs_model_vas = [
-    #     model_vas_clim,
-    #     model_vas_clim,
-    #     model_vas_clim,
-    # ]
+    # Set up the clim arrs model vas
+    clim_arrs_model_vas = [
+        model_vas_clim,
+        model_vas_clim,
+        model_vas_clim,
+    ]
 
-    # # Set up the clim arrs model uas
-    # clim_arrs_model_uas = [
-    #     model_uas_clim,
-    #     model_uas_clim,
-    #     model_uas_clim,
-    # ]
+    # Set up the clim arrs model uas
+    clim_arrs_model_uas = [
+        model_uas_clim,
+        model_uas_clim,
+        model_uas_clim,
+    ]
 
     # # Set up the dates lists obs
     # dates_lists_obs = [
@@ -8108,18 +8108,18 @@ def main():
     ]
 
     # # Set up the model index dicts vas
-    # model_index_dicts_vas = [
-    #     model_vas_subset_index_list,
-    #     model_vas_subset_index_list,
-    #     model_vas_subset_index_list,
-    # ]
+    model_index_dicts_vas = [
+        model_vas_subset_index_list,
+        model_vas_subset_index_list,
+        model_vas_subset_index_list,
+    ]
 
-    # # Set up the model index dicts uas
-    # model_index_dicts_uas = [
-    #     model_uas_subset_index_list,
-    #     model_uas_subset_index_list,
-    #     model_uas_subset_index_list,
-    # ]
+    # Set up the model index dicts uas
+    model_index_dicts_uas = [
+        model_uas_subset_index_list,
+        model_uas_subset_index_list,
+        model_uas_subset_index_list,
+    ]
 
     # Set up the lats path
     lats_paths = [
@@ -8624,21 +8624,33 @@ def main():
         figsize=(plot_width, plot_height),
     )
 
-    sys.exit()
-
-    # # # test the new function
-    # # plot_var_composites_model(
-    # #     subset_dfs_model=subset_dfs_model,
-    # #     subset_arrs_model=subset_arrs_model_uas,
-    # #     clim_arrs_model=clim_arrs_model_uas,
-    # #     model_index_dicts=model_index_dicts_uas,
-    # #     lats_path=lats_europe_uas,
-    # #     lons_path=lons_europe_uas,
-    # #     var_name="uas",
-    # #     figsize=(10, 10),
-    # # )
-
     # sys.exit()
+
+    # test the new function
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model_uas,
+        clim_arrs_model=clim_arrs_model_uas,
+        model_index_dicts=model_index_dicts_uas,
+        lats_path=lats_europe_uas,
+        lons_path=lons_europe_uas,
+        var_name="uas",
+        figsize=(10, 10),
+    )
+
+    # Do the same for vas
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model_vas,
+        clim_arrs_model=clim_arrs_model_vas,
+        model_index_dicts=model_index_dicts_vas,
+        lats_path=lats_europe_vas,
+        lons_path=lons_europe_vas,
+        var_name="vas",
+        figsize=(10, 10),
+    )
+
+    sys.exit()
 
     # test the function for just plotting the tas composites
     plot_tas_composites(
