@@ -4058,17 +4058,17 @@ def main():
 
     # sys.exit()
 
-    # Susbet to effective dec years 2020-2024 inclusive
-    block_max_obs_dnw = block_max_obs_dnw[
-        block_max_obs_dnw["effective_dec_year"].dt.year.isin(
-            np.arange(2020, 2025)
-        )
-    ]
-    block_max_model_dnw = block_max_model_dnw[
-        block_max_model_dnw["effective_dec_year"].dt.year.isin(
-            np.arange(2020, 2025)
-        )
-    ]
+    # # Susbet to effective dec years 2020-2024 inclusive
+    # block_max_obs_dnw = block_max_obs_dnw[
+    #     block_max_obs_dnw["effective_dec_year"].dt.year.isin(
+    #         np.arange(2020, 2025)
+    #     )
+    # ]
+    # block_max_model_dnw = block_max_model_dnw[
+    #     block_max_model_dnw["effective_dec_year"].dt.year.isin(
+    #         np.arange(2020, 2025)
+    #     )
+    # ]
 
     # ensure the effective dec year is a datetime and is just the year in the
     # model
@@ -4108,11 +4108,11 @@ def main():
 
     # set up a fname for the obs dnw df
     obs_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_obs_demand_net_wind_27-06-2025_2020-2024.csv"
+        dfs_dir, "block_maxima_obs_demand_net_wind_30-06-2025_2020-2024.csv"
     )
     # set up a fname for the model dnw df
     model_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_model_demand_net_wind_27-06-2025_2020-2024.csv"
+        dfs_dir, "block_maxima_model_demand_net_wind_30-06-2025_2020-2024.csv"
     )
 
     # if the fpath does not exist, svae the dtaa
