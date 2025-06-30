@@ -151,10 +151,16 @@ def main():
     # sys.exit()
 
     # Set up the test file path
+    # test_file_path = os.path.join(
+    #     arrs_dir,
+    #     f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
+    # )
+    # same but for uas
     test_file_path = os.path.join(
         arrs_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
+        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day_*_*.npy",
     )
+
 
     # Glob the test file path
     test_file_paths = glob.glob(test_file_path)
@@ -238,7 +244,7 @@ def main():
         # set up the file to extract
         model_data_path = os.path.join(
             arrs_dir,
-            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}.npy",
+            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}_*_*.npy",
         )
 
         # glob the model data path
