@@ -6547,8 +6547,8 @@ def main():
 
     # Set up the hard coded variables
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
-    obs_df_fname = "block_maxima_obs_demand_net_wind_30-06-2025.csv"
-    model_df_fname = "block_maxima_model_demand_net_wind_30-06-2025.csv"
+    obs_df_fname = "block_maxima_obs_demand_net_wind_30-06-2025_2020-2024.csv"
+    model_df_fname = "block_maxima_model_demand_net_wind_30-06-2025_2020-2024.csv"
     low_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_lowest_0-10_percentile_wind_speed.csv"
     higher_wind_path = "/home/users/benhutch/unseen_multi_year/dfs/model_all_DJF_days_40-60_percentile_wind_speed.csv"
     winter_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/obs/"
@@ -7072,7 +7072,7 @@ def main():
     # load the json file
     with open(os.path.join(subset_model_dir, model_temp_subset_json_fname), "r") as f:
         model_temp_subset_index_list = json.load(f)
-        
+
     # # Set up the fnames for the vas data
     # model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_{season}_{time_freq}_DnW_subset_2025-05-07.npy"
     # model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-05-07.json"
