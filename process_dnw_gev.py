@@ -2831,33 +2831,6 @@ def main():
     #     figsize=(10, 5),
     # )
 
-    # Set up the directory to save to
-    save_dir_dfs = "/home/users/benhutch/unseen_multi_year/dfs"
-
-    # Set up a fname for the full field model data
-    full_field_model_fname = (
-        "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
-    )
-    full_field_obs_fname = (
-        "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_07-05-2025.csv"
-    )
-
-    # Set up the paths
-    full_field_model_path = os.path.join(save_dir_dfs, full_field_model_fname)
-    full_field_obs_path = os.path.join(save_dir_dfs, full_field_obs_fname)
-
-    # If the file does not exist
-    if not os.path.exists(full_field_model_path):
-        print("Saving the model data")
-        # Save the model data
-        df_model_djf.to_csv(full_field_model_path, index=False)
-
-    # If the file does not exist
-    if not os.path.exists(full_field_obs_path):
-        print("Saving the obs data")
-        # Save the obs data
-        df_obs.to_csv(full_field_obs_path, index=False)
-
     # Plot teh block min distribution
     # relative to the full distribution
     # For termpatrue first
@@ -3203,6 +3176,35 @@ def main():
 
     # print the shape of the df
     print(f"Shape of df_model_djf: {df_model_djf.shape}")
+
+        # Set up the directory to save to
+    save_dir_dfs = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # Set up a fname for the full field model data
+    full_field_model_fname = (
+        "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_01-07-2025_dnw.csv"
+    )
+    full_field_obs_fname = (
+        "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_01-07-2025_dnw.csv"
+    )
+
+    # Set up the paths
+    full_field_model_path = os.path.join(save_dir_dfs, full_field_model_fname)
+    full_field_obs_path = os.path.join(save_dir_dfs, full_field_obs_fname)
+
+    # If the file does not exist
+    if not os.path.exists(full_field_model_path):
+        print("Saving the model data")
+        # Save the model data
+        df_model_djf.to_csv(full_field_model_path, index=False)
+
+    # If the file does not exist
+    if not os.path.exists(full_field_obs_path):
+        print("Saving the obs data")
+        # Save the obs data
+        df_obs.to_csv(full_field_obs_path, index=False)
+
+    sys.exit()
 
     # sys.exit()
 

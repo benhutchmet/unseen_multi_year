@@ -6568,7 +6568,7 @@ def main():
 
     season = "DJF"
     time_freq = "day"
-    len_winter_days = 5324
+    len_winter_days = 5776
 
     # If the path esists, load in the obs df
     if os.path.exists(os.path.join(dfs_dir, obs_df_fname)):
@@ -6771,190 +6771,199 @@ def main():
     # print the columns in obs df
     print(f"Columns in obs df: {obs_df.columns}")
 
+    # Print the head and tail of the obs df
+    print("Head of the obs df:")
+    print(obs_df.head())
+
+    print("Tail of the obs df:")
+    print(obs_df.tail())
+
     # print the columns in model df
     print(f"Columns in model df: {model_df.columns}")
 
+    sys.exit()
+
+    # Load the psl data for the north atlantic region
+    obs_psl_arr = load_obs_data(
+        variable="psl",
+        region="NA",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2024),
+        winter_dim_shape=len_winter_days,
+        lat_shape=90,  # NA region
+        lon_shape=96,  # NA region
+        arrs_dir=winter_arrs_dir,
+    )
+
+    # Do the same for temperature
+    obs_temp_arr = load_obs_data(
+        variable="tas",
+        region="Europe",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2024),
+        winter_dim_shape=len_winter_days,
+        lat_shape=63,  # Europe region
+        lon_shape=49,  # Europe region
+        arrs_dir=winter_arrs_dir,
+    )
+
+    # Do the same for wind speed
+    obs_wind_arr = load_obs_data(
+        variable="sfcWind",
+        region="Europe",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2024),
+        winter_dim_shape=len_winter_days,
+        lat_shape=63,  # Europe region
+        lon_shape=49,  # Europe region
+        arrs_dir=winter_arrs_dir,
+    )
+
+    # Calculate the psl climatology
+    obs_psl_clim = np.mean(obs_psl_arr, axis=0)
+    obs_tas_clim = np.mean(obs_temp_arr, axis=0)
+    obs_wind_clim = np.mean(obs_wind_arr, axis=0)
+
+    # print the head of the dfs
+    print("Head of the obs df:")
+    print(obs_df.head())
+
+    # print the tail of the dfs
+    print("Tail of the obs df:")
+    print(obs_df.tail())
+
     # sys.exit()
 
-    # # Load the psl data for the north atlantic region
-    # obs_psl_arr = load_obs_data(
-    #     variable="psl",
-    #     region="NA",
-    #     season=season,
-    #     time_freq=time_freq,
-    #     winter_years=(1960, 2018),
-    #     winter_dim_shape=len_winter_days,
-    #     lat_shape=90,  # NA region
-    #     lon_shape=96,  # NA region
-    #     arrs_dir=winter_arrs_dir,
-    # )
-
-    # # Do the same for temperature
-    # obs_temp_arr = load_obs_data(
-    #     variable="tas",
-    #     region="Europe",
-    #     season=season,
-    #     time_freq=time_freq,
-    #     winter_years=(1960, 2018),
-    #     winter_dim_shape=len_winter_days,
-    #     lat_shape=63,  # Europe region
-    #     lon_shape=49,  # Europe region
-    #     arrs_dir=winter_arrs_dir,
-    # )
-
-    # # Do the same for wind speed
-    # obs_wind_arr = load_obs_data(
-    #     variable="sfcWind",
-    #     region="Europe",
-    #     season=season,
-    #     time_freq=time_freq,
-    #     winter_years=(1960, 2018),
-    #     winter_dim_shape=len_winter_days,
-    #     lat_shape=63,  # Europe region
-    #     lon_shape=49,  # Europe region
-    #     arrs_dir=winter_arrs_dir,
-    # )
-
-    # # Calculate the psl climatology
-    # obs_psl_clim = np.mean(obs_psl_arr, axis=0)
-    # obs_tas_clim = np.mean(obs_temp_arr, axis=0)
-    # obs_wind_clim = np.mean(obs_wind_arr, axis=0)
-
-    # # print the head of the dfs
-    # print("Head of the obs df:")
-    # print(obs_df.head())
-
-    # # print the tail of the dfs
-    # print("Tail of the obs df:")
-    # print(obs_df.tail())
-
-    # # extract the current date
-    # # NOTE: Hardcode the current date for now
-    # # current_date = "2025-05-08"
-    # # current_date = datetime.now().strftime("%Y-%m-%d")
-    # # current_date = f"{current_date}_cold_temps"
+    # extract the current date
+    # NOTE: Hardcode the current date for now
+    # current_date = "2025-05-08"
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    # current_date = f"{current_date}_cold_temps"
     # current_date = "2025-05-28_cold_temps"
 
-    # # Set up fnames for the psl data
-    # psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
-    # psl_times_fname = (
-    #     f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
-    # )
+    # Set up fnames for the psl data
+    psl_fname = f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    psl_times_fname = (
+        f"ERA5_psl_NA_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    )
 
-    # # set up fnames for the temperature data
-    # # NOTE: Detrended temperature here
-    # temp_fname = (
-    #     f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
-    # )
-    # temp_times_fname = (
-    #     f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
-    # )
+    # set up fnames for the temperature data
+    # NOTE: Detrended temperature here
+    temp_fname = (
+        f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_dtr_{current_date}.npy"
+    )
+    temp_times_fname = (
+        f"ERA5_tas_Europe_1960-2018_{season}_{time_freq}_times_dtr_{current_date}.npy"
+    )
 
-    # # set up fnames for the wind data
-    # wind_fname = (
-    #     f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
-    # )
-    # wind_times_fname = (
-    #     f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
-    # )
+    # set up fnames for the wind data
+    wind_fname = (
+        f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_{current_date}.npy"
+    )
+    wind_times_fname = (
+        f"ERA5_sfcWind_Europe_1960-2018_{season}_{time_freq}_times_{current_date}.npy"
+    )
 
-    # # if the psl files do not exist then  create them
-    # if not os.path.exists(
-    #     os.path.join(arrs_persist_dir, psl_fname)
-    # ) and not os.path.exists(os.path.join(arrs_persist_dir, psl_times_fname)):
-    #     # Call the function to load the obs data
-    #     psl_subset, psl_dates_list = extract_obs_data(
-    #         obs_df=obs_df_low_temp,
-    #         variable="psl",
-    #         region="NA",
-    #         time_freq=time_freq,
-    #         season=season,
-    #         lat_shape=90,
-    #         lon_shape=96,
-    #         arrs_dir=winter_arrs_dir,
-    #         metadata_dir=metadata_dir,
-    #         lats_path=os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-    #         ),
-    #         lons_path=os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-    #         ),
-    #     )
+    # if the psl files do not exist then  create them
+    if not os.path.exists(
+        os.path.join(arrs_persist_dir, psl_fname)
+    ) and not os.path.exists(os.path.join(arrs_persist_dir, psl_times_fname)):
+        # Call the function to load the obs data
+        psl_subset, psl_dates_list = extract_obs_data(
+            obs_df=obs_df,
+            variable="psl",
+            region="NA",
+            time_freq=time_freq,
+            season=season,
+            lat_shape=90,
+            lon_shape=96,
+            arrs_dir=winter_arrs_dir,
+            metadata_dir=metadata_dir,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+        )
 
-    #     # Save the data to the arrs_persist_dir
-    #     np.save(os.path.join(arrs_persist_dir, psl_fname), psl_subset)
-    #     np.save(os.path.join(arrs_persist_dir, psl_times_fname), psl_dates_list)
+        # Save the data to the arrs_persist_dir
+        np.save(os.path.join(arrs_persist_dir, psl_fname), psl_subset)
+        np.save(os.path.join(arrs_persist_dir, psl_times_fname), psl_dates_list)
 
-    # # if the temperature files do not exist then  create them
-    # if not os.path.exists(
-    #     os.path.join(arrs_persist_dir, temp_fname)
-    # ) and not os.path.exists(os.path.join(arrs_persist_dir, temp_times_fname)):
-    #     # Call the function to load the obs data
-    #     temp_subset, temp_dates_list = extract_obs_data(
-    #         obs_df=obs_df_low_temp,
-    #         variable="tas",
-    #         region="Europe",
-    #         time_freq=time_freq,
-    #         season=season,
-    #         lat_shape=63,
-    #         lon_shape=49,
-    #         arrs_dir=winter_arrs_dir,
-    #         metadata_dir=metadata_dir,
-    #         lats_path=os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #         lons_path=os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #     )
+    # if the temperature files do not exist then  create them
+    if not os.path.exists(
+        os.path.join(arrs_persist_dir, temp_fname)
+    ) and not os.path.exists(os.path.join(arrs_persist_dir, temp_times_fname)):
+        # Call the function to load the obs data
+        temp_subset, temp_dates_list = extract_obs_data(
+            obs_df=obs_df,
+            variable="tas",
+            region="Europe",
+            time_freq=time_freq,
+            season=season,
+            lat_shape=63,
+            lon_shape=49,
+            arrs_dir=winter_arrs_dir,
+            metadata_dir=metadata_dir,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+        )
 
-    #     # Save the data to the arrs_persist_dir
-    #     np.save(os.path.join(arrs_persist_dir, temp_fname), temp_subset)
-    #     np.save(os.path.join(arrs_persist_dir, temp_times_fname), temp_dates_list)
+        # Save the data to the arrs_persist_dir
+        np.save(os.path.join(arrs_persist_dir, temp_fname), temp_subset)
+        np.save(os.path.join(arrs_persist_dir, temp_times_fname), temp_dates_list)
 
-    # # if the wind files do not exist then  create them
-    # if not os.path.exists(
-    #     os.path.join(arrs_persist_dir, wind_fname)
-    # ) and not os.path.exists(os.path.join(arrs_persist_dir, wind_times_fname)):
-    #     # Call the function to load the obs data
-    #     wind_subset, wind_dates_list = extract_obs_data(
-    #         obs_df=obs_df_low_temp,
-    #         variable="sfcWind",
-    #         region="Europe",
-    #         time_freq=time_freq,
-    #         season=season,
-    #         lat_shape=63,
-    #         lon_shape=49,
-    #         arrs_dir=winter_arrs_dir,
-    #         metadata_dir=metadata_dir,
-    #         lats_path=os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #         lons_path=os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #     )
+    # if the wind files do not exist then  create them
+    if not os.path.exists(
+        os.path.join(arrs_persist_dir, wind_fname)
+    ) and not os.path.exists(os.path.join(arrs_persist_dir, wind_times_fname)):
+        # Call the function to load the obs data
+        wind_subset, wind_dates_list = extract_obs_data(
+            obs_df=obs_df,
+            variable="sfcWind",
+            region="Europe",
+            time_freq=time_freq,
+            season=season,
+            lat_shape=63,
+            lon_shape=49,
+            arrs_dir=winter_arrs_dir,
+            metadata_dir=metadata_dir,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+        )
 
-    #     # Save the data to the arrs_persist_dir
-    #     np.save(os.path.join(arrs_persist_dir, wind_fname), wind_subset)
-    #     np.save(os.path.join(arrs_persist_dir, wind_times_fname), wind_dates_list)
+        # Save the data to the arrs_persist_dir
+        np.save(os.path.join(arrs_persist_dir, wind_fname), wind_subset)
+        np.save(os.path.join(arrs_persist_dir, wind_times_fname), wind_dates_list)
 
-    # # load the psl data
-    # obs_psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
-    # obs_psl_dates_list = np.load(
-    #     os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
-    # )
+    # load the psl data
+    obs_psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
+    obs_psl_dates_list = np.load(
+        os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
+    )
 
-    # # print the shape of psl sset
-    # print(f"Shape of psl subset: {obs_psl_subset.shape}")
+    # print the shape of psl sset
+    print(f"Shape of psl subset: {obs_psl_subset.shape}")
 
-    # # print the shape of psl dates list
-    # print(f"Shape of psl dates list: {obs_psl_dates_list.shape}")
+    # print the shape of psl dates list
+    print(f"Shape of psl dates list: {obs_psl_dates_list.shape}")
 
-    # # print the values of psl dates list
-    # print(f"PSL dates list: {obs_psl_dates_list}")
+    # print the values of psl dates list
+    print(f"PSL dates list: {obs_psl_dates_list}")
 
-    # # sys.exit()
+    sys.exit()
 
     # # load the temperature data
     # obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
