@@ -759,6 +759,43 @@ def plot_emp_rps(
     if title is not None:
         ax.set_title(title, fontsize=12)
 
+    # Now find the rp for the worst event
+    obs_extreme_index_central = np.abs(
+        model_df_central_rps["sorted"] - extreme_value
+    ).argmin()
+
+    # Now do the same for the 0.025 and 0.975 quantiles
+    obs_extreme_index_025 = np.abs(
+        np.quantile(model_df_bootstrap_rps, 0.025, axis=0) - extreme_value
+    ).argmin()
+    obs_extreme_index_975 = np.abs(
+        np.quantile(model_df_bootstrap_rps, 0.975, axis=0) - extreme_value
+    ).argmin()
+
+    # Print the return period for the central estimate
+    print(
+        f"Return period for the central estimate: {model_df_central_rps['period'][obs_extreme_index_central]}"
+    )
+    # Print the return period for the 0.025 quantile
+    print(
+        f"Return period for the 0.025 quantile: {model_df_central_rps['period'][obs_extreme_index_025]}"
+    )
+    # Print the return period for the 0.975 quantile
+    print(
+        f"Return period for the 0.975 quantile: {model_df_central_rps['period'][obs_extreme_index_975]}"
+    )
+
+    # Print the full row
+    print(
+        f"Full row for the central estimate: {model_df_central_rps.iloc[obs_extreme_index_central]}"
+    )
+    print(
+        f"Full row for the 0.025 quantile: {model_df_central_rps.iloc[obs_extreme_index_025]}"
+    )
+    print(
+        f"Full row for the 0.975 quantile: {model_df_central_rps.iloc[obs_extreme_index_975]}"
+    )
+
     return None
 
 
@@ -3840,34 +3877,34 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # Test the new function
-    pivot_emp_rps(
-        obs_df=block_minima_obs_tas,
-        model_df=block_minima_model_tas_drift_corr,
-        obs_val_name="data_tas_c_min",
-        model_val_name="data_tas_c_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="tas",
-        nsamples=1000,
-        figsize=(5, 5),
-        title="b) Chance of < 1986-87 temperature by year",
-    )
+    # # Test the new function
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_tas,
+    #     model_df=block_minima_model_tas_drift_corr,
+    #     obs_val_name="data_tas_c_min",
+    #     model_val_name="data_tas_c_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="tas",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    #     title="b) Chance of < 1986-87 temperature by year",
+    # )
 
-    # DO the same for wind speed
-    pivot_emp_rps(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind_drift_corr,
-        obs_val_name="data_sfcWind_min",
-        model_val_name="data_sfcWind_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="sfcWind",
-        nsamples=1000,
-        figsize=(5, 5),
-        wind_2005_toggle=True,
-        title="d) Chance of < 2005-06 wind speed by year"
-    )
+    # # DO the same for wind speed
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind_drift_corr,
+    #     obs_val_name="data_sfcWind_min",
+    #     model_val_name="data_sfcWind_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="sfcWind",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    #     wind_2005_toggle=True,
+    #     title="d) Chance of < 2005-06 wind speed by year"
+    # )
 
     # Do the same for wind speed short
     # pivot_emp_rps(
@@ -3883,7 +3920,7 @@ def main():
     #     wind_2005_toggle=True,
     # )
 
-    sys.exit()
+    # sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
