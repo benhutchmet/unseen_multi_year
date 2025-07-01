@@ -42,7 +42,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -4037,7 +4037,7 @@ def main():
     print("Block max obs dnw max row")
     print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
 
-    # sys.exit()
+    sys.exit()
 
     # # # plot the GEV fitted return periods
     # # plot_gev_rps(
