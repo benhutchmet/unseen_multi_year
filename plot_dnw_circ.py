@@ -6781,51 +6781,49 @@ def main():
     # print the columns in model df
     print(f"Columns in model df: {model_df.columns}")
 
-    sys.exit()
+    # # Load the psl data for the north atlantic region
+    # obs_psl_arr = load_obs_data(
+    #     variable="psl",
+    #     region="NA",
+    #     season=season,
+    #     time_freq=time_freq,
+    #     winter_years=(1960, 2024),
+    #     winter_dim_shape=len_winter_days,
+    #     lat_shape=90,  # NA region
+    #     lon_shape=96,  # NA region
+    #     arrs_dir=winter_arrs_dir,
+    # )
 
-    # Load the psl data for the north atlantic region
-    obs_psl_arr = load_obs_data(
-        variable="psl",
-        region="NA",
-        season=season,
-        time_freq=time_freq,
-        winter_years=(1960, 2024),
-        winter_dim_shape=len_winter_days,
-        lat_shape=90,  # NA region
-        lon_shape=96,  # NA region
-        arrs_dir=winter_arrs_dir,
-    )
+    # # Do the same for temperature
+    # obs_temp_arr = load_obs_data(
+    #     variable="tas",
+    #     region="Europe",
+    #     season=season,
+    #     time_freq=time_freq,
+    #     winter_years=(1960, 2024),
+    #     winter_dim_shape=len_winter_days,
+    #     lat_shape=63,  # Europe region
+    #     lon_shape=49,  # Europe region
+    #     arrs_dir=winter_arrs_dir,
+    # )
 
-    # Do the same for temperature
-    obs_temp_arr = load_obs_data(
-        variable="tas",
-        region="Europe",
-        season=season,
-        time_freq=time_freq,
-        winter_years=(1960, 2024),
-        winter_dim_shape=len_winter_days,
-        lat_shape=63,  # Europe region
-        lon_shape=49,  # Europe region
-        arrs_dir=winter_arrs_dir,
-    )
+    # # Do the same for wind speed
+    # obs_wind_arr = load_obs_data(
+    #     variable="sfcWind",
+    #     region="Europe",
+    #     season=season,
+    #     time_freq=time_freq,
+    #     winter_years=(1960, 2024),
+    #     winter_dim_shape=len_winter_days,
+    #     lat_shape=63,  # Europe region
+    #     lon_shape=49,  # Europe region
+    #     arrs_dir=winter_arrs_dir,
+    # )
 
-    # Do the same for wind speed
-    obs_wind_arr = load_obs_data(
-        variable="sfcWind",
-        region="Europe",
-        season=season,
-        time_freq=time_freq,
-        winter_years=(1960, 2024),
-        winter_dim_shape=len_winter_days,
-        lat_shape=63,  # Europe region
-        lon_shape=49,  # Europe region
-        arrs_dir=winter_arrs_dir,
-    )
-
-    # Calculate the psl climatology
-    obs_psl_clim = np.mean(obs_psl_arr, axis=0)
-    obs_tas_clim = np.mean(obs_temp_arr, axis=0)
-    obs_wind_clim = np.mean(obs_wind_arr, axis=0)
+    # # Calculate the psl climatology
+    # obs_psl_clim = np.mean(obs_psl_arr, axis=0)
+    # obs_tas_clim = np.mean(obs_temp_arr, axis=0)
+    # obs_wind_clim = np.mean(obs_wind_arr, axis=0)
 
     # print the head of the dfs
     print("Head of the obs df:")
