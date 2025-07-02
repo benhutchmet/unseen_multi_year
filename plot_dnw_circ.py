@@ -292,10 +292,10 @@ def extract_obs_data(
 
         # if the variable is tas
         if variable == "tas":
-            print("--------------------------------")
-            print(f"Data shape: {data_this.shape}")
-            print("Detrending the data this")
-            print("--------------------------------")
+            # print("--------------------------------")
+            # print(f"Data shape: {data_this.shape}")
+            # print("Detrending the data this")
+            # print("--------------------------------")
 
             # Set up a new array for detrending the data
             data_arr_detrended_full = np.zeros(
@@ -345,9 +345,6 @@ def extract_obs_data(
                             - trend_line_this[y_index]
                             + data_this[l, j, k]
                         )
-        else:
-            # print the shape of the data this
-            print(f"Data shape: {data_this.shape}")
 
         # load the times for this
         times_this = np.load(os.path.join(metadata_dir, times_fname))
