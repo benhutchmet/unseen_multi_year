@@ -278,13 +278,25 @@ def extract_obs_data(
         if not os.path.exists(os.path.join(arrs_dir, fname_this)):
             raise FileNotFoundError(f"File {fname_this} does not exist.")
 
-        # Set up the fname for the times
-        times_fname = f"ERA5_{variable}_{region}_{year_to_extract_this}_{season}_{time_freq}_times.npy"
+        # If year to extract this is greater than 2020
+        if year_to_extract_this >= 2020:
+            # Set up the fname for the times
+            times_fname = f"ERA5_{variable}_{region}_{year_to_extract_this}_{season}_{time_freq}_times_*_*.npy"
+        else:
+            # Set up the fname for the times
+            times_fname = f"ERA5_{variable}_{region}_{year_to_extract_this}_{season}_{time_freq}_times.npy"
 
-        # If the file does not exist then raise an error
-        if not os.path.exists(os.path.join(metadata_dir, times_fname)):
+        # Glob the times files
+        times_files = glob.glob(os.path.join(metadata_dir, times_fname))
+
+        # If there are no times files then raise an error
+        if len(times_files) == 0:
             raise FileNotFoundError(
-                f"File {os.path.join(metadata_dir, times_fname)} does not exist."
+                f"No times files found for {os.path.join(metadata_dir, times_fname)}."
+            )
+        elif len(times_files) > 1:
+            raise ValueError(
+                f"Multiple times files found for {os.path.join(metadata_dir, times_fname)}."
             )
 
         # load the data for this
@@ -347,7 +359,7 @@ def extract_obs_data(
                         )
 
         # load the times for this
-        times_this = np.load(os.path.join(metadata_dir, times_fname))
+        times_this = np.load(times_files[0])
 
         # convert the times to cftime
         times_this_cf = cftime.num2date(
