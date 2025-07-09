@@ -198,7 +198,7 @@ def extract_obs_data(
     dates = [cftime.datetime(date.year, date.month, date.day) for date in dates]
 
     # extract the unique years in the dates list
-    unique_dec_years = np.arange(1960, 2018 + 1, 1)
+    unique_dec_years = np.arange(1960, 2024 + 1, 1)
 
     # print the dates
     print("Dates: ", dates)
@@ -279,7 +279,7 @@ def extract_obs_data(
             raise FileNotFoundError(f"File {fname_this} does not exist.")
 
         # If year to extract this is greater than 2020
-        if year_to_extract_this >= 2020:
+        if year_to_extract_this >= 2019:
             # Set up the fname for the times
             times_fname = f"ERA5_{variable}_{region}_{year_to_extract_this}_{season}_{time_freq}_times_*_*.npy"
         else:
@@ -342,7 +342,15 @@ def extract_obs_data(
                     # print(f"Type of year to extract this: {type(year_to_extract_this)}")
 
                     # find the index of year to extract this in unique_dec_years
-                    y_index = np.where(unique_dec_years == year_to_extract_this)[0][0]
+                    try:
+                        y_index = np.where(unique_dec_years == year_to_extract_this)[0][0]
+                    except IndexError as e:
+                        print(f"Error: year_to_extract_this {year_to_extract_this} not found in unique_dec_years")
+                        print(f"Min unique_dec_years: {np.min(unique_dec_years)}")
+                        print(f"Max unique_dec_years: {np.max(unique_dec_years)}")
+                        print(f"year_to_extract_this: {year_to_extract_this}")
+                        print(f"unique_dec_years: {unique_dec_years}")
+                        raise e
 
                     # Remove the trend for the current year
                     # from the data subset
@@ -360,7 +368,7 @@ def extract_obs_data(
 
         # load the times for this
         times_this = np.load(times_files[0])
-
+        
         # convert the times to cftime
         times_this_cf = cftime.num2date(
             times_this,
@@ -369,7 +377,35 @@ def extract_obs_data(
         )
 
         # find the index of this time in the tyimes_this_cf
-        time_index = np.where(times_this_cf == time_to_extract_this)[0][0]
+        # Match only by date (year, month, day), ignoring hours/minutes
+        try:
+            # Create a list of date matches (ignoring time)
+            date_matches = []
+            target_date = (time_to_extract_this.year, time_to_extract_this.month, time_to_extract_this.day)
+            
+            for idx, time_cf in enumerate(times_this_cf):
+                cf_date = (time_cf.year, time_cf.month, time_cf.day)
+                if cf_date == target_date:
+                    date_matches.append(idx)
+
+            if len(date_matches) == 0:
+                raise IndexError(f"No date match found for {target_date}")
+            elif len(date_matches) > 1:
+                print(f"Warning: Multiple time matches found for date {target_date}, using first match")
+            
+            time_index = date_matches[0]
+        except IndexError as e:
+            print(f"Error: Date {time_to_extract_this.year}-{time_to_extract_this.month:02d}-{time_to_extract_this.day:02d} not found in times array")
+            print(f"Data file: {fname_this}")
+            print(f"Times file: {times_files[0]}")
+            print(f"Available times range: {times_this_cf[0]} to {times_this_cf[-1]}")
+            print(f"Total times available: {len(times_this_cf)}")
+            print(f"type of time_to_extract_this: {type(time_to_extract_this)}")
+            print(f"type of times_this_cf: {type(times_this_cf[0])}")
+            print(f"Available dates in times array:")
+            for t in times_this_cf:
+                print(f" - {t.year}-{t.month:02d}-{t.day:02d} {t.hour:02d}:{t.minute:02d}:{t.second:02d}")
+            raise e
 
         # if the variable is tas then set the data this to the detrended data
         if variable == "tas":
@@ -6550,6 +6586,312 @@ def plot_temp_demand_quartiles_obs(
     return None
 
 
+# Define a function to plot the multi var composites (psl, tas, wind)
+# For the observations
+def plot_multi_var_composites_obs(
+    subset_df_obs: pd.DataFrame,
+    subset_arrs_list_obs: List[np.ndarray],
+    dates_list_obs: List[str],
+    var_names: List[str],
+    lats_paths: List[str],
+    lons_paths: List[str],
+    effective_dec_years: List[int],
+    figsize: Tuple[int, int] = (10, 10),
+    anoms_flag: bool = False,
+):
+    """
+    Plots multi-variable composites for observations.
+
+    Parameters:
+    ===========
+
+        subset_df_obs (pd.DataFrame): The subset dataframe for observations.
+        subset_arrs_list_obs (List[np.ndarray]): List of subset arrays for observations.
+        dates_list_obs (List[str]): List of dates for observations.
+        var_names (List[str]): List of variable names to plot.
+        lats_paths (List[str]): List of paths to latitude files.
+        lons_paths (List[str]): List of paths to longitude files.
+        effective_dec_years (List[int]): List of effective decade years.
+        figsize (Tuple[int, int]): Size of the figure.
+        anoms_flag (bool): Flag to indicate if anomalies should be plotted.
+
+    Returns:
+    ========
+
+        None
+    """
+
+    # Set up the ncols
+    ncols = 3
+    nrows = len(var_names)
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        ncols=ncols,
+        nrows=nrows,
+        figsize=figsize,
+        layout="constrained",
+        subplot_kw={"projection": ccrs.PlateCarree()},
+        gridspec_kw={"width_ratios": [1.5, 1, 1]},  # First column is 1.5x wider
+    )
+
+    # print the head of the subset df obs
+    print("Subset DataFrame Head:")
+    print(subset_df_obs.head())
+
+    # Print the tail of the subset df obs
+    print("Subset DataFrame Tail:")
+    print(subset_df_obs.tail())
+
+    # Strip efefctive dec year column into just YYYY and format as int
+    subset_df_obs["effective_dec_year"] = subset_df_obs["effective_dec_year"].str[:4].astype(int)
+
+    # Print the unique effective decade years
+    unique_effective_dec_years = subset_df_obs["effective_dec_year"].unique()
+
+    # Print the firsta dn last 5 unique effective decade years
+    print("Unique Effective Decade Years (First 5):", unique_effective_dec_years[:5])
+    print("Unique Effective Decade Years (Last 5):", unique_effective_dec_years[-5:])
+
+    # Print the type of these
+    print("Type of Effective Decade Years:", type(unique_effective_dec_years))
+
+    # Find the indices of the effective dec yeØars provided in the first subset df
+    effective_dec_years_indices = [
+        np.where(subset_df_obs["effective_dec_year"] == year)[0][0]
+        for year in unique_effective_dec_years
+    ]
+
+    # Print the effective dec year indices
+    print("Effective Decade Year Indices:", effective_dec_years_indices)
+
+    # Loop over the effective dec year indices
+    for i, year_index in enumerate(effective_dec_years_indices):
+        # Print the effective dec year for this index
+        print(f"Effective Decade Year for Index {i}: {unique_effective_dec_years[year_index]}")
+
+        # Loop over the variable names
+        for j, var_name in enumerate(var_names):
+            # if the variable is tas
+            if var_name == "tas":
+                cmap = "bwr"
+                levels = np.array(
+                    [
+                        -10,
+                        -8,
+                        -6,
+                        -4,
+                        -2,
+                        2,
+                        4,
+                        6,
+                        8,
+                        10,
+                    ]
+                )
+            elif var_name == "sfcWind":
+                cmap = "PRGn"
+                levels = np.array(
+                    [
+                        0.5,
+                        1,
+                        1.5,
+                        2,
+                        2.5,
+                        3,
+                        3.5,
+                        4,
+                        4.5,
+                        5,
+                    ]
+                )
+            elif var_name in ["uas", "vas"]:
+                cmap = "PRGn"
+                levels = np.array(
+                    [
+                        -4,
+                        -3.5,
+                        -3,
+                        -2.5,
+                        -2,
+                        -1.5,
+                        -1,
+                        -0.5,
+                        0.5,
+                        1,
+                        1.5,
+                        2,
+                        2.5,
+                        3,
+                        3.5,
+                        4,
+                    ]
+                )
+            elif var_name == "psl":
+                # Set up the levels for plotting absolute values
+                # Set up the cmap
+                cmap = "coolwarm"
+
+                # Sert up the levels
+                levels = np.array(
+                    [
+                        1004,
+                        1006,
+                        1008,
+                        1010,
+                        1012,
+                        1014,
+                        1016,
+                        1018,
+                        1020,
+                        1022,
+                        1024,
+                        1026,
+                    ]
+                )
+            else:
+                raise ValueError(f"Variable {var_name} not supported.")
+
+            # Set up the axes for this variable
+            ax_this = axs[i, j]
+
+            # Extract the lats and lons
+            lats_this = np.load(lats_paths[j])
+            lons_this = np.load(lons_paths[j])
+
+            # Set up the date model this
+            date_model_this = subset_df_obs.iloc[year_index]["time"]
+
+            # Set up the dnw this
+            dnw_val_this = subset_df_obs.iloc[year_index]["demand_net_wind_max"]
+
+            # Extract the data this
+            subset_arr_this_obs = subset_arrs_list_obs[j][year_index, :, :]
+
+            # If the var name is psl, divide by 100 to get hPa
+            if var_name == "psl":
+                subset_arr_this_obs = subset_arr_this_obs / 100.0
+
+            # Plot the model data on the right
+            im_model = ax_this.contourf(
+                lons_this,
+                lats_this,
+                subset_arr_this_obs,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
+
+            # if the var_name is psl, then plot absolute contours
+            if var_name == "psl":
+                # Plot the absolute contours
+                contours = ax_this.contour(
+                    lons_this,
+                    lats_this,
+                    subset_arr_this_obs,
+                    levels=levels,
+                    colors="black",
+                    linewidths=0.5,
+                    transform=ccrs.PlateCarree(),
+                )
+
+                ax_this.clabel(
+                    contours,
+                    levels,
+                    fmt="%.0f",
+                    fontsize=6,
+                    inline=True,
+                    inline_spacing=0.0,
+                )
+
+            # add coastlines to all of these
+            ax_this.coastlines()
+
+            # Include a textbox in the top right for N
+            ax_this.text(
+                0.95,
+                0.95,
+                f"{date_model_this}",
+                horizontalalignment="right",
+                verticalalignment="top",
+                transform=ax_this.transAxes,
+                fontsize=12,
+                bbox=dict(facecolor="white", alpha=0.5),
+            )
+
+            # Include the value in the bottom left
+            ax_this.text(
+                0.05,
+                0.05,
+                f"DnW = {dnw_val_this:.2f}",
+                horizontalalignment="left",
+                verticalalignment="bottom",
+                transform=ax_this.transAxes,
+                fontsize=12,
+                bbox=dict(facecolor="white", alpha=0.5),
+            )
+
+            # if i == 2
+            if i == len(effective_dec_years_indices) - 1:
+                # add colorbar
+                # cbar = plt.colorbar(mymap, orientation='horizontal', shrink=0.7, pad=0.1)
+                # cbar.set_label('SST [C]', rotation=0, fontsize=10)
+                # cbar.ax.tick_params(labelsize=7, length=0)
+
+                # add the colorbar for wind
+                cbar = fig.colorbar(
+                    im_model,
+                    ax=ax_this,
+                    orientation="horizontal",
+                    pad=0.05,
+                    shrink=0.8,
+                )
+
+                # depending on the i set the labels
+                if j == 0:
+
+                    # Set up the ticks
+                    levels = np.array(
+                        [
+                            1004,
+                            1008,
+                            1012,
+                            1015,
+                            1018,
+                            1022,
+                            1026,
+                        ]
+                    )
+                    
+                    cbar.set_label(
+                        "hPa", rotation=0, fontsize=12
+                    )
+                elif j == 1:
+                    cbar.set_label(
+                        "°C", rotation=0, fontsize=12
+                    )
+                elif j == 2:
+
+                    cbar.set_label(
+                        "m/s", rotation=0, fontsize=12
+                    )
+
+                cbar.set_ticks(levels)
+
+            # Set the title for each subplot based on `i`
+            if i == 0 and j == 0:
+                ax_this.set_title("Obs daily MSLP", fontsize=12, fontweight="bold")
+            elif i == 0 and j == 1:
+                ax_this.set_title("Obs daily airT", fontsize=12, fontweight="bold")
+            elif i == 0 and j == 2:
+                ax_this.set_title("Obs daily sfcWind", fontsize=12, fontweight="bold")
+
+    return None
+
+
+
+
 # Define the main function
 def main():
     start_time = time.time()
@@ -6900,6 +7242,24 @@ def main():
         # Save the data to the arrs_persist_dir
         np.save(os.path.join(arrs_persist_dir, psl_fname), psl_subset)
         np.save(os.path.join(arrs_persist_dir, psl_times_fname), psl_dates_list)
+    else:
+        print(
+            f"PSL data already exists in {os.path.join(arrs_persist_dir, psl_fname)}"
+        )
+        # Load the existing psl data
+        psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
+        psl_dates_list = np.load(
+            os.path.join(arrs_persist_dir, psl_times_fname), allow_pickle=True
+        )
+
+        # print the shape of psl subset
+        print(f"Shape of psl subset: {psl_subset.shape}")
+        # print the shape of psl dates list
+        print(f"Shape of psl dates list: {psl_dates_list.shape}")
+
+        # Print the first and last values of the psl dates list
+        print(f"First value of psl dates list: {psl_dates_list[0]}")
+        print(f"Last value of psl dates list: {psl_dates_list[-1]}")
 
     # if the temperature files do not exist then  create them
     if not os.path.exists(
@@ -6970,19 +7330,35 @@ def main():
     # print the values of psl dates list
     print(f"PSL dates list: {obs_psl_dates_list}")
 
-    sys.exit()
+    # Now we simply want to plot all of these
+    # plot 13 x matrices of 5 rows and 3 columns
+    # Showing the full field psl, temperature and wind speed
+    # Along with the date when each of these events occurred
+    # Temperature is already detrended so don't need to do that again
 
-    # # load the temperature data
-    # obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
-    # obs_temp_dates_list = np.load(
-    #     os.path.join(arrs_persist_dir, temp_times_fname), allow_pickle=True
-    # )
+    # load the temperature data
+    obs_temp_subset = np.load(os.path.join(arrs_persist_dir, temp_fname))
+    obs_temp_dates_list = np.load(
+        os.path.join(arrs_persist_dir, temp_times_fname), allow_pickle=True
+    )
 
-    # # load the wind data
-    # obs_wind_subset = np.load(os.path.join(arrs_persist_dir, wind_fname))
-    # obs_wind_dates_list = np.load(
-    #     os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
-    # )
+    # load the wind data
+    obs_wind_subset = np.load(os.path.join(arrs_persist_dir, wind_fname))
+    obs_wind_dates_list = np.load(
+        os.path.join(arrs_persist_dir, wind_times_fname), allow_pickle=True
+    )
+
+    # Print the first and last values of the obs psl dates list
+    print(f"First value of obs psl dates list: {obs_psl_dates_list[0]}")
+    print(f"Last value of obs psl dates list: {obs_psl_dates_list[-1]}")
+
+    # Print the first and last values of the obs temp dates list
+    print(f"First value of obs temp dates list: {obs_temp_dates_list[0]}")
+    print(f"Last value of obs temp dates list: {obs_temp_dates_list[-1]}")
+
+    # Print the first and last values of the obs wind dates list
+    print(f"First value of obs wind dates list: {obs_wind_dates_list[0]}")
+    print(f"Last value of obs wind dates list: {obs_wind_dates_list[-1]}")
 
     # # assert that the dates list arrays are equal
     # assert np.array_equal(
@@ -6992,7 +7368,44 @@ def main():
     #     obs_psl_dates_list, obs_wind_dates_list
     # ), "Dates list arrays are not equal"
 
-    # sys.exit()
+    print("--" * 20)
+    print("Testing next function...")
+    print("--" * 20)
+
+    # Test the new function
+    plot_multi_var_composites_obs(
+        subset_df_obs=obs_df,
+        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+        var_names=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+        ],
+        effective_dec_years=[1961, 1962, 1963, 1964, 1965],
+        figsize=(15, 10),
+        anoms_flag=False,
+    )
+
+    sys.exit()
 
     # load in the model subset files
     # NOTE: Updated for longer period
