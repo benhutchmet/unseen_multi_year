@@ -6598,6 +6598,7 @@ def plot_multi_var_composites_obs(
     effective_dec_years: List[int],
     figsize: Tuple[int, int] = (10, 10),
     anoms_flag: bool = False,
+    clim_arrs_list_obs: Optional[List[np.ndarray]] = None,
 ):
     """
     Plots multi-variable composites for observations.
@@ -6614,6 +6615,7 @@ def plot_multi_var_composites_obs(
         effective_dec_years (List[int]): List of effective decade years.
         figsize (Tuple[int, int]): Size of the figure.
         anoms_flag (bool): Flag to indicate if anomalies should be plotted.
+        clim_arrs_list_obs (Optional[List[np.ndarray]]): List of climatology arrays for observations.
 
     Returns:
     ========
@@ -6689,6 +6691,23 @@ def plot_multi_var_composites_obs(
                         10,
                     ]
                 )
+                # If anoms flasg is tru and clim_arrs_list_obs is not None
+                if anoms_flag and clim_arrs_list_obs is not None:
+                    cmap = "bwr"
+                    levels = np.array(
+                        [
+                            -10,
+                            -8,
+                            -6,
+                            -4,
+                            -2,
+                            2,
+                            4,
+                            6,
+                            8,
+                            10,
+                        ]
+                    )
             elif var_name == "sfcWind":
                 cmap = "YlGnBu"
                 levels = np.array(
@@ -6705,6 +6724,22 @@ def plot_multi_var_composites_obs(
                         5,
                     ]
                 )
+                if anoms_flag and clim_arrs_list_obs is not None:
+                    cmap = "PRGn"
+                    levels = np.array(
+                        [
+                            -5,
+                            -4,
+                            -3,
+                            -2,
+                            -1,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                        ]
+                    )
             elif var_name in ["uas", "vas"]:
                 cmap = "PRGn"
                 levels = np.array(
@@ -6771,9 +6806,20 @@ def plot_multi_var_composites_obs(
             # If the var name is psl, divide by 100 to get hPa
             if var_name == "psl":
                 subset_arr_this_obs = subset_arr_this_obs / 100.0
-            elif var_name == "tas":
+            elif var_name == "tas" and not anoms_flag:
                 # Convert the tas to Celsius
                 subset_arr_this_obs = subset_arr_this_obs - 273.15
+            elif var_name in ["tas", "vas", "sfcWind"] and anoms_flag:
+                assert clim_arrs_list_obs is not None, (
+                    "Climatology arrays must be provided for anomaly calculation."
+                )
+
+                subset_arr_this_obs = subset_arr_this_obs - clim_arrs_list_obs[j]
+            else:
+                raise ValueError(
+                    f"Variable {var_name} not supported for anomaly calculation."
+                )
+
 
             # Plot the model data on the right
             im_model = ax_this.contourf(
