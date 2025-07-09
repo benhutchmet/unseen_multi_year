@@ -6623,7 +6623,7 @@ def plot_multi_var_composites_obs(
 
     # Set up the ncols
     ncols = 3
-    nrows = len(var_names)
+    nrows = len(effective_dec_years)
 
     # Set up the figure
     fig, axs = plt.subplots(
@@ -6656,10 +6656,10 @@ def plot_multi_var_composites_obs(
     # Print the type of these
     print("Type of Effective Decade Years:", type(unique_effective_dec_years))
 
-    # Find the indices of the effective dec yeØars provided in the first subset df
+    # Find the indices of the effective dec years provided in the first subset df
     effective_dec_years_indices = [
         np.where(subset_df_obs["effective_dec_year"] == year)[0][0]
-        for year in unique_effective_dec_years
+        for year in effective_dec_years
     ]
 
     # Print the effective dec year indices
@@ -6674,7 +6674,7 @@ def plot_multi_var_composites_obs(
         for j, var_name in enumerate(var_names):
             # if the variable is tas
             if var_name == "tas":
-                cmap = "bwr"
+                cmap = "coolwarm"
                 levels = np.array(
                     [
                         -10,
@@ -6690,7 +6690,7 @@ def plot_multi_var_composites_obs(
                     ]
                 )
             elif var_name == "sfcWind":
-                cmap = "PRGn"
+                cmap = "YlGnBu"
                 levels = np.array(
                     [
                         0.5,
@@ -6771,6 +6771,9 @@ def plot_multi_var_composites_obs(
             # If the var name is psl, divide by 100 to get hPa
             if var_name == "psl":
                 subset_arr_this_obs = subset_arr_this_obs / 100.0
+            elif var_name == "tas":
+                # Convert the tas to Celsius
+                subset_arr_this_obs = subset_arr_this_obs - 273.15
 
             # Plot the model data on the right
             im_model = ax_this.contourf(
@@ -7372,6 +7375,18 @@ def main():
     print("Testing next function...")
     print("--" * 20)
 
+    # Sort the obs df in terms of demand net wind max, in descending order
+    obs_df_sorted = obs_df.sort_values("demand_net_wind_max", ascending=False)
+
+    # Extract the top 5 effective dec years from this
+    effective_dec_years_top = obs_df_sorted["effective_dec_year"].unique()[:5]
+
+    # # Extract the first 4 characters of each value and convert them to int
+    # effective_dec_years_top = np.char.slice(effective_dec_years_top.astype(str), 0, 4).astype(int)
+
+    # Convert into a list of ints
+    effective_dec_years = [int(year[:4]) for year in effective_dec_years_top]
+
     # Test the new function
     plot_multi_var_composites_obs(
         subset_df_obs=obs_df,
@@ -7400,8 +7415,8 @@ def main():
                 metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
             ),
         ],
-        effective_dec_years=[1961, 1962, 1963, 1964, 1965],
-        figsize=(15, 10),
+        effective_dec_years=effective_dec_years,
+        figsize=(10, 13),
         anoms_flag=False,
     )
 
