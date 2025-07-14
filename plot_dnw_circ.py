@@ -31,13 +31,13 @@ from datetime import datetime, timedelta
 from scipy.stats import pearsonr, linregress
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
 # Import dictionaries
 import dictionaries as dicts
 
 # Local imports
 import process_dnw_gev as pdg_funcs
-
 
 # Set up a function for loading the data
 def load_obs_data(
@@ -6995,7 +6995,8 @@ def kmeans_clustering_and_plotting(
     n_clusters: int = 5,
     cmap: str = "RdBu_r",
     figsize: Tuple[int, int] = (10, 10),
-) -> None:
+    silhouette_threshold: float = 0.3,
+) -> Tuple[KMeans, np.ndarray, Dict]:
     """
     Perform k-means clustering on the provided subset array and plot the results.
 
@@ -7007,10 +7008,14 @@ def kmeans_clustering_and_plotting(
         n_clusters (int): Number of clusters for k-means.
         cmap (str): Colormap for the plot (default is "RdBu_r").
         figsize (Tuple[int, int]): Size of the figure (default is (10, 10)).
+        silhouette_threshold (float): Threshold for silhouette score to determine cluster quality.
 
     Returns:
     ========
-        None
+        Tuple containing:
+        - KMeans model object
+        - Cluster assignments for each time step (with -1 for "no-type")
+        - Dictionary with cluster statistics
     """
     # Load the lats and lons
     lats = np.load(lats_path)
@@ -7024,6 +7029,44 @@ def kmeans_clustering_and_plotting(
 
     # Perform k-means clustering
     m = KMeans(n_clusters=n_clusters, random_state=0).fit(subset_arr_reshaped)
+
+    # Get cluster assignments for each time step
+    cluster_labels = m.labels_
+    
+    # Calculate silhouette scores for each sample to identify weak assignments
+    silhouette_scores = silhouette_score(subset_arr_reshaped, cluster_labels, 
+                                       sample_size=min(1000, nt))
+
+    # Create individual silhouette scores (approximation)
+    distances_to_centers = np.zeros(nt)
+    for i in range(nt):
+        assigned_cluster = cluster_labels[i]
+        distances_to_centers[i] = np.linalg.norm(
+            subset_arr_reshaped[i] - m.cluster_centers_[assigned_cluster]
+        )
+    
+    # Assign "no-type" cluster (-1) to weak assignments
+    # You can adjust this threshold based on your data
+    distance_threshold = np.percentile(distances_to_centers, 90)  # Top 10% of distances
+    cluster_assignments = cluster_labels.copy()
+    cluster_assignments[distances_to_centers > distance_threshold] = -1
+    
+    # Create statistics dictionary
+    cluster_stats = {
+        'total_time_steps': nt,
+        'n_clusters': n_clusters,
+        'cluster_counts': {},
+        'cluster_percentages': {},
+        'silhouette_score': silhouette_scores,
+        'distance_threshold': distance_threshold
+    }
+    
+    # Calculate cluster statistics
+    unique_clusters = np.unique(cluster_assignments)
+    for cluster_id in unique_clusters:
+        count = np.sum(cluster_assignments == cluster_id)
+        cluster_stats['cluster_counts'][cluster_id] = count
+        cluster_stats['cluster_percentages'][cluster_id] = count / nt * 100
 
     # Set up the ncols and nrow
     # if n_clusters is 4
@@ -7066,7 +7109,11 @@ def kmeans_clustering_and_plotting(
         cluster_plots.append(im)
         ax_this.coastlines()
 
-        title_this = f"Cluster {i + 1} {get_cluster_fraction(m, i):.2%}"
+        # Get count for this cluster (excluding no-type assignments)
+        cluster_count = np.sum(cluster_assignments == i)
+        cluster_percentage = cluster_count / nt * 100
+        
+        title_this = f"Cluster {i + 1} ({cluster_count} steps, {cluster_percentage:.1f}%)"
         ax_this.set_title(title_this, fontsize=12, fontweight="bold")
 
         # Add a tag to the plot
@@ -7092,10 +7139,23 @@ def kmeans_clustering_and_plotting(
         )
         cbar_this.set_label("hPa", rotation=0, fontsize=10)
 
-    # Show the figure
     plt.show()
 
-    return None
+    # Print cluster assignment summary
+    print(f"\nCluster Assignment Summary:")
+    print(f"Total time steps: {nt}")
+    print(f"Silhouette score: {silhouette_scores:.3f}")
+    print(f"Distance threshold for no-type: {distance_threshold:.2f}")
+    print(f"\nCluster assignments:")
+    for cluster_id in sorted(unique_clusters):
+        count = cluster_stats['cluster_counts'][cluster_id]
+        percentage = cluster_stats['cluster_percentages'][cluster_id]
+        if cluster_id == -1:
+            print(f"  No-type cluster: {count} steps ({percentage:.1f}%)")
+        else:
+            print(f"  Cluster {cluster_id + 1}: {count} steps ({percentage:.1f}%)")
+    
+    return m, cluster_assignments, cluster_stats
 
 # Define the main function
 def main():
@@ -7620,159 +7680,44 @@ def main():
     print(f"Shape of obs temp subset: {obs_temp_subset.shape}")
     print(f"Shape of obs wind subset: {obs_wind_subset.shape}")
 
-    # Set up the levels for plotting absolute values
-    # Set up the cmap
-    cmap = "coolwarm"
-
-    # Sert up the levels
-    levels = np.array(
-        [
-            1004,
-            1006,
-            1008,
-            1010,
-            1012,
-            1014,
-            1016,
-            1018,
-            1020,
-            1022,
-            1024,
-            1026,
-        ]
-    )
-
-    # Extract the nt, nx, ny
-    nt, nx, ny = obs_psl_subset.shape
-
-    # Reshape the obs psl subset to be (nt, ny* nx)
-    obs_psl_subset_reshaped = obs_psl_subset.reshape(nt, ny * nx)
-
-    # Fit clusters to the reshaped data
-    mk = KMeans(n_clusters=5, random_state=0).fit(obs_psl_subset_reshaped)
-
-    # -----------------
-    # Now plot the cluster centroids
-    # -----------------
-
-    NA_lats = np.load(
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-        )
-    )
-    NA_lons = np.load(
-        os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-        )
-    )
-
-    # # Set up the mesh grid for this
-    # x, y = np.meshgrid(NA_lats, NA_lons)
-
-    # Set up the ncols and nrows
-    nrows = 2
-    ncols = 3
-
-    figsize_x = 15
-    figsize_y = 10
-
-    # Set up the figure and axes with space for colorbars
-    fig = plt.figure(figsize=(figsize_x, figsize_y))
-    
-    # Create a gridspec with extra space for colorbars
-    gs = fig.add_gridspec(nrows, ncols, 
-                         height_ratios=[1, 1], 
-                         hspace=0.15, wspace=0.1,
-                         bottom=0.15, top=0.92, left=0.05, right=0.95)
-    
-    # Create the main plotting axes
-    axs = np.empty((nrows, ncols), dtype=object)
-    for row in range(nrows):
-        for col in range(ncols):
-            axs[row, col] = fig.add_subplot(gs[row, col], projection=ccrs.PlateCarree())
-
-    tags = [
-        "A",
-        "B",
-        "C",
-        "D",
-        "E",
-    ]  # Tags for the clusters
-
-    # Store the contour plots for colorbar creation
-    cluster_plots = []
-
-    # Loop over the axes and plot the cluster centroids
-    for i in range(mk.n_clusters):
-        # Get the cluster centroid
-        cluster_centroid = mk.cluster_centers_[i, :].reshape(nx, ny)
-
-        # plot the cluster centroid
-        ax = axs[i // ncols, i % ncols]
-        cluster = ax.contourf(
-            NA_lons,
-            NA_lats,
-            cluster_centroid / 100, # Convert to hPa
-            cmap="RdBu_r",
-            transform=ccrs.PlateCarree(),
-            extend='both',
-        )
-        
-        cluster_plots.append(cluster)
-        ax.coastlines()
-
-        title_this = f"Cluster {i + 1} {get_cluster_fraction(mk, i):.2%}"
-        ax.set_title(title_this, fontsize=12, fontweight="bold")
-
-        # Add a tag to the plot
-        ax.text(
-            0.05,
-            0.95,
-            f"({tags[i]})",
-            transform=ax.transAxes,
-            fontsize=14,
-            fontweight="bold",
-            va='top',
-            ha='left',
-            bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'),
-        )
-
-    # Create colorbars beneath each plot with matching width
-    for i in range(mk.n_clusters):
-        ax = axs[i // ncols, i % ncols]
-        
-        # Get the position of the current subplot
-        pos = ax.get_position()
-        
-        # Create colorbar axis beneath the plot with same width
-        cbar_ax = fig.add_axes([pos.x0, pos.y0 - 0.03, pos.width, 0.02])
-        
-        # Add the colorbar
-        cbar = fig.colorbar(cluster_plots[i], cax=cbar_ax, orientation='horizontal')
-        cbar.set_label("hPa", fontsize=10)
-        cbar.ax.tick_params(labelsize=8)
-
-    # Set up a tight layout
-    plt.tight_layout()
-
-    # Save the figure with tight layout
-    # plt.savefig('cluster_centroids.png', dpi=300, bbox_inches='tight')
-    plt.show()
-
-
-    # test the function for doing this
-    print("--" * 20)
-    print("Fitting the model...")
-    print("--" * 20)
-
-    kmeans_clustering_and_plotting(
+    model, assign, stats = kmeans_clustering_and_plotting(
         subset_arr=obs_psl_subset,
         lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
         lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
         n_clusters=5,
-        figsize=(figsize_x, figsize_y),
+        figsize=(15, 10),
         cmap="RdBu_r",
     )
+
+    # Do the same but for 4 clusters
+    model_4, assign_4, stats_4 = kmeans_clustering_and_plotting(
+        subset_arr=obs_psl_subset,
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        n_clusters=4,
+        figsize=(10, 10),
+        cmap="RdBu_r",
+    )
+
+    # # Do the same but with 4 clusters for temperature
+    # kmeans_clustering_and_plotting(
+    #     subset_arr=obs_temp_subset,
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+    #     n_clusters=4,
+    #     figsize=(10, 10),
+    #     cmap="RdBu_r",
+    # )
+
+    # # Do the same but with 4 clusters for wind speed
+    # kmeans_clustering_and_plotting(
+    #     subset_arr=obs_wind_subset,
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+    #     n_clusters=4,
+    #     figsize=(10, 10),
+    #     cmap="PRGn",
+    # )
 
     # Print the time taken to fit the model
     print(f"Time taken to fit the model: {time.time() - start_time:.2f} seconds")
