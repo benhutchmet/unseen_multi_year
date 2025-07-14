@@ -7017,10 +7017,10 @@ def kmeans_clustering_and_plotting(
     lons = np.load(lons_path)
 
     # Extract the nt, nlats, and nlons from the subset_arr
-    nt, nlats, nlons = subset_arr.shape
+    nt, nx, ny = subset_arr.shape
 
     # Reshape the subset_arr to 2D for clustering
-    subset_arr_reshaped = subset_arr.reshape(nt, nlats * nlons)
+    subset_arr_reshaped = subset_arr.reshape(nt, ny * nx)
 
     # Perform k-means clustering
     m = KMeans(n_clusters=n_clusters, random_state=0).fit(subset_arr_reshaped)
@@ -7048,7 +7048,7 @@ def kmeans_clustering_and_plotting(
     # Loop over the clusters and plot the centroid
     for i in range(m.n_clusters):
         # Get the centroid for this cluster
-        centroid_field = m.cluster_centers_[i, :].reshape(nlons, nlats)
+        centroid_field = m.cluster_centers_[i, :].reshape(nx, ny)
 
         # Set up the axes for this cluster
         ax_this = axs[i // ncols, i % ncols] if nrows > 1 else axs[i]
@@ -7066,7 +7066,7 @@ def kmeans_clustering_and_plotting(
         cluster_plots.append(im)
         ax_this.coastlines()
 
-        title_this = f"Cluster {i + 1} {get_cluster_fraction(mk, i):.2%}"
+        title_this = f"Cluster {i + 1} {get_cluster_fraction(m, i):.2%}"
         ax_this.set_title(title_this, fontsize=12, fontweight="bold")
 
         # Add a tag to the plot
@@ -7074,7 +7074,7 @@ def kmeans_clustering_and_plotting(
             0.05,
             0.95,
             f"({tags[i]})",
-            transform=ax.transAxes,
+            transform=ax_this.transAxes,
             fontsize=14,
             fontweight="bold",
             va='top',
@@ -7082,20 +7082,15 @@ def kmeans_clustering_and_plotting(
             bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'),
         )
 
-    # Create colorbars beneath each plot with matching width
-    for i in range(m.n_clusters):
-        ax = axs[i // ncols, i % ncols]
-        
-        # Get the position of the current subplot
-        pos = ax.get_position()
-        
-        # Create colorbar axis beneath the plot with same width
-        cbar_ax = fig.add_axes([pos.x0, pos.y0 - 0.03, pos.width, 0.02])
-        
-        # Add the colorbar
-        cbar = fig.colorbar(cluster_plots[i], cax=cbar_ax, orientation='horizontal')
-        cbar.set_label("hPa", fontsize=10)
-        cbar.ax.tick_params(labelsize=8)
+        # add a colorbar for the each plot
+        cbar_this = fig.colorbar(
+            im,
+            ax=ax_this,
+            orientation="horizontal",
+            pad=0.05,
+            shrink=0.8,
+        )
+        cbar_this.set_label("hPa", rotation=0, fontsize=10)
 
     # Show the figure
     plt.show()
@@ -7763,6 +7758,21 @@ def main():
     # Save the figure with tight layout
     # plt.savefig('cluster_centroids.png', dpi=300, bbox_inches='tight')
     plt.show()
+
+
+    # test the function for doing this
+    print("--" * 20)
+    print("Fitting the model...")
+    print("--" * 20)
+
+    kmeans_clustering_and_plotting(
+        subset_arr=obs_psl_subset,
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        n_clusters=5,
+        figsize=(figsize_x, figsize_y),
+        cmap="RdBu_r",
+    )
 
     # Print the time taken to fit the model
     print(f"Time taken to fit the model: {time.time() - start_time:.2f} seconds")
