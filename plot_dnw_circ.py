@@ -6987,6 +6987,121 @@ def plot_multi_var_composites_obs(
 def get_cluster_fraction(m, label):        
         return (m.labels_==label).sum()/(m.labels_.size*1.0)
 
+# Set up a function to do the kmeans clustering and plotting
+def kmeans_clustering_and_plotting(
+    subset_arr: np.ndarray,
+    lats_path: str,
+    lons_path: str,
+    n_clusters: int = 5,
+    cmap: str = "RdBu_r",
+    figsize: Tuple[int, int] = (10, 10),
+) -> None:
+    """
+    Perform k-means clustering on the provided subset array and plot the results.
+
+    Parameters:
+    ===========
+        subset_arr (np.ndarray): The subset array to cluster.
+        lats_path (str): Path to the latitude data.
+        lons_path (str): Path to the longitude data.
+        n_clusters (int): Number of clusters for k-means.
+        cmap (str): Colormap for the plot (default is "RdBu_r").
+        figsize (Tuple[int, int]): Size of the figure (default is (10, 10)).
+
+    Returns:
+    ========
+        None
+    """
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # Extract the nt, nlats, and nlons from the subset_arr
+    nt, nlats, nlons = subset_arr.shape
+
+    # Reshape the subset_arr to 2D for clustering
+    subset_arr_reshaped = subset_arr.reshape(nt, nlats * nlons)
+
+    # Perform k-means clustering
+    m = KMeans(n_clusters=n_clusters, random_state=0).fit(subset_arr_reshaped)
+
+    # Set up the ncols and nrow
+    # if n_clusters is 4
+    ncols = 2 if n_clusters == 4 else 3
+    nrows = int(np.ceil(n_clusters / ncols))
+
+    # Set up the figure
+    fig, axs = plt.subplots(
+        nrows=nrows,
+        ncols=ncols,
+        figsize=figsize,
+        layout="constrained",
+        subplot_kw={"projection": ccrs.PlateCarree()},
+    )
+
+    # Set up the tags e.g. a - x depending on n_clusters
+    tags = [chr(97 + i) for i in range(n_clusters)]
+
+    # Set up the cluster plots
+    cluster_plots = []
+
+    # Loop over the clusters and plot the centroid
+    for i in range(m.n_clusters):
+        # Get the centroid for this cluster
+        centroid_field = m.cluster_centers_[i, :].reshape(nlons, nlats)
+
+        # Set up the axes for this cluster
+        ax_this = axs[i // ncols, i % ncols] if nrows > 1 else axs[i]
+
+        # Plot the centroid field
+        im = ax_this.contourf(
+            lons,
+            lats,
+            centroid_field / 100.0,  # Convert to hPa if units are hPa
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            extend="both",
+        )
+        
+        cluster_plots.append(im)
+        ax_this.coastlines()
+
+        title_this = f"Cluster {i + 1} {get_cluster_fraction(mk, i):.2%}"
+        ax_this.set_title(title_this, fontsize=12, fontweight="bold")
+
+        # Add a tag to the plot
+        ax_this.text(
+            0.05,
+            0.95,
+            f"({tags[i]})",
+            transform=ax.transAxes,
+            fontsize=14,
+            fontweight="bold",
+            va='top',
+            ha='left',
+            bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'),
+        )
+
+    # Create colorbars beneath each plot with matching width
+    for i in range(m.n_clusters):
+        ax = axs[i // ncols, i % ncols]
+        
+        # Get the position of the current subplot
+        pos = ax.get_position()
+        
+        # Create colorbar axis beneath the plot with same width
+        cbar_ax = fig.add_axes([pos.x0, pos.y0 - 0.03, pos.width, 0.02])
+        
+        # Add the colorbar
+        cbar = fig.colorbar(cluster_plots[i], cax=cbar_ax, orientation='horizontal')
+        cbar.set_label("hPa", fontsize=10)
+        cbar.ax.tick_params(labelsize=8)
+
+    # Show the figure
+    plt.show()
+
+    return None
+
 # Define the main function
 def main():
     start_time = time.time()
