@@ -30,6 +30,7 @@ from typing import List, Tuple, Dict, Any, Optional
 from datetime import datetime, timedelta
 from scipy.stats import pearsonr, linregress
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from sklearn.cluster import KMeans
 
 # Import dictionaries
 import dictionaries as dicts
@@ -103,13 +104,39 @@ def load_obs_data(
 
         # Append the arr to the all arr
         if data_this.size != 0:
-            data_arr_full[first_dim_ticker : first_dim_ticker + data_this.shape[0], :, :] = (
-                data_this
-            )
-            first_dim_ticker += data_this.shape[0]
+            # Check if we have enough space in the target array
+            end_index = first_dim_ticker + data_this.shape[0]
+            
+            if end_index > data_arr_full.shape[0]:
+                print(f"Error: Not enough space in data_arr_full")
+                print(f"data_arr_full shape: {data_arr_full.shape}")
+                print(f"data_this shape: {data_this.shape}")
+                print(f"first_dim_ticker: {first_dim_ticker}")
+                print(f"end_index: {end_index}")
+                print(f"Available space: {data_arr_full.shape[0] - first_dim_ticker}")
+                print(f"Required space: {data_this.shape[0]}")
+                print(f"Current year: {year}")
+                print(f"File: {fname_this}")
+                raise ValueError("Target array is too small for the data")
+            
+            if data_this.shape[0] == 0:
+                print(f"Warning: data_this has 0 time steps for file {fname_this}")
+                continue
+                
+            try:
+                data_arr_full[first_dim_ticker : end_index, :, :] = data_this
+                first_dim_ticker += data_this.shape[0]
 
-            # Take the mean over the first dimension and append to the data arr wmeans
-            data_arr_wmeans[year - winter_years[0], :, :] = np.mean(data_this, axis=0)
+                # Take the mean over the first dimension and append to the data arr wmeans
+                data_arr_wmeans[year - winter_years[0], :, :] = np.mean(data_this, axis=0)
+            except ValueError as e:
+                print(f"Error broadcasting array for year {year}")
+                print(f"data_arr_full slice shape: {data_arr_full[first_dim_ticker:end_index, :, :].shape}")
+                print(f"data_this shape: {data_this.shape}")
+                print(f"first_dim_ticker: {first_dim_ticker}")
+                print(f"end_index: {end_index}")
+                print(f"File: {fname_this}")
+                raise e
 
         else:
             raise ValueError(f"Data array is empty for {fname_this}")
@@ -6799,6 +6826,8 @@ def plot_multi_var_composites_obs(
 
             # Set up the dnw this
             dnw_val_this = subset_df_obs.iloc[year_index]["demand_net_wind_max"]
+            demand_this = subset_df_obs.iloc[year_index]["data_c_dt_UK_demand"]
+            wind_gen_this = subset_df_obs.iloc[year_index]["total_gen"]
 
             # Extract the data this
             subset_arr_this_obs = subset_arrs_list_obs[j][year_index, :, :]
@@ -6852,6 +6881,18 @@ def plot_multi_var_composites_obs(
                     fontsize=6,
                     inline=True,
                     inline_spacing=0.0,
+                )
+
+                # include a textbox in the bottom right with the demand and wind gen
+                ax_this.text(
+                    0.95,
+                    0.05,
+                    f"Demand = {demand_this:.2f} GW\nWind Gen = {wind_gen_this:.2f} GW",
+                    horizontalalignment="right",
+                    verticalalignment="bottom",
+                    transform=ax_this.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
                 )
 
             # add coastlines to all of these
@@ -6933,13 +6974,18 @@ def plot_multi_var_composites_obs(
                 ax_this.set_title("Obs daily MSLP", fontsize=12, fontweight="bold")
             elif i == 0 and j == 1:
                 ax_this.set_title("Obs daily airT", fontsize=12, fontweight="bold")
+                if anoms_flag:
+                    ax_this.set_title("Obs daily airT anomalies", fontsize=12, fontweight="bold")
             elif i == 0 and j == 2:
                 ax_this.set_title("Obs daily sfcWind", fontsize=12, fontweight="bold")
+                if anoms_flag:
+                    ax_this.set_title("Obs daily sfcWind anomalies", fontsize=12, fontweight="bold")
 
     return None
 
-
-
+# Function to get the cluster fraction
+def get_cluster_fraction(m, label):        
+        return (m.labels_==label).sum()/(m.labels_.size*1.0)
 
 # Define the main function
 def main():
@@ -6968,7 +7014,7 @@ def main():
 
     season = "DJF"
     time_freq = "day"
-    len_winter_days = 5776
+    len_winter_days = 5866
 
     # If the path esists, load in the obs df
     if os.path.exists(os.path.join(dfs_dir, obs_df_fname)):
@@ -7182,48 +7228,66 @@ def main():
     print(f"Columns in model df: {model_df.columns}")
 
     # # Load the psl data for the north atlantic region
-    # obs_psl_arr = load_obs_data(
-    #     variable="psl",
-    #     region="NA",
-    #     season=season,
-    #     time_freq=time_freq,
-    #     winter_years=(1960, 2024),
-    #     winter_dim_shape=len_winter_days,
-    #     lat_shape=90,  # NA region
-    #     lon_shape=96,  # NA region
-    #     arrs_dir=winter_arrs_dir,
-    # )
+    obs_psl_arr = load_obs_data(
+        variable="psl",
+        region="NA",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2024),
+        winter_dim_shape=len_winter_days,
+        lat_shape=90,  # NA region
+        lon_shape=96,  # NA region
+        arrs_dir=winter_arrs_dir,
+    )
 
-    # # Do the same for temperature
-    # obs_temp_arr = load_obs_data(
-    #     variable="tas",
-    #     region="Europe",
-    #     season=season,
-    #     time_freq=time_freq,
-    #     winter_years=(1960, 2024),
-    #     winter_dim_shape=len_winter_days,
-    #     lat_shape=63,  # Europe region
-    #     lon_shape=49,  # Europe region
-    #     arrs_dir=winter_arrs_dir,
-    # )
+    # Do the same for temperature
+    obs_temp_arr = load_obs_data(
+        variable="tas",
+        region="Europe",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2024),
+        winter_dim_shape=len_winter_days,
+        lat_shape=63,  # Europe region
+        lon_shape=49,  # Europe region
+        arrs_dir=winter_arrs_dir,
+    )
 
-    # # Do the same for wind speed
-    # obs_wind_arr = load_obs_data(
-    #     variable="sfcWind",
-    #     region="Europe",
-    #     season=season,
-    #     time_freq=time_freq,
-    #     winter_years=(1960, 2024),
-    #     winter_dim_shape=len_winter_days,
-    #     lat_shape=63,  # Europe region
-    #     lon_shape=49,  # Europe region
-    #     arrs_dir=winter_arrs_dir,
-    # )
+    # Do the same for wind speed
+    obs_wind_arr = load_obs_data(
+        variable="sfcWind",
+        region="Europe",
+        season=season,
+        time_freq=time_freq,
+        winter_years=(1960, 2024),
+        winter_dim_shape=len_winter_days,
+        lat_shape=63,  # Europe region
+        lon_shape=49,  # Europe region
+        arrs_dir=winter_arrs_dir,
+    )
+
+    # Print the types of the arrays
+    print(f"Type of obs psl array: {type(obs_psl_arr)}")
+    print(f"Type of obs temperature array: {type(obs_temp_arr)}")
+    print(f"Type of obs wind array: {type(obs_wind_arr)}")
+
+    obs_psl_full, obs_psl_wmeans = obs_psl_arr
+    obs_temp_full, obs_temp_wmeans = obs_temp_arr
+    obs_wind_full, obs_wind_wmeans = obs_wind_arr
+
+    # Print the shapes of the arrays
+    print(f"Shape of obs psl array: {obs_psl_full.shape}")
+    print(f"Shape of obs temperature array: {obs_temp_full.shape}")
+    print(f"Shape of obs wind array: {obs_wind_full.shape}")
+    # Print the shapes of the wmeans arrays
+    print(f"Shape of obs psl wmeans: {obs_psl_wmeans.shape}")
+    print(f"Shape of obs temperature wmeans: {obs_temp_wmeans.shape}")
+    print(f"Shape of obs wind wmeans: {obs_wind_wmeans.shape}")
 
     # # Calculate the psl climatology
-    # obs_psl_clim = np.mean(obs_psl_arr, axis=0)
-    # obs_tas_clim = np.mean(obs_temp_arr, axis=0)
-    # obs_wind_clim = np.mean(obs_wind_arr, axis=0)
+    obs_psl_clim = np.mean(obs_psl_full, axis=0)
+    obs_tas_clim = np.mean(obs_temp_full, axis=0)
+    obs_wind_clim = np.mean(obs_wind_full, axis=0)
 
     # print the head of the dfs
     print("Head of the obs df:")
@@ -7426,45 +7490,307 @@ def main():
 
     # Extract the top 5 effective dec years from this
     effective_dec_years_top = obs_df_sorted["effective_dec_year"].unique()[:5]
+    effective_dec_years_second = obs_df_sorted["effective_dec_year"].unique()[5:10]
+
+    # Find the second worst 5
+    least_worst_5 = obs_df_sorted["effective_dec_year"].unique()[-5:]
+    second_least_worst_5 = obs_df_sorted["effective_dec_year"].unique()[-10:-5]
 
     # # Extract the first 4 characters of each value and convert them to int
     # effective_dec_years_top = np.char.slice(effective_dec_years_top.astype(str), 0, 4).astype(int)
 
     # Convert into a list of ints
-    effective_dec_years = [int(year[:4]) for year in effective_dec_years_top]
+    effective_dec_years_worst = [int(year[:4]) for year in effective_dec_years_top]
+    effective_dec_years_least = [int(year[:4]) for year in least_worst_5]
+    effective_dec_years_second_least = [int(year[:4]) for year in second_least_worst_5]
+    effective_dec_years_second_most = [int(year[:4]) for year in effective_dec_years_second]
 
-    # Test the new function
-    plot_multi_var_composites_obs(
-        subset_df_obs=obs_df,
-        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-        var_names=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-            ),
-        ],
-        effective_dec_years=effective_dec_years,
-        figsize=(10, 13),
-        anoms_flag=False,
+    # Print the shape of obs psl subset, obs temp subset and obs wind subset
+    print(f"Shape of obs psl subset: {obs_psl_subset.shape}")
+    print(f"Shape of obs temp subset: {obs_temp_subset.shape}")
+    print(f"Shape of obs wind subset: {obs_wind_subset.shape}")
+
+    # Set up the levels for plotting absolute values
+    # Set up the cmap
+    cmap = "coolwarm"
+
+    # Sert up the levels
+    levels = np.array(
+        [
+            1004,
+            1006,
+            1008,
+            1010,
+            1012,
+            1014,
+            1016,
+            1018,
+            1020,
+            1022,
+            1024,
+            1026,
+        ]
     )
+
+    # Extract the nt, nx, ny
+    nt, nx, ny = obs_psl_subset.shape
+
+    # Reshape the obs psl subset to be (nt, ny* nx)
+    obs_psl_subset_reshaped = obs_psl_subset.reshape(nt, ny * nx)
+
+    # Fit clusters to the reshaped data
+    mk = KMeans(n_clusters=5, random_state=0).fit(obs_psl_subset_reshaped)
+
+    # -----------------
+    # Now plot the cluster centroids
+    # -----------------
+
+    NA_lats = np.load(
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+        )
+    )
+    NA_lons = np.load(
+        os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+        )
+    )
+
+    # # Set up the mesh grid for this
+    # x, y = np.meshgrid(NA_lats, NA_lons)
+
+    # Set up the ncols and nrows
+    nrows = 2
+    ncols = 3
+
+    figsize_x = 15
+    figsize_y = 10
+
+    # Set up the figure and axes with space for colorbars
+    fig = plt.figure(figsize=(figsize_x, figsize_y))
+    
+    # Create a gridspec with extra space for colorbars
+    gs = fig.add_gridspec(nrows, ncols, 
+                         height_ratios=[1, 1], 
+                         hspace=0.15, wspace=0.1,
+                         bottom=0.15, top=0.92, left=0.05, right=0.95)
+    
+    # Create the main plotting axes
+    axs = np.empty((nrows, ncols), dtype=object)
+    for row in range(nrows):
+        for col in range(ncols):
+            axs[row, col] = fig.add_subplot(gs[row, col], projection=ccrs.PlateCarree())
+
+    tags = [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+    ]  # Tags for the clusters
+
+    # Store the contour plots for colorbar creation
+    cluster_plots = []
+
+    # Loop over the axes and plot the cluster centroids
+    for i in range(mk.n_clusters):
+        # Get the cluster centroid
+        cluster_centroid = mk.cluster_centers_[i, :].reshape(nx, ny)
+
+        # plot the cluster centroid
+        ax = axs[i // ncols, i % ncols]
+        cluster = ax.contourf(
+            NA_lons,
+            NA_lats,
+            cluster_centroid / 100, # Convert to hPa
+            cmap="RdBu_r",
+            transform=ccrs.PlateCarree(),
+            extend='both',
+        )
+        
+        cluster_plots.append(cluster)
+        ax.coastlines()
+
+        title_this = f"Cluster {i + 1} {get_cluster_fraction(mk, i):.2%}"
+        ax.set_title(title_this, fontsize=12, fontweight="bold")
+
+        # Add a tag to the plot
+        ax.text(
+            0.05,
+            0.95,
+            f"({tags[i]})",
+            transform=ax.transAxes,
+            fontsize=14,
+            fontweight="bold",
+            va='top',
+            ha='left',
+            bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'),
+        )
+
+    # Create colorbars beneath each plot with matching width
+    for i in range(mk.n_clusters):
+        ax = axs[i // ncols, i % ncols]
+        
+        # Get the position of the current subplot
+        pos = ax.get_position()
+        
+        # Create colorbar axis beneath the plot with same width
+        cbar_ax = fig.add_axes([pos.x0, pos.y0 - 0.03, pos.width, 0.02])
+        
+        # Add the colorbar
+        cbar = fig.colorbar(cluster_plots[i], cax=cbar_ax, orientation='horizontal')
+        cbar.set_label("hPa", fontsize=10)
+        cbar.ax.tick_params(labelsize=8)
+
+    # Set up a tight layout
+    plt.tight_layout()
+
+    # Save the figure with tight layout
+    # plt.savefig('cluster_centroids.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Print the time taken to fit the model
+    print(f"Time taken to fit the model: {time.time() - start_time:.2f} seconds")
+    print("--" * 20)
+    print("Exiting the script after fitting the model...")
+    print("--" * 20)
+    sys.exit()
+
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_worst,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    # )
+
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_second_most,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    # )
+
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_second_least,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    # )
+
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_least,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    # )
 
     sys.exit()
 
@@ -9710,5 +10036,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# %%
+
+# %%
 
 # %%
