@@ -6626,6 +6626,7 @@ def plot_multi_var_composites_obs(
     figsize: Tuple[int, int] = (10, 10),
     anoms_flag: bool = False,
     clim_arrs_list_obs: Optional[List[np.ndarray]] = None,
+    cluster_assign_name: Optional[str] = None,
 ):
     """
     Plots multi-variable composites for observations.
@@ -6643,6 +6644,7 @@ def plot_multi_var_composites_obs(
         figsize (Tuple[int, int]): Size of the figure.
         anoms_flag (bool): Flag to indicate if anomalies should be plotted.
         clim_arrs_list_obs (Optional[List[np.ndarray]]): List of climatology arrays for observations.
+        cluster_assign_name (Optional[str]): Name of the cluster assignment, if applicable.
 
     Returns:
     ========
@@ -6829,6 +6831,10 @@ def plot_multi_var_composites_obs(
             demand_this = subset_df_obs.iloc[year_index]["data_c_dt_UK_demand"]
             wind_gen_this = subset_df_obs.iloc[year_index]["total_gen"]
 
+            # Set up the cluster this
+            if cluster_assign_name is not None:
+                cluster_this = subset_df_obs.iloc[year_index][cluster_assign_name]
+
             # Extract the data this
             subset_arr_this_obs = subset_arrs_list_obs[j][year_index, :, :]
 
@@ -6848,7 +6854,6 @@ def plot_multi_var_composites_obs(
                 raise ValueError(
                     f"Variable {var_name} not supported for anomaly calculation."
                 )
-
 
             # Plot the model data on the right
             im_model = ax_this.contourf(
@@ -6921,6 +6926,19 @@ def plot_multi_var_composites_obs(
                 fontsize=12,
                 bbox=dict(facecolor="white", alpha=0.5),
             )
+
+            if cluster_assign_name is not None:
+                # Include the cluster assignment in the top left
+                ax_this.text(
+                    0.05,
+                    0.95,
+                    f"Cluster = {cluster_this}",
+                    horizontalalignment="left",
+                    verticalalignment="top",
+                    transform=ax_this.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
 
             # if i == 2
             if i == len(effective_dec_years_indices) - 1:
@@ -7256,8 +7274,8 @@ def create_and_plot_cluster_composites(
         maxs.append(max_this)
 
     # Find the min max value and max min value
-    min_val = np.max(mins)
-    max_val = np.min(maxs)
+    min_val = np.min(mins)
+    max_val = np.max(maxs)
 
     for i, cluster_id in enumerate(cluster_ids):
         # Get the composite for this cluster
@@ -7886,7 +7904,7 @@ def main():
         subset_arr=obs_psl_subset,
         lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
         lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
-        n_clusters=4,
+        n_clusters=3,
         figsize=(10, 10),
         cmap="RdBu_r",
     )
@@ -7899,7 +7917,7 @@ def main():
         lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
         lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
         cmap="RdBu_r",
-        exclude_no_type=True,
+        exclude_no_type=False,
         figsize=(10, 10),
         arr_clim=obs_tas_clim,
     )
@@ -7912,7 +7930,7 @@ def main():
         lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
         lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
         cmap="PRGn",
-        exclude_no_type=True,
+        exclude_no_type=False,
         figsize=(10, 10),
         arr_clim=obs_wind_clim,
     )
@@ -7921,20 +7939,33 @@ def main():
     print("Composites for 4 clusters:")
     for cluster_id, data in composites_4.items():
         print(f"Cluster {cluster_id + 1}: {data['n_samples']} samples")
-    print(f"Time taken for 4 clusters: {stats_4['time_taken']}")
 
-    sys.exit()
+    # PRINT THW shape of assign     
+    print(f"Shape of assign_4: {assign_4.shape}")
 
-    model_3, assign_3, stats_3 = kmeans_clustering_and_plotting(
-        subset_arr=obs_psl_subset,
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
-        n_clusters=3,
-        figsize=(10, 8),
-        cmap="RdBu_r",
-    )
+    # Print the values of assign_4
+    print(f"Values of assign_4: {np.unique(assign_4)}")
+
+    # Add the values of assign_4 to the obs_df
+    obs_df["cluster_assign"] = assign_4
+
+    # Print the head of the obs_df
+    print("Head of the obs_df with cluster assignments:")
+    print(obs_df.head())
+
+    # Print the tail of the obs_df
+    print("Tail of the obs_df with cluster assignments:")
+    print(obs_df.tail())
 
 
+    # model_3, assign_3, stats_3 = kmeans_clustering_and_plotting(
+    #     subset_arr=obs_psl_subset,
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+    #     n_clusters=3,
+    #     figsize=(10, 8),
+    #     cmap="RdBu_r",
+    # )
 
     # # Do the same but with 4 clusters for temperature
     # kmeans_clustering_and_plotting(
@@ -7956,142 +7987,145 @@ def main():
     #     cmap="PRGn",
     # )
 
+    # Test the new function
+    plot_multi_var_composites_obs(
+        subset_df_obs=obs_df.copy(),
+        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+        var_names=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+        ],
+        effective_dec_years=effective_dec_years_worst,
+        figsize=(10, 13),
+        anoms_flag=True,
+        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        cluster_assign_name="cluster_assign",
+    )
 
-    # # Test the new function
-    # plot_multi_var_composites_obs(
-    #     subset_df_obs=obs_df.copy(),
-    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-    #     var_names=["psl", "tas", "sfcWind"],
-    #     lats_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #     ],
-    #     lons_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #     ],
-    #     effective_dec_years=effective_dec_years_worst,
-    #     figsize=(10, 13),
-    #     anoms_flag=True,
-    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-    # )
+    # Test the new function
+    plot_multi_var_composites_obs(
+        subset_df_obs=obs_df.copy(),
+        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+        var_names=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+        ],
+        effective_dec_years=effective_dec_years_second_most,
+        figsize=(10, 13),
+        anoms_flag=True,
+        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        cluster_assign_name="cluster_assign",
+    )
 
-    # # Test the new function
-    # plot_multi_var_composites_obs(
-    #     subset_df_obs=obs_df.copy(),
-    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-    #     var_names=["psl", "tas", "sfcWind"],
-    #     lats_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #     ],
-    #     lons_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #     ],
-    #     effective_dec_years=effective_dec_years_second_most,
-    #     figsize=(10, 13),
-    #     anoms_flag=True,
-    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-    # )
+    # Test the new function
+    plot_multi_var_composites_obs(
+        subset_df_obs=obs_df.copy(),
+        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+        var_names=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+        ],
+        effective_dec_years=effective_dec_years_second_least,
+        figsize=(10, 13),
+        anoms_flag=True,
+        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        cluster_assign_name="cluster_assign",
+    )
 
-    # # Test the new function
-    # plot_multi_var_composites_obs(
-    #     subset_df_obs=obs_df.copy(),
-    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-    #     var_names=["psl", "tas", "sfcWind"],
-    #     lats_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #     ],
-    #     lons_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #     ],
-    #     effective_dec_years=effective_dec_years_second_least,
-    #     figsize=(10, 13),
-    #     anoms_flag=True,
-    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-    # )
-
-    # # Test the new function
-    # plot_multi_var_composites_obs(
-    #     subset_df_obs=obs_df.copy(),
-    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-    #     var_names=["psl", "tas", "sfcWind"],
-    #     lats_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-    #         ),
-    #     ],
-    #     lons_paths=[
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #         os.path.join(
-    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-    #         ),
-    #     ],
-    #     effective_dec_years=effective_dec_years_least,
-    #     figsize=(10, 13),
-    #     anoms_flag=True,
-    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-    # )
+    # Test the new function
+    plot_multi_var_composites_obs(
+        subset_df_obs=obs_df.copy(),
+        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+        var_names=["psl", "tas", "sfcWind"],
+        lats_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+        ],
+        lons_paths=[
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+            os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+        ],
+        effective_dec_years=effective_dec_years_least,
+        figsize=(10, 13),
+        anoms_flag=True,
+        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+        cluster_assign_name="cluster_assign",
+    )
 
     sys.exit()
 
