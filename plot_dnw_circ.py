@@ -7818,75 +7818,68 @@ def main():
     print(f"Shape of obs temp subset: {obs_temp_subset.shape}")
     print(f"Shape of obs wind subset: {obs_wind_subset.shape}")
 
-    model, assign, stats = kmeans_clustering_and_plotting(
-        subset_arr=obs_psl_subset,
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
-        n_clusters=5,
-        figsize=(15, 10),
-        cmap="RdBu_r",
-    )
+    # model, assign, stats = kmeans_clustering_and_plotting(
+    #     subset_arr=obs_psl_subset,
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+    #     n_clusters=5,
+    #     figsize=(15, 10),
+    #     cmap="RdBu_r",
+    # )
 
-    composites_5 = create_and_plot_cluster_composites(
-        subset_arr=obs_temp_subset,
-        cluster_assignments=assign,
-        var_name="tas",
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
-        cmap="RdBu_r",
-        exclude_no_type=True,
-        figsize=(15, 10),
-    )
+    # composites_5 = create_and_plot_cluster_composites(
+    #     subset_arr=obs_temp_subset,
+    #     cluster_assignments=assign,
+    #     var_name="tas",
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+    #     cmap="RdBu_r",
+    #     exclude_no_type=True,
+    #     figsize=(15, 10),
+    # )
 
-    # Do the same but for anoms
-    composites_5_anoms = create_and_plot_cluster_composites(
-        subset_arr=obs_temp_subset,
-        cluster_assignments=assign,
-        var_name="tas",
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
-        cmap="RdBu_r",
-        exclude_no_type=True,
-        figsize=(15, 10),
-        arr_clim=obs_tas_clim,
-    )
+    # # Do the same but for anoms
+    # composites_5_anoms = create_and_plot_cluster_composites(
+    #     subset_arr=obs_temp_subset,
+    #     cluster_assignments=assign,
+    #     var_name="tas",
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+    #     cmap="RdBu_r",
+    #     exclude_no_type=True,
+    #     figsize=(15, 10),
+    #     arr_clim=obs_tas_clim,
+    # )
 
-    # Do the same but for wind anoms
-    composites_5_wind = create_and_plot_cluster_composites(
-        subset_arr=obs_wind_subset,
-        cluster_assignments=assign,
-        var_name="sfcWind",
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
-        cmap="Greens",
-        exclude_no_type=True,
-        figsize=(15, 10),
-    )
+    # # Do the same but for wind anoms
+    # composites_5_wind = create_and_plot_cluster_composites(
+    #     subset_arr=obs_wind_subset,
+    #     cluster_assignments=assign,
+    #     var_name="sfcWind",
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+    #     cmap="Greens",
+    #     exclude_no_type=True,
+    #     figsize=(15, 10),
+    # )
 
-    # Do the same but for wind anoms
-    composites_5_wind_anoms = create_and_plot_cluster_composites(
-        subset_arr=obs_wind_subset,
-        cluster_assignments=assign,
-        var_name="sfcWind",
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
-        cmap="PRGn",
-        exclude_no_type=True,
-        figsize=(15, 10),
-        arr_clim=obs_wind_clim,
-    )
+    # # Do the same but for wind anoms
+    # composites_5_wind_anoms = create_and_plot_cluster_composites(
+    #     subset_arr=obs_wind_subset,
+    #     cluster_assignments=assign,
+    #     var_name="sfcWind",
+    #     lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
+    #     lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+    #     cmap="PRGn",
+    #     exclude_no_type=True,
+    #     figsize=(15, 10),
+    #     arr_clim=obs_wind_clim,
+    # )
 
-    # Print the composites 5
-    print("Composites for 5 clusters:")
-    for cluster_id, data in composites_5.items():
-        print(f"Cluster {cluster_id + 1}: {data['n_samples']} samples")
-
-    # Print the time taken to fit the model
-    print(f"Time taken to fit the model: {time.time() - start_time:.2f} seconds")
-    print("--" * 20)
-    print("Exiting the script after fitting the model...")
-    print("--" * 20)
-    sys.exit()
+    # # Print the composites 5
+    # print("Composites for 5 clusters:")
+    # for cluster_id, data in composites_5.items():
+    #     print(f"Cluster {cluster_id + 1}: {data['n_samples']} samples")
 
     # Do the same but for 4 clusters
     model_4, assign_4, stats_4 = kmeans_clustering_and_plotting(
@@ -7897,6 +7890,40 @@ def main():
         figsize=(10, 10),
         cmap="RdBu_r",
     )
+
+    # Plot the tas anoms composites for 4 clusters
+    composites_4 = create_and_plot_cluster_composites(
+        subset_arr=obs_temp_subset,
+        cluster_assignments=assign_4,
+        var_name="tas",
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+        cmap="RdBu_r",
+        exclude_no_type=True,
+        figsize=(10, 10),
+        arr_clim=obs_tas_clim,
+    )
+
+    # Plot the wind anoms composites for 4 clusters
+    composites_4_wind = create_and_plot_cluster_composites(
+        subset_arr=obs_wind_subset,
+        cluster_assignments=assign_4,
+        var_name="sfcWind",
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+        cmap="PRGn",
+        exclude_no_type=True,
+        figsize=(10, 10),
+        arr_clim=obs_wind_clim,
+    )
+
+    # print the time taken
+    print("Composites for 4 clusters:")
+    for cluster_id, data in composites_4.items():
+        print(f"Cluster {cluster_id + 1}: {data['n_samples']} samples")
+    print(f"Time taken for 4 clusters: {stats_4['time_taken']}")
+
+    sys.exit()
 
     model_3, assign_3, stats_3 = kmeans_clustering_and_plotting(
         subset_arr=obs_psl_subset,
