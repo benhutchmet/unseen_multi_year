@@ -7113,7 +7113,7 @@ def kmeans_clustering_and_plotting(
         cluster_count = np.sum(cluster_assignments == i)
         cluster_percentage = cluster_count / nt * 100
         
-        title_this = f"Cluster {i + 1} ({cluster_count} steps, {cluster_percentage:.1f}%)"
+        title_this = f"Cluster {i + 1} ({cluster_count} days, {cluster_percentage:.1f}%)"
         ax_this.set_title(title_this, fontsize=12, fontweight="bold")
 
         # Add a tag to the plot
@@ -7151,11 +7151,149 @@ def kmeans_clustering_and_plotting(
         count = cluster_stats['cluster_counts'][cluster_id]
         percentage = cluster_stats['cluster_percentages'][cluster_id]
         if cluster_id == -1:
-            print(f"  No-type cluster: {count} steps ({percentage:.1f}%)")
+            print(f"  No-type cluster: {count} days ({percentage:.1f}%)")
         else:
-            print(f"  Cluster {cluster_id + 1}: {count} steps ({percentage:.1f}%)")
+            print(f"  Cluster {cluster_id + 1}: {count} days ({percentage:.1f}%)")
     
     return m, cluster_assignments, cluster_stats
+
+# Define a function to create and plot cluster composites
+def create_and_plot_cluster_composites(
+    subset_arr: np.ndarray,
+    cluster_assignments: np.ndarray,
+    var_name: str,
+    lats_path: str,
+    lons_path: str,
+    cmap: str = "RdBu_r",
+    arr_clim: Optional[np.ndarray] = None,
+    exclude_no_type: bool = True,
+    figsize: Tuple[int, int] = (10, 10),
+) -> None:
+    """
+    Create and plot cluster composites for a given variable.
+
+    Parameters:
+    ===========
+        subset_arr (np.ndarray): The subset array to analyze.
+        cluster_assignments (np.ndarray): Cluster assignments for each time step.
+        var_name (str): Name of the variable being analyzed.
+        lats_path (str): Path to the latitude data.
+        lons_path (str): Path to the longitude data.
+        arr_clim (Optional[np.ndarray]): Climatology array for the variable (if available
+        exclude_no_type (bool): Whether to exclude the "no-type" cluster (-1).
+        figsize (Tuple[int, int]): Size of the figure.
+
+    Returns:
+    ========
+        None
+
+    """
+
+    # Set up a dictionary for the composites
+    composites = {}
+    unique_clusters = np.unique(cluster_assignments)
+
+    if exclude_no_type:
+        unique_clusters = unique_clusters[unique_clusters != -1]
+
+    for cluster_id in unique_clusters:
+        # Get the indices for this cluster
+        cluster_indices = np.where(cluster_assignments == cluster_id)[0]
+
+        if len(cluster_indices) == 0:
+            print(f"No data for cluster {cluster_id + 1}, skipping.")
+            continue
+
+        arr_this_cluster = subset_arr[cluster_indices, :, :]
+
+        if arr_clim is not None:
+            print(f"Calculating composite for cluster {cluster_id + 1} with climatology.")
+            # Calculate the composite by averaging over the cluster indices
+            composite = np.mean(arr_this_cluster, axis=0) - arr_clim
+        else:
+            composite = np.mean(arr_this_cluster, axis=0)
+
+        composites[cluster_id] = {
+            "composite": composite,
+            "n_samples": len(cluster_indices),
+            "time_indices": cluster_indices,
+        }
+
+    # Load the lats and lons
+    lats = np.load(lats_path)
+    lons = np.load(lons_path)
+
+    # Set up the n_clusters
+    n_clusters = len(composites)
+
+    # Set up the ncols and nrow
+    # if n_clusters is 4
+    ncols = 2 if n_clusters == 4 else 3
+    nrows = int(np.ceil(n_clusters / ncols))
+
+    fig, axs = plt.subplots(
+        nrows= nrows,
+        ncols=ncols,
+        figsize=figsize,
+        subplot_kw={"projection": ccrs.PlateCarree()},
+        layout="constrained",
+    )
+
+    cluster_ids = sorted(composites.keys())
+
+    mins, maxs, mins = [], [], []
+
+    # Loop over the cluster ids and find the min and max
+    for i, cluster_id in enumerate(cluster_ids):
+        # Get the composite for this cluster
+        composite = composites[cluster_id]["composite"]
+
+        # Find the min amd max values
+        min_this = np.min(composite)
+        max_this = np.max(composite)
+
+        mins.append(min_this)
+        maxs.append(max_this)
+
+    # Find the min max value and max min value
+    min_val = np.max(mins)
+    max_val = np.min(maxs)
+
+    for i, cluster_id in enumerate(cluster_ids):
+        # Get the composite for this cluster
+        composite = composites[cluster_id]["composite"]
+
+        ax_this = axs[i // ncols, i % ncols] if nrows > 1 else axs[i]
+
+        im_this = ax_this.contourf(
+            lons,
+            lats,
+            composite,
+            vmin=min_val,
+            vmax=max_val,
+            cmap=cmap,
+            transform=ccrs.PlateCarree(),
+            extend="both",
+        )
+
+        ax_this.coastlines()
+        # Set the title for this subplot
+        title_this = f"Cluster {cluster_id + 1} ({composites[cluster_id]['n_samples']} days)"
+        ax_this.set_title(title_this, fontsize=12, fontweight="bold")
+
+    # Add a colorbar for the all subplots
+    cbar = fig.colorbar(
+        im_this,
+        ax=axs,
+        orientation="horizontal",
+        pad=0.05,
+        shrink=0.8,
+    )
+    cbar.set_label(f"{var_name} units", rotation=0, fontsize=12)
+
+    plt.show()
+
+    return composites
 
 # Define the main function
 def main():
@@ -7689,6 +7827,67 @@ def main():
         cmap="RdBu_r",
     )
 
+    composites_5 = create_and_plot_cluster_composites(
+        subset_arr=obs_temp_subset,
+        cluster_assignments=assign,
+        var_name="tas",
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+        cmap="RdBu_r",
+        exclude_no_type=True,
+        figsize=(15, 10),
+    )
+
+    # Do the same but for anoms
+    composites_5_anoms = create_and_plot_cluster_composites(
+        subset_arr=obs_temp_subset,
+        cluster_assignments=assign,
+        var_name="tas",
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+        cmap="RdBu_r",
+        exclude_no_type=True,
+        figsize=(15, 10),
+        arr_clim=obs_tas_clim,
+    )
+
+    # Do the same but for wind anoms
+    composites_5_wind = create_and_plot_cluster_composites(
+        subset_arr=obs_wind_subset,
+        cluster_assignments=assign,
+        var_name="sfcWind",
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+        cmap="Greens",
+        exclude_no_type=True,
+        figsize=(15, 10),
+    )
+
+    # Do the same but for wind anoms
+    composites_5_wind_anoms = create_and_plot_cluster_composites(
+        subset_arr=obs_wind_subset,
+        cluster_assignments=assign,
+        var_name="sfcWind",
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+        cmap="PRGn",
+        exclude_no_type=True,
+        figsize=(15, 10),
+        arr_clim=obs_wind_clim,
+    )
+
+    # Print the composites 5
+    print("Composites for 5 clusters:")
+    for cluster_id, data in composites_5.items():
+        print(f"Cluster {cluster_id + 1}: {data['n_samples']} samples")
+
+    # Print the time taken to fit the model
+    print(f"Time taken to fit the model: {time.time() - start_time:.2f} seconds")
+    print("--" * 20)
+    print("Exiting the script after fitting the model...")
+    print("--" * 20)
+    sys.exit()
+
     # Do the same but for 4 clusters
     model_4, assign_4, stats_4 = kmeans_clustering_and_plotting(
         subset_arr=obs_psl_subset,
@@ -7698,6 +7897,17 @@ def main():
         figsize=(10, 10),
         cmap="RdBu_r",
     )
+
+    model_3, assign_3, stats_3 = kmeans_clustering_and_plotting(
+        subset_arr=obs_psl_subset,
+        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
+        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        n_clusters=3,
+        figsize=(10, 8),
+        cmap="RdBu_r",
+    )
+
+
 
     # # Do the same but with 4 clusters for temperature
     # kmeans_clustering_and_plotting(
@@ -7719,12 +7929,6 @@ def main():
     #     cmap="PRGn",
     # )
 
-    # Print the time taken to fit the model
-    print(f"Time taken to fit the model: {time.time() - start_time:.2f} seconds")
-    print("--" * 20)
-    print("Exiting the script after fitting the model...")
-    print("--" * 20)
-    sys.exit()
 
     # # Test the new function
     # plot_multi_var_composites_obs(
