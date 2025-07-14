@@ -39,6 +39,7 @@ import dictionaries as dicts
 # Local imports
 import process_dnw_gev as pdg_funcs
 
+
 # Set up a function for loading the data
 def load_obs_data(
     variable: str,
@@ -106,7 +107,7 @@ def load_obs_data(
         if data_this.size != 0:
             # Check if we have enough space in the target array
             end_index = first_dim_ticker + data_this.shape[0]
-            
+
             if end_index > data_arr_full.shape[0]:
                 print(f"Error: Not enough space in data_arr_full")
                 print(f"data_arr_full shape: {data_arr_full.shape}")
@@ -118,20 +119,24 @@ def load_obs_data(
                 print(f"Current year: {year}")
                 print(f"File: {fname_this}")
                 raise ValueError("Target array is too small for the data")
-            
+
             if data_this.shape[0] == 0:
                 print(f"Warning: data_this has 0 time steps for file {fname_this}")
                 continue
-                
+
             try:
-                data_arr_full[first_dim_ticker : end_index, :, :] = data_this
+                data_arr_full[first_dim_ticker:end_index, :, :] = data_this
                 first_dim_ticker += data_this.shape[0]
 
                 # Take the mean over the first dimension and append to the data arr wmeans
-                data_arr_wmeans[year - winter_years[0], :, :] = np.mean(data_this, axis=0)
+                data_arr_wmeans[year - winter_years[0], :, :] = np.mean(
+                    data_this, axis=0
+                )
             except ValueError as e:
                 print(f"Error broadcasting array for year {year}")
-                print(f"data_arr_full slice shape: {data_arr_full[first_dim_ticker:end_index, :, :].shape}")
+                print(
+                    f"data_arr_full slice shape: {data_arr_full[first_dim_ticker:end_index, :, :].shape}"
+                )
                 print(f"data_this shape: {data_this.shape}")
                 print(f"first_dim_ticker: {first_dim_ticker}")
                 print(f"end_index: {end_index}")
@@ -370,9 +375,13 @@ def extract_obs_data(
 
                     # find the index of year to extract this in unique_dec_years
                     try:
-                        y_index = np.where(unique_dec_years == year_to_extract_this)[0][0]
+                        y_index = np.where(unique_dec_years == year_to_extract_this)[0][
+                            0
+                        ]
                     except IndexError as e:
-                        print(f"Error: year_to_extract_this {year_to_extract_this} not found in unique_dec_years")
+                        print(
+                            f"Error: year_to_extract_this {year_to_extract_this} not found in unique_dec_years"
+                        )
                         print(f"Min unique_dec_years: {np.min(unique_dec_years)}")
                         print(f"Max unique_dec_years: {np.max(unique_dec_years)}")
                         print(f"year_to_extract_this: {year_to_extract_this}")
@@ -395,7 +404,7 @@ def extract_obs_data(
 
         # load the times for this
         times_this = np.load(times_files[0])
-        
+
         # convert the times to cftime
         times_this_cf = cftime.num2date(
             times_this,
@@ -408,8 +417,12 @@ def extract_obs_data(
         try:
             # Create a list of date matches (ignoring time)
             date_matches = []
-            target_date = (time_to_extract_this.year, time_to_extract_this.month, time_to_extract_this.day)
-            
+            target_date = (
+                time_to_extract_this.year,
+                time_to_extract_this.month,
+                time_to_extract_this.day,
+            )
+
             for idx, time_cf in enumerate(times_this_cf):
                 cf_date = (time_cf.year, time_cf.month, time_cf.day)
                 if cf_date == target_date:
@@ -418,11 +431,15 @@ def extract_obs_data(
             if len(date_matches) == 0:
                 raise IndexError(f"No date match found for {target_date}")
             elif len(date_matches) > 1:
-                print(f"Warning: Multiple time matches found for date {target_date}, using first match")
-            
+                print(
+                    f"Warning: Multiple time matches found for date {target_date}, using first match"
+                )
+
             time_index = date_matches[0]
         except IndexError as e:
-            print(f"Error: Date {time_to_extract_this.year}-{time_to_extract_this.month:02d}-{time_to_extract_this.day:02d} not found in times array")
+            print(
+                f"Error: Date {time_to_extract_this.year}-{time_to_extract_this.month:02d}-{time_to_extract_this.day:02d} not found in times array"
+            )
             print(f"Data file: {fname_this}")
             print(f"Times file: {times_files[0]}")
             print(f"Available times range: {times_this_cf[0]} to {times_this_cf[-1]}")
@@ -431,7 +448,9 @@ def extract_obs_data(
             print(f"type of times_this_cf: {type(times_this_cf[0])}")
             print(f"Available dates in times array:")
             for t in times_this_cf:
-                print(f" - {t.year}-{t.month:02d}-{t.day:02d} {t.hour:02d}:{t.minute:02d}:{t.second:02d}")
+                print(
+                    f" - {t.year}-{t.month:02d}-{t.day:02d} {t.hour:02d}:{t.minute:02d}:{t.second:02d}"
+                )
             raise e
 
         # if the variable is tas then set the data this to the detrended data
@@ -5154,9 +5173,7 @@ def plot_var_composites_model(
         # if there are any zeros in the subset_arr_this_model_full
         if np.any(subset_arr_this_model_full == 0):
             # format these as Nans
-            subset_arr_this_model_full[
-                subset_arr_this_model_full == 0
-            ] = np.nan
+            subset_arr_this_model_full[subset_arr_this_model_full == 0] = np.nan
 
         # Print the row index
         print(f"Row index: {i}")
@@ -5478,7 +5495,9 @@ def plot_multi_var_composites_model(
                 index_dict_this = multi_model_index_dicts[i][j]
 
                 # Extract the effective dec years array
-                effective_dec_years_arr = np.array(index_dict_this["effective_dec_year"])
+                effective_dec_years_arr = np.array(
+                    index_dict_this["effective_dec_year"]
+                )
 
                 # Extract the unique effective dec years
                 unique_effective_dec_years = np.unique(effective_dec_years_arr)
@@ -5493,9 +5512,13 @@ def plot_multi_var_composites_model(
                 )
 
                 # Loop over the unique effective dec years
-                for dec_year_i, effective_dec_year in enumerate(unique_effective_dec_years):
+                for dec_year_i, effective_dec_year in enumerate(
+                    unique_effective_dec_years
+                ):
                     # Find the index of this effective dec year in the index dict this
-                    index_this = np.where(effective_dec_years_arr == effective_dec_year)[0]
+                    index_this = np.where(
+                        effective_dec_years_arr == effective_dec_year
+                    )[0]
 
                     # Extract the subset arr this for this index
                     subset_arr_this_model_this = np.mean(
@@ -5503,7 +5526,9 @@ def plot_multi_var_composites_model(
                     )
 
                     # Store the value in the subset arr this detrended
-                    subset_arr_this_detrended[dec_year_i, :, :] = subset_arr_this_model_this
+                    subset_arr_this_detrended[dec_year_i, :, :] = (
+                        subset_arr_this_model_this
+                    )
 
                 # Loop over the lats and lons
                 for ilat in range(len(lats_this)):
@@ -5523,7 +5548,9 @@ def plot_multi_var_composites_model(
                         final_point_this = trend_line_this[-1]
 
                         # Loop over the unique effective dec years
-                        for l, eff_dec_year_this in enumerate(unique_effective_dec_years):
+                        for l, eff_dec_year_this in enumerate(
+                            unique_effective_dec_years
+                        ):
                             # Find the index of this effective dec year in the index dict this
                             index_this = np.where(
                                 effective_dec_years_arr == eff_dec_year_this
@@ -5589,14 +5616,18 @@ def plot_multi_var_composites_model(
                 subset_arr_this_model_full[k, :, :] = subset_arr_this_model_index_this
 
             # anything which is a zero format as a NaN
-            subset_arr_this_model_full[
-                subset_arr_this_model_full == 0
-            ] = np.nan
+            subset_arr_this_model_full[subset_arr_this_model_full == 0] = np.nan
 
             # print the min and max of the subset_arr_this_model_full
-            print(f"Min of subset_arr_this_model_full: {np.min(subset_arr_this_model_full)}")
-            print(f"Max of subset_arr_this_model_full: {np.max(subset_arr_this_model_full)}")
-            print(f"Mean of subset_arr_this_model_full: {np.nanmean(subset_arr_this_model_full)}")
+            print(
+                f"Min of subset_arr_this_model_full: {np.min(subset_arr_this_model_full)}"
+            )
+            print(
+                f"Max of subset_arr_this_model_full: {np.max(subset_arr_this_model_full)}"
+            )
+            print(
+                f"Mean of subset_arr_this_model_full: {np.nanmean(subset_arr_this_model_full)}"
+            )
 
             # Take the mean over this
             subset_arr_this_model_mean = np.nanmean(subset_arr_this_model_full, axis=0)
@@ -5711,19 +5742,13 @@ def plot_multi_var_composites_model(
                             1026,
                         ]
                     )
-                    
-                    cbar.set_label(
-                        "hPa", rotation=0, fontsize=12
-                    )
+
+                    cbar.set_label("hPa", rotation=0, fontsize=12)
                 elif i == 1:
-                    cbar.set_label(
-                        "°C", rotation=0, fontsize=12
-                    )
+                    cbar.set_label("°C", rotation=0, fontsize=12)
                 elif i == 2:
 
-                    cbar.set_label(
-                        "m/s", rotation=0, fontsize=12
-                    )
+                    cbar.set_label("m/s", rotation=0, fontsize=12)
 
                 cbar.set_ticks(levels)
 
@@ -5731,9 +5756,13 @@ def plot_multi_var_composites_model(
             if i == 0 and j == 0:
                 row_this.set_title("Model daily MSLP", fontsize=12, fontweight="bold")
             elif i == 1 and j == 0:
-                row_this.set_title("Model daily airT anoms", fontsize=12, fontweight="bold")
+                row_this.set_title(
+                    "Model daily airT anoms", fontsize=12, fontweight="bold"
+                )
             elif i == 2 and j == 0:
-                row_this.set_title("Model daily sfcWind anoms", fontsize=12, fontweight="bold")
+                row_this.set_title(
+                    "Model daily sfcWind anoms", fontsize=12, fontweight="bold"
+                )
 
             # Set up a textbox in the bottom right
             row_this.text(
@@ -6675,7 +6704,9 @@ def plot_multi_var_composites_obs(
     print(subset_df_obs.tail())
 
     # Strip efefctive dec year column into just YYYY and format as int
-    subset_df_obs["effective_dec_year"] = subset_df_obs["effective_dec_year"].str[:4].astype(int)
+    subset_df_obs["effective_dec_year"] = (
+        subset_df_obs["effective_dec_year"].str[:4].astype(int)
+    )
 
     # Print the unique effective decade years
     unique_effective_dec_years = subset_df_obs["effective_dec_year"].unique()
@@ -6699,7 +6730,9 @@ def plot_multi_var_composites_obs(
     # Loop over the effective dec year indices
     for i, year_index in enumerate(effective_dec_years_indices):
         # Print the effective dec year for this index
-        print(f"Effective Decade Year for Index {i}: {unique_effective_dec_years[year_index]}")
+        print(
+            f"Effective Decade Year for Index {i}: {unique_effective_dec_years[year_index]}"
+        )
 
         # Loop over the variable names
         for j, var_name in enumerate(var_names):
@@ -6845,9 +6878,9 @@ def plot_multi_var_composites_obs(
                 # Convert the tas to Celsius
                 subset_arr_this_obs = subset_arr_this_obs - 273.15
             elif var_name in ["tas", "vas", "sfcWind"] and anoms_flag:
-                assert clim_arrs_list_obs is not None, (
-                    "Climatology arrays must be provided for anomaly calculation."
-                )
+                assert (
+                    clim_arrs_list_obs is not None
+                ), "Climatology arrays must be provided for anomaly calculation."
 
                 subset_arr_this_obs = subset_arr_this_obs - clim_arrs_list_obs[j]
             else:
@@ -6971,19 +7004,13 @@ def plot_multi_var_composites_obs(
                             1026,
                         ]
                     )
-                    
-                    cbar.set_label(
-                        "hPa", rotation=0, fontsize=12
-                    )
+
+                    cbar.set_label("hPa", rotation=0, fontsize=12)
                 elif j == 1:
-                    cbar.set_label(
-                        "°C", rotation=0, fontsize=12
-                    )
+                    cbar.set_label("°C", rotation=0, fontsize=12)
                 elif j == 2:
 
-                    cbar.set_label(
-                        "m/s", rotation=0, fontsize=12
-                    )
+                    cbar.set_label("m/s", rotation=0, fontsize=12)
 
                 cbar.set_ticks(levels)
 
@@ -6993,17 +7020,23 @@ def plot_multi_var_composites_obs(
             elif i == 0 and j == 1:
                 ax_this.set_title("Obs daily airT", fontsize=12, fontweight="bold")
                 if anoms_flag:
-                    ax_this.set_title("Obs daily airT anomalies", fontsize=12, fontweight="bold")
+                    ax_this.set_title(
+                        "Obs daily airT anomalies", fontsize=12, fontweight="bold"
+                    )
             elif i == 0 and j == 2:
                 ax_this.set_title("Obs daily sfcWind", fontsize=12, fontweight="bold")
                 if anoms_flag:
-                    ax_this.set_title("Obs daily sfcWind anomalies", fontsize=12, fontweight="bold")
+                    ax_this.set_title(
+                        "Obs daily sfcWind anomalies", fontsize=12, fontweight="bold"
+                    )
 
     return None
 
+
 # Function to get the cluster fraction
-def get_cluster_fraction(m, label):        
-        return (m.labels_==label).sum()/(m.labels_.size*1.0)
+def get_cluster_fraction(m, label):
+    return (m.labels_ == label).sum() / (m.labels_.size * 1.0)
+
 
 # Set up a function to do the kmeans clustering and plotting
 def kmeans_clustering_and_plotting(
@@ -7050,10 +7083,11 @@ def kmeans_clustering_and_plotting(
 
     # Get cluster assignments for each time step
     cluster_labels = m.labels_
-    
+
     # Calculate silhouette scores for each sample to identify weak assignments
-    silhouette_scores = silhouette_score(subset_arr_reshaped, cluster_labels, 
-                                       sample_size=min(1000, nt))
+    silhouette_scores = silhouette_score(
+        subset_arr_reshaped, cluster_labels, sample_size=min(1000, nt)
+    )
 
     # Create individual silhouette scores (approximation)
     distances_to_centers = np.zeros(nt)
@@ -7062,29 +7096,29 @@ def kmeans_clustering_and_plotting(
         distances_to_centers[i] = np.linalg.norm(
             subset_arr_reshaped[i] - m.cluster_centers_[assigned_cluster]
         )
-    
+
     # Assign "no-type" cluster (-1) to weak assignments
     # You can adjust this threshold based on your data
     distance_threshold = np.percentile(distances_to_centers, 90)  # Top 10% of distances
     cluster_assignments = cluster_labels.copy()
     cluster_assignments[distances_to_centers > distance_threshold] = -1
-    
+
     # Create statistics dictionary
     cluster_stats = {
-        'total_time_steps': nt,
-        'n_clusters': n_clusters,
-        'cluster_counts': {},
-        'cluster_percentages': {},
-        'silhouette_score': silhouette_scores,
-        'distance_threshold': distance_threshold
+        "total_time_steps": nt,
+        "n_clusters": n_clusters,
+        "cluster_counts": {},
+        "cluster_percentages": {},
+        "silhouette_score": silhouette_scores,
+        "distance_threshold": distance_threshold,
     }
-    
+
     # Calculate cluster statistics
     unique_clusters = np.unique(cluster_assignments)
     for cluster_id in unique_clusters:
         count = np.sum(cluster_assignments == cluster_id)
-        cluster_stats['cluster_counts'][cluster_id] = count
-        cluster_stats['cluster_percentages'][cluster_id] = count / nt * 100
+        cluster_stats["cluster_counts"][cluster_id] = count
+        cluster_stats["cluster_percentages"][cluster_id] = count / nt * 100
 
     # Set up the ncols and nrow
     # if n_clusters is 4
@@ -7123,15 +7157,17 @@ def kmeans_clustering_and_plotting(
             transform=ccrs.PlateCarree(),
             extend="both",
         )
-        
+
         cluster_plots.append(im)
         ax_this.coastlines()
 
         # Get count for this cluster (excluding no-type assignments)
         cluster_count = np.sum(cluster_assignments == i)
         cluster_percentage = cluster_count / nt * 100
-        
-        title_this = f"Cluster {i + 1} ({cluster_count} days, {cluster_percentage:.1f}%)"
+
+        title_this = (
+            f"Cluster {i + 1} ({cluster_count} days, {cluster_percentage:.1f}%)"
+        )
         ax_this.set_title(title_this, fontsize=12, fontweight="bold")
 
         # Add a tag to the plot
@@ -7142,9 +7178,9 @@ def kmeans_clustering_and_plotting(
             transform=ax_this.transAxes,
             fontsize=14,
             fontweight="bold",
-            va='top',
-            ha='left',
-            bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'),
+            va="top",
+            ha="left",
+            bbox=dict(facecolor="white", alpha=0.5, edgecolor="none"),
         )
 
         # add a colorbar for the each plot
@@ -7166,14 +7202,15 @@ def kmeans_clustering_and_plotting(
     print(f"Distance threshold for no-type: {distance_threshold:.2f}")
     print(f"\nCluster assignments:")
     for cluster_id in sorted(unique_clusters):
-        count = cluster_stats['cluster_counts'][cluster_id]
-        percentage = cluster_stats['cluster_percentages'][cluster_id]
+        count = cluster_stats["cluster_counts"][cluster_id]
+        percentage = cluster_stats["cluster_percentages"][cluster_id]
         if cluster_id == -1:
             print(f"  No-type cluster: {count} days ({percentage:.1f}%)")
         else:
             print(f"  Cluster {cluster_id + 1}: {count} days ({percentage:.1f}%)")
-    
+
     return m, cluster_assignments, cluster_stats
+
 
 # Define a function to create and plot cluster composites
 def create_and_plot_cluster_composites(
@@ -7186,6 +7223,7 @@ def create_and_plot_cluster_composites(
     arr_clim: Optional[np.ndarray] = None,
     exclude_no_type: bool = True,
     figsize: Tuple[int, int] = (10, 10),
+    levels: Optional[np.ndarray] = None,
 ) -> None:
     """
     Create and plot cluster composites for a given variable.
@@ -7225,7 +7263,9 @@ def create_and_plot_cluster_composites(
         arr_this_cluster = subset_arr[cluster_indices, :, :]
 
         if arr_clim is not None:
-            print(f"Calculating composite for cluster {cluster_id + 1} with climatology.")
+            print(
+                f"Calculating composite for cluster {cluster_id + 1} with climatology."
+            )
             # Calculate the composite by averaging over the cluster indices
             composite = np.mean(arr_this_cluster, axis=0) - arr_clim
         else:
@@ -7250,7 +7290,7 @@ def create_and_plot_cluster_composites(
     nrows = int(np.ceil(n_clusters / ncols))
 
     fig, axs = plt.subplots(
-        nrows= nrows,
+        nrows=nrows,
         ncols=ncols,
         figsize=figsize,
         subplot_kw={"projection": ccrs.PlateCarree()},
@@ -7283,35 +7323,62 @@ def create_and_plot_cluster_composites(
 
         ax_this = axs[i // ncols, i % ncols] if nrows > 1 else axs[i]
 
-        im_this = ax_this.contourf(
-            lons,
-            lats,
-            composite,
-            vmin=min_val,
-            vmax=max_val,
-            cmap=cmap,
-            transform=ccrs.PlateCarree(),
-            extend="both",
-        )
+        if levels is not None:
+            # Use the provided levels for contouring
+            im_this = ax_this.contourf(
+                lons,
+                lats,
+                composite,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
+        else:
+            im_this = ax_this.contourf(
+                lons,
+                lats,
+                composite,
+                vmin=min_val,
+                vmax=max_val,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                extend="both",
+            )
 
         ax_this.coastlines()
         # Set the title for this subplot
-        title_this = f"Cluster {cluster_id + 1} ({composites[cluster_id]['n_samples']} days)"
+        title_this = (
+            f"Cluster {cluster_id + 1} ({composites[cluster_id]['n_samples']} days)"
+        )
         ax_this.set_title(title_this, fontsize=12, fontweight="bold")
 
-    # Add a colorbar for the all subplots
-    cbar = fig.colorbar(
-        im_this,
-        ax=axs,
-        orientation="horizontal",
-        pad=0.05,
-        shrink=0.8,
-    )
-    cbar.set_label(f"{var_name} units", rotation=0, fontsize=12)
+    if levels is not None:
+        # Set up the colorbar with the provided levels
+        cbar = fig.colorbar(
+            im_this,
+            ax=axs,
+            orientation="horizontal",
+            pad=0.05,
+            shrink=0.8,
+        )
+        cbar.set_ticks(levels)
+        cbar.set_label(f"{var_name} units", rotation=0, fontsize=12)
+    else:
+        # Add a colorbar for the all subplots
+        cbar = fig.colorbar(
+            im_this,
+            ax=axs,
+            orientation="horizontal",
+            pad=0.05,
+            shrink=0.8,
+        )
+        cbar.set_label(f"{var_name} units", rotation=0, fontsize=12)
 
     plt.show()
 
     return composites
+
 
 # Define the main function
 def main():
@@ -7682,9 +7749,7 @@ def main():
         np.save(os.path.join(arrs_persist_dir, psl_fname), psl_subset)
         np.save(os.path.join(arrs_persist_dir, psl_times_fname), psl_dates_list)
     else:
-        print(
-            f"PSL data already exists in {os.path.join(arrs_persist_dir, psl_fname)}"
-        )
+        print(f"PSL data already exists in {os.path.join(arrs_persist_dir, psl_fname)}")
         # Load the existing psl data
         psl_subset = np.load(os.path.join(arrs_persist_dir, psl_fname))
         psl_dates_list = np.load(
@@ -7829,7 +7894,9 @@ def main():
     effective_dec_years_worst = [int(year[:4]) for year in effective_dec_years_top]
     effective_dec_years_least = [int(year[:4]) for year in least_worst_5]
     effective_dec_years_second_least = [int(year[:4]) for year in second_least_worst_5]
-    effective_dec_years_second_most = [int(year[:4]) for year in effective_dec_years_second]
+    effective_dec_years_second_most = [
+        int(year[:4]) for year in effective_dec_years_second
+    ]
 
     # Print the shape of obs psl subset, obs temp subset and obs wind subset
     print(f"Shape of obs psl subset: {obs_psl_subset.shape}")
@@ -7902,8 +7969,12 @@ def main():
     # Do the same but for 4 clusters
     model_4, assign_4, stats_4 = kmeans_clustering_and_plotting(
         subset_arr=obs_psl_subset,
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"),
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+        ),
         n_clusters=3,
         figsize=(10, 10),
         cmap="RdBu_r",
@@ -7914,8 +7985,12 @@ def main():
         subset_arr=obs_temp_subset,
         cluster_assignments=assign_4,
         var_name="tas",
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"),
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+        ),
         cmap="RdBu_r",
         exclude_no_type=False,
         figsize=(10, 10),
@@ -7927,8 +8002,12 @@ def main():
         subset_arr=obs_wind_subset,
         cluster_assignments=assign_4,
         var_name="sfcWind",
-        lats_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"),
-        lons_path=os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"),
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+        ),
         cmap="PRGn",
         exclude_no_type=False,
         figsize=(10, 10),
@@ -7940,7 +8019,7 @@ def main():
     for cluster_id, data in composites_4.items():
         print(f"Cluster {cluster_id + 1}: {data['n_samples']} samples")
 
-    # PRINT THW shape of assign     
+    # PRINT THW shape of assign
     print(f"Shape of assign_4: {assign_4.shape}")
 
     # Print the values of assign_4
@@ -7956,7 +8035,6 @@ def main():
     # Print the tail of the obs_df
     print("Tail of the obs_df with cluster assignments:")
     print(obs_df.tail())
-
 
     # model_3, assign_3, stats_3 = kmeans_clustering_and_plotting(
     #     subset_arr=obs_psl_subset,
@@ -7987,147 +8065,147 @@ def main():
     #     cmap="PRGn",
     # )
 
-    # Test the new function
-    plot_multi_var_composites_obs(
-        subset_df_obs=obs_df.copy(),
-        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-        var_names=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-            ),
-        ],
-        effective_dec_years=effective_dec_years_worst,
-        figsize=(10, 13),
-        anoms_flag=True,
-        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        cluster_assign_name="cluster_assign",
-    )
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_worst,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     cluster_assign_name="cluster_assign",
+    # )
 
-    # Test the new function
-    plot_multi_var_composites_obs(
-        subset_df_obs=obs_df.copy(),
-        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-        var_names=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-            ),
-        ],
-        effective_dec_years=effective_dec_years_second_most,
-        figsize=(10, 13),
-        anoms_flag=True,
-        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        cluster_assign_name="cluster_assign",
-    )
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_second_most,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     cluster_assign_name="cluster_assign",
+    # )
 
-    # Test the new function
-    plot_multi_var_composites_obs(
-        subset_df_obs=obs_df.copy(),
-        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-        var_names=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-            ),
-        ],
-        effective_dec_years=effective_dec_years_second_least,
-        figsize=(10, 13),
-        anoms_flag=True,
-        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        cluster_assign_name="cluster_assign",
-    )
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_second_least,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     cluster_assign_name="cluster_assign",
+    # )
 
-    # Test the new function
-    plot_multi_var_composites_obs(
-        subset_df_obs=obs_df.copy(),
-        subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
-        dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
-        var_names=["psl", "tas", "sfcWind"],
-        lats_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-            ),
-        ],
-        lons_paths=[
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-            ),
-            os.path.join(
-                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-            ),
-        ],
-        effective_dec_years=effective_dec_years_least,
-        figsize=(10, 13),
-        anoms_flag=True,
-        clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
-        cluster_assign_name="cluster_assign",
-    )
+    # # Test the new function
+    # plot_multi_var_composites_obs(
+    #     subset_df_obs=obs_df.copy(),
+    #     subset_arrs_list_obs=[obs_psl_subset, obs_temp_subset, obs_wind_subset],
+    #     dates_list_obs=[obs_psl_dates_list, obs_temp_dates_list, obs_wind_dates_list],
+    #     var_names=["psl", "tas", "sfcWind"],
+    #     lats_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #         ),
+    #     ],
+    #     lons_paths=[
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #         os.path.join(
+    #             metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #         ),
+    #     ],
+    #     effective_dec_years=effective_dec_years_least,
+    #     figsize=(10, 13),
+    #     anoms_flag=True,
+    #     clim_arrs_list_obs=[obs_psl_clim, obs_tas_clim, obs_wind_clim],
+    #     cluster_assign_name="cluster_assign",
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # load in the model subset files
     # NOTE: Updated for longer period
@@ -8201,9 +8279,7 @@ def main():
     model_temp_subset_fname = (
         f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
     )
-    model_temp_subset_json_fname = (
-        f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
-    )
+    model_temp_subset_json_fname = f"HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
     # if the file does not exist then raise an error
     if not os.path.exists(os.path.join(subset_model_dir, model_temp_subset_fname)):
@@ -8225,7 +8301,9 @@ def main():
         model_temp_subset_index_list = json.load(f)
 
     # Set up the fnames for the vas data
-    model_vas_subset_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
+    model_vas_subset_fname = (
+        f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
+    )
     model_vas_subset_json_fname = f"HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
     # if the model subset file does not exist
@@ -8248,7 +8326,9 @@ def main():
         model_vas_subset_index_list = json.load(f)
 
     # Set up the fnames for the uas data
-    model_uas_subset_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
+    model_uas_subset_fname = (
+        f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_2025-06-30.npy"
+    )
     model_uas_subset_json_fname = f"HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_DnW_subset_index_list_2025-06-30.json"
 
     # if the model subset file does not exist
@@ -8615,9 +8695,7 @@ def main():
     model_dnw_99th = model_df["demand_net_wind_bc_max"].quantile(0.99)
 
     # subset the model df to grey points
-    model_df_subset_grey = model_df[
-        model_df["demand_net_wind_bc_max"] < model_dnw_5th
-    ]
+    model_df_subset_grey = model_df[model_df["demand_net_wind_bc_max"] < model_dnw_5th]
 
     # do the same for the obs
     obs_df_subset_grey = obs_df[obs_df["demand_net_wind_max"] < obs_dnw_5th]
@@ -8635,9 +8713,7 @@ def main():
     ]
 
     # subset the model df to red points
-    model_df_subset_red = model_df[
-        model_df["demand_net_wind_bc_max"] >= model_dnw_99th
-    ]
+    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max"] >= model_dnw_99th]
 
     # do the same for the obs
     obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_99th]
@@ -9159,6 +9235,152 @@ def main():
         model_uas_subset,
         model_uas_subset,
     ]
+
+    # print the shape of the model psl subset
+    print(f"Shape of model psl subset: {model_psl_subset.shape}")
+
+    # perform the clustering on the model psl subset
+    model_3, model_assign_3, model_stats_3 = kmeans_clustering_and_plotting(
+        subset_arr=model_psl_subset,
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+        ),
+        n_clusters=3,
+        figsize=(10, 10),
+        cmap="RdBu_r",
+    )
+
+    levels = np.array(
+        [
+            -12,
+            -10,
+            -8,
+            -6,
+            -4,
+            -2,
+            2,
+            4,
+            6,
+            8,
+            10,
+            12,
+        ]
+    )
+
+    # Plot the tas anoms composites for the clusters
+    model_composites_3_tas = create_and_plot_cluster_composites(
+        subset_arr=model_temp_subset,
+        cluster_assignments=model_assign_3,
+        var_name="tas",
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+        ),
+        cmap="RdBu_r",
+        exclude_no_type=False,
+        figsize=(10, 10),
+        arr_clim=model_tas_clim,
+        levels=levels,
+    )
+
+    levels = np.array(
+        [
+            -4,
+            -3,
+            -2,
+            -1,
+            1,
+            2,
+            3,
+            4,
+        ]
+    )
+
+    # Do the same for the wind anoms
+    model_composites_3_wind = create_and_plot_cluster_composites(
+        subset_arr=model_wind_subset,
+        cluster_assignments=model_assign_3,
+        var_name="sfcWind",
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+        ),
+        cmap="PRGn",
+        exclude_no_type=False,
+        figsize=(10, 10),
+        arr_clim=model_wind_clim,
+        levels=levels,
+    )
+
+    levels = np.array(
+        [
+            -4,
+            -3.5,
+            -3,
+            -2.5,
+            -2,
+            -1.5,
+            -1,
+            -0.5,
+            0.5,
+            1,
+            1.5,
+            2,
+            2.5,
+            3,
+            3.5,
+            4,
+        ]
+    )
+
+    # Do the same for the uas anoms
+    model_composites_3_uas = create_and_plot_cluster_composites(
+        subset_arr=model_uas_subset,
+        cluster_assignments=model_assign_3,
+        var_name="uas",
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lons.npy"
+        ),
+        cmap="PRGn",
+        exclude_no_type=False,
+        figsize=(10, 10),
+        levels=levels,
+    )
+
+    # Do the same for the vas anoms
+    model_composites_3_vas = create_and_plot_cluster_composites(
+        subset_arr=model_vas_subset,
+        cluster_assignments=model_assign_3,
+        var_name="vas",
+        lats_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lats.npy"
+        ),
+        lons_path=os.path.join(
+            metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy"
+        ),
+        cmap="PRGn",
+        exclude_no_type=False,
+        figsize=(10, 10),
+        levels=levels,
+    )
+
+    # Print the time taken
+    print(f"Time taken: {time.time() - start_time:.2f} seconds")
+    print("------------------------------")
+    print("Exiting script.")
+    print("------------------------------")
+
+    sys.exit()
 
     # # Set up the clim arrs obs
     # clim_arrs_obs = [
@@ -9761,8 +9983,6 @@ def main():
     #     figsize=(10, 10),
     # )
 
-    # Print the 
-
     # # test the new function for plotting multiple variables
     plot_multi_var_composites_model(
         multi_subset_dfs_model=multi_subset_dfs_list,
@@ -9775,7 +9995,7 @@ def main():
         figsize=(plot_width, plot_height),
     )
 
-    # sys.exit()
+    sys.exit()
 
     # test the new function
     plot_var_composites_model(
