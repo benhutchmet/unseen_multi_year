@@ -8677,16 +8677,16 @@ def main():
 
     # find the 80th percentile of the demand net wind max
     # for the obs
-    obs_dnw_5th = obs_df["demand_net_wind_max"].quantile(0.05)
+    obs_dnw_5th = obs_df["demand_net_wind_max"].quantile(0.10)
 
     # do the same for the model
-    model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.05)
+    model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.10)
 
     # Find the maximum of the demand net wind max for the obs
-    obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
+    obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.90)
 
     # Find the maximum of the demand net wind max for the model
-    model_dnw_95th = model_df["demand_net_wind_bc_max"].quantile(0.95)
+    model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.90)
 
     # find the 99th percentile of the demand net wind max
     obs_dnw_99th = obs_df["demand_net_wind_max"].quantile(0.99)
@@ -8702,13 +8702,13 @@ def main():
 
     # subset the model df to yellow points
     model_df_subset_yellow = model_df[
-        (model_df["demand_net_wind_bc_max"] >= model_dnw_95th)
+        (model_df["demand_net_wind_bc_max"] >= model_dnw_90th)
         & (model_df["demand_net_wind_bc_max"] < model_dnw_99th)
     ]
 
     # do the same for the obs
     obs_df_subset_yellow = obs_df[
-        (obs_df["demand_net_wind_max"] >= obs_dnw_95th)
+        (obs_df["demand_net_wind_max"] >= obs_dnw_90th)
         & (obs_df["demand_net_wind_max"] < obs_dnw_99th)
     ]
 
@@ -9239,140 +9239,401 @@ def main():
     # print the shape of the model psl subset
     print(f"Shape of model psl subset: {model_psl_subset.shape}")
 
-    # perform the clustering on the model psl subset
-    model_3, model_assign_3, model_stats_3 = kmeans_clustering_and_plotting(
-        subset_arr=model_psl_subset,
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
-        ),
-        n_clusters=3,
-        figsize=(10, 10),
-        cmap="RdBu_r",
+    # # perform the clustering on the model psl subset
+    # model_3, model_assign_3, model_stats_3 = kmeans_clustering_and_plotting(
+    #     subset_arr=model_psl_subset,
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+    #     ),
+    #     n_clusters=3,
+    #     figsize=(10, 10),
+    #     cmap="RdBu_r",
+    # )
+
+    # levels = np.array(
+    #     [
+    #         -6,
+    #         -5,
+    #         -4,
+    #         -3,
+    #         -2,
+    #         -1,
+    #         1,
+    #         2,
+    #         3,
+    #         4,
+    #         5,
+    #         6,
+    #     ]
+    # )
+
+    # # Plot the tas anoms composites for the clusters
+    # model_composites_3_tas = create_and_plot_cluster_composites(
+    #     subset_arr=model_temp_subset,
+    #     cluster_assignments=model_assign_3,
+    #     var_name="tas",
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+    #     ),
+    #     cmap="RdBu_r",
+    #     exclude_no_type=False,
+    #     figsize=(10, 10),
+    #     arr_clim=model_tas_clim,
+    #     levels=levels,
+    # )
+
+    # levels = np.array(
+    #     [
+    #         -2,
+    #         -1.5,
+    #         -1,
+    #         -0.5,
+    #         0.5,
+    #         1,
+    #         1.5,
+    #         2,
+    #     ]
+    # )
+
+    # # Do the same for the wind anoms
+    # model_composites_3_wind = create_and_plot_cluster_composites(
+    #     subset_arr=model_wind_subset,
+    #     cluster_assignments=model_assign_3,
+    #     var_name="sfcWind",
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+    #     ),
+    #     cmap="PRGn",
+    #     exclude_no_type=False,
+    #     figsize=(10, 10),
+    #     arr_clim=model_wind_clim,
+    #     levels=levels,
+    # )
+
+    # levels = np.array(
+    #     [
+    #         -4,
+    #         -3.5,
+    #         -3,
+    #         -2.5,
+    #         -2,
+    #         -1.5,
+    #         -1,
+    #         -0.5,
+    #         0.5,
+    #         1,
+    #         1.5,
+    #         2,
+    #         2.5,
+    #         3,
+    #         3.5,
+    #         4,
+    #     ]
+    # )
+
+    # # Do the same for the uas anoms
+    # model_composites_3_uas = create_and_plot_cluster_composites(
+    #     subset_arr=model_uas_subset,
+    #     cluster_assignments=model_assign_3,
+    #     var_name="uas",
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lons.npy"
+    #     ),
+    #     cmap="PRGn",
+    #     exclude_no_type=False,
+    #     figsize=(10, 10),
+    #     levels=levels,
+    # )
+
+    # # Do the same for the vas anoms
+    # model_composites_3_vas = create_and_plot_cluster_composites(
+    #     subset_arr=model_vas_subset,
+    #     cluster_assignments=model_assign_3,
+    #     var_name="vas",
+    #     lats_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lats.npy"
+    #     ),
+    #     lons_path=os.path.join(
+    #         metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy"
+    #     ),
+    #     cmap="PRGn",
+    #     exclude_no_type=False,
+    #     figsize=(10, 10),
+    #     levels=levels,
+    # )
+
+    # Load the psl lats
+    psl_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy")
+    )
+    psl_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy")
     )
 
-    levels = np.array(
-        [
-            -12,
-            -10,
-            -8,
-            -6,
-            -4,
-            -2,
-            2,
-            4,
-            6,
-            8,
-            10,
-            12,
-        ]
+    # Load the tas lats
+    tas_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy")
+    )
+    tas_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy")
     )
 
-    # Plot the tas anoms composites for the clusters
-    model_composites_3_tas = create_and_plot_cluster_composites(
-        subset_arr=model_temp_subset,
-        cluster_assignments=model_assign_3,
-        var_name="tas",
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
-        ),
-        cmap="RdBu_r",
-        exclude_no_type=False,
-        figsize=(10, 10),
-        arr_clim=model_tas_clim,
-        levels=levels,
+    # Load the wind lats
+    wind_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy")
+    )
+    wind_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy")
     )
 
-    levels = np.array(
-        [
-            -4,
-            -3,
-            -2,
-            -1,
-            1,
-            2,
-            3,
-            4,
-        ]
+    # Load the uas lats
+    uas_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lats.npy")
+    )
+    uas_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lons.npy")
     )
 
-    # Do the same for the wind anoms
-    model_composites_3_wind = create_and_plot_cluster_composites(
-        subset_arr=model_wind_subset,
-        cluster_assignments=model_assign_3,
-        var_name="sfcWind",
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
-        ),
-        cmap="PRGn",
-        exclude_no_type=False,
-        figsize=(10, 10),
-        arr_clim=model_wind_clim,
-        levels=levels,
+    # Load the vas lats
+    vas_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lats.npy")
+    )
+    vas_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy")
     )
 
-    levels = np.array(
-        [
-            -4,
-            -3.5,
-            -3,
-            -2.5,
-            -2,
-            -1.5,
-            -1,
-            -0.5,
-            0.5,
-            1,
-            1.5,
-            2,
-            2.5,
-            3,
-            3.5,
-            4,
-        ]
-    )
+    # Loop over the subset dfs model
+    for i, subset_df in enumerate(subset_dfs_model):
+        # Print the shape of the subset df
+        print(f"Shape of subset df {i}: {subset_df.shape}")
 
-    # Do the same for the uas anoms
-    model_composites_3_uas = create_and_plot_cluster_composites(
-        subset_arr=model_uas_subset,
-        cluster_assignments=model_assign_3,
-        var_name="uas",
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lons.npy"
-        ),
-        cmap="PRGn",
-        exclude_no_type=False,
-        figsize=(10, 10),
-        levels=levels,
-    )
+        n_rows = subset_df.shape[0]
 
-    # Do the same for the vas anoms
-    model_composites_3_vas = create_and_plot_cluster_composites(
-        subset_arr=model_vas_subset,
-        cluster_assignments=model_assign_3,
-        var_name="vas",
-        lats_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lats.npy"
-        ),
-        lons_path=os.path.join(
-            metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy"
-        ),
-        cmap="PRGn",
-        exclude_no_type=False,
-        figsize=(10, 10),
-        levels=levels,
-    )
+        # Set up the subset arr this for model
+        subset_arr_this_model_psl = np.zeros(
+            (n_rows,len(psl_lats), len(psl_lons))
+        )
+        subset_arr_this_model_tas = np.zeros(
+            (n_rows, len(tas_lats), len(tas_lons))
+        )
+        subset_arr_this_model_wind = np.zeros(
+            (n_rows, len(wind_lats), len(wind_lons))
+        )
+        subset_arr_this_model_uas = np.zeros(
+            (n_rows,len(uas_lats), len(uas_lons))
+        )
+        subset_arr_this_model_vas = np.zeros(
+            (n_rows,len(vas_lats), len(vas_lons))
+        )
+
+        # extract the model index dict this
+        model_index_dict_this = model_index_dicts[i]
+
+        # Extract the init years as arrays
+        # Extract the init years as arrays
+        init_year_array_this = np.array(model_index_dict_this["init_year"])
+        member_array_this = np.array(model_index_dict_this["member"])
+        lead_array_this = np.array(model_index_dict_this["lead"])
+
+        # zero the missing daya here
+        missing_days = 0
+
+        # Loop over the rows in this subset df for the model
+        for j, (_, row) in tqdm(enumerate(subset_df.iterrows())):
+            # Extract the init_year from the df
+            init_year_df = int(row["init_year"])
+            member_df = int(row["member"])
+            lead_df = int(row["lead"])
+
+            # Construct the condition for element wise comparison
+            condition = (
+                (init_year_array_this == init_year_df)
+                & (member_array_this == member_df)
+                & (lead_array_this == lead_df)
+            )
+
+            try:
+                # Find the index where this condition is met
+                index_this = np.where(condition)[0][0]
+            except IndexError:
+                print(
+                    f"init year {init_year_df}, member {member_df}, lead {lead_df} not found"
+                )
+                missing_days += 1
+
+            # Extract the corresponding value from the subset_arr_this_model
+            subset_arr_this_model_psl_index_this = model_psl_subset[index_this, :, :]
+            subset_arr_this_model_tas_index_this = model_temp_subset[index_this, :, :]
+            subset_arr_this_model_wind_index_this = model_wind_subset[index_this, :, :]
+            subset_arr_this_model_uas_index_this = model_uas_subset[index_this, :, :]
+            subset_arr_this_model_vas_index_this = model_vas_subset[index_this, :, :]
+
+            # Store the value in the subset_arr_this_model_full
+            subset_arr_this_model_psl[j, :, :] = subset_arr_this_model_psl_index_this
+            subset_arr_this_model_tas[j, :, :] = subset_arr_this_model_tas_index_this
+            subset_arr_this_model_wind[j, :, :] = subset_arr_this_model_wind_index_this
+            subset_arr_this_model_uas[j, :, :] = subset_arr_this_model_uas_index_this
+            subset_arr_this_model_vas[j, :, :] = subset_arr_this_model_vas_index_this
+
+        # Print the number of missing days
+        print(f"Number of missing days for model {i}: {missing_days}")
+
+        # Take the mean over this
+        model_psl_subset_this = subset_arr_this_model_psl
+        model_temp_subset_this = subset_arr_this_model_tas
+        model_wind_subset_this = subset_arr_this_model_wind
+        model_uas_subset_this = subset_arr_this_model_uas
+        model_vas_subset_this = subset_arr_this_model_vas
+
+        # print the shape of the model psl subset this
+        print(f"Shape of model psl subset this: {model_psl_subset_this.shape}")
+
+        # perform the clustering on the model psl subset
+        model_3, model_assign_3, model_stats_3 = kmeans_clustering_and_plotting(
+            subset_arr=model_psl_subset_this,
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy"
+            ),
+            n_clusters=3,
+            figsize=(10, 10),
+            cmap="RdBu_r",
+        )
+
+        levels = np.array(
+            [
+                -6,
+                -5,
+                -4,
+                -3,
+                -2,
+                -1,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+            ]
+        )
+
+        # Plot the tas anoms composites for the clusters
+        model_composites_3_tas = create_and_plot_cluster_composites(
+            subset_arr=model_temp_subset_this,
+            cluster_assignments=model_assign_3,
+            var_name="tas",
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy"
+            ),
+            cmap="RdBu_r",
+            exclude_no_type=False,
+            figsize=(10, 10),
+            arr_clim=model_tas_clim,
+            levels=levels,
+        )
+
+        levels = np.array(
+            [
+                -2,
+                -1.5,
+                -1,
+                -0.5,
+                0.5,
+                1,
+                1.5,
+                2,
+            ]
+        )
+
+        # Do the same for the wind anoms
+        model_composites_3_wind = create_and_plot_cluster_composites(
+            subset_arr=model_wind_subset_this,
+            cluster_assignments=model_assign_3,
+            var_name="sfcWind",
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"
+            ),
+            cmap="PRGn",
+            exclude_no_type=False,
+            figsize=(10, 10),
+            arr_clim=model_wind_clim,
+            levels=levels,
+        )
+
+        levels = np.array(
+            [
+                -4,
+                -3.5,
+                -3,
+                -2.5,
+                -2,
+                -1.5,
+                -1,
+                -0.5,
+                0.5,
+                1,
+                1.5,
+                2,
+                2.5,
+                3,
+                3.5,
+                4,
+            ]
+        )
+
+        # Do the same for the uas anoms
+        model_composites_3_uas = create_and_plot_cluster_composites(
+            subset_arr=model_uas_subset_this,
+            cluster_assignments=model_assign_3,
+            var_name="uas",
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_uas_Europe_1960_DJF_day_lons.npy"
+            ),
+            cmap="PRGn",
+            exclude_no_type=False,
+            figsize=(10, 10),
+            levels=levels,
+        )
+
+        # Do the same for the vas anoms
+        model_composites_3_vas = create_and_plot_cluster_composites(
+            subset_arr=model_vas_subset_this,
+            cluster_assignments=model_assign_3,
+            var_name="vas",
+            lats_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lats.npy"
+            ),
+            lons_path=os.path.join(
+                metadata_dir, "HadGEM3-GC31-MM_vas_Europe_1960_DJF_day_lons.npy"
+            ),
+            cmap="PRGn",
+            exclude_no_type=False,
+            figsize=(10, 10),
+            levels=levels,
+        )
 
     # Print the time taken
     print(f"Time taken: {time.time() - start_time:.2f} seconds")
