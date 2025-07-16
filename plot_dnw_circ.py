@@ -6948,17 +6948,43 @@ def plot_multi_var_composites_obs(
                 bbox=dict(facecolor="white", alpha=0.5),
             )
 
-            # Include the value in the bottom left
-            ax_this.text(
-                0.05,
-                0.05,
-                f"DnW = {dnw_val_this:.2f}",
-                horizontalalignment="left",
-                verticalalignment="bottom",
-                transform=ax_this.transAxes,
-                fontsize=12,
-                bbox=dict(facecolor="white", alpha=0.5),
-            )
+            # if the variable is psl
+            if var_name == "psl":
+                # Include the value in the bottom left
+                ax_this.text(
+                    0.05,
+                    0.05,
+                    f"DnW = {dnw_val_this:.2f}",
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                    transform=ax_this.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+            elif var_name == "tas":
+                # Include the value in the bottom left
+                ax_this.text(
+                    0.05,
+                    0.05,
+                    f"Demand = {demand_this:.2f} GW",
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                    transform=ax_this.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
+            elif var_name in ["uas", "vas", "sfcWind"]:
+                # Include the value in the bottom left
+                ax_this.text(
+                    0.05,
+                    0.05,
+                    f"Wind Gen = {wind_gen_this:.2f} GW",
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
+                    transform=ax_this.transAxes,
+                    fontsize=12,
+                    bbox=dict(facecolor="white", alpha=0.5),
+                )
 
             if cluster_assign_name is not None:
                 # Include the cluster assignment in the top left
@@ -7902,6 +7928,62 @@ def main():
     print(f"Shape of obs psl subset: {obs_psl_subset.shape}")
     print(f"Shape of obs temp subset: {obs_temp_subset.shape}")
     print(f"Shape of obs wind subset: {obs_wind_subset.shape}")
+
+    # Set up a figure with len (obs_psl_subset) rows and 3 columns
+    n_rows = obs_psl_subset.shape[0]
+    n_cols = 3
+
+    # Import teh psl lats for the obs
+    obs_psl_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy")
+    )
+    obs_psl_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lons.npy")
+    )
+
+    # Unoirt the tas lats for the obs
+    obs_temp_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lats.npy")
+    )
+    obs_temp_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_tas_Europe_1960_DJF_day_lons.npy")
+    )
+
+    # Import the wind lats for the obs
+    obs_wind_lats = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy")
+    )
+    obs_wind_lons = np.load(
+        os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy")
+    )
+
+    # print the head and tail of the obs df
+    print("Head of the obs df:")
+    print(obs_df.head())
+
+    print("Tail of the obs df:")
+    print(obs_df.tail())
+
+    # Print the columns of the obs df
+    print(f"Columns in obs df: {obs_df.columns}")
+
+    fig, axs = plt.subplots(
+        nrows=n_rows,
+        ncols=n_cols,
+        figsize=(10, 2 * n_rows),
+        subplot_kw={"projection": ccrs.PlateCarree()},
+        layout="constrained",
+    )
+
+    # Loop over the rows and plot the psl, temperature and wind speed
+    for i in range(n_rows):
+        # Set up the ax
+        ax_psl = axs[i, 0] if n_cols > 1 else axs[i]
+        ax_temp = axs[i, 1] if n_cols > 1 else axs[i]
+        ax_wind = axs[i, 2] if n_cols > 1 else axs[i]
+
+        # Extract the time this
+        time_this = obs_df
 
     # model, assign, stats = kmeans_clustering_and_plotting(
     #     subset_arr=obs_psl_subset,
