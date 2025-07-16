@@ -7708,6 +7708,32 @@ def main():
     obs_tas_clim = np.mean(obs_temp_full, axis=0)
     obs_wind_clim = np.mean(obs_wind_full, axis=0)
 
+    # Set up the directory in wchi to ave the clim
+    obs_clim_dir = "/home/users/benhutch/unseen_multi_year/obs_clim"
+
+    # Set up the fnames for the climatology
+    obs_psl_clim_fname = os.path.join(obs_clim_dir, "obs_psl_NA_1960-2024_DJF_day_clim.npy")
+    obs_tas_clim_fname = os.path.join(obs_clim_dir, "obs_tas_Europe_1960-2024_DJF_day_clim.npy")
+    obs_wind_clim_fname = os.path.join(obs_clim_dir, "obs_sfcWind_Europe_1960-2024_DJF_day_clim.npy")
+
+    # if the climatology files do not exist then save them
+    if not os.path.exists(obs_psl_clim_fname):
+        np.save(obs_psl_clim_fname, obs_psl_clim)
+    else:
+        print(f"Obs psl climatology already exists in {obs_psl_clim_fname}")
+
+    if not os.path.exists(obs_tas_clim_fname):
+        np.save(obs_tas_clim_fname, obs_tas_clim)
+    else:
+        print(f"Obs tas climatology already exists in {obs_tas_clim_fname}")
+
+    if not os.path.exists(obs_wind_clim_fname):
+        np.save(obs_wind_clim_fname, obs_wind_clim)
+    else:
+        print(f"Obs wind climatology already exists in {obs_wind_clim_fname}")
+
+    sys.exit()
+
     # print the head of the dfs
     print("Head of the obs df:")
     print(obs_df.head())
@@ -9495,6 +9521,13 @@ def main():
         if not os.path.exists(save_path):
             print(f"Saving {model_clim_fnames[i]} to {save_path}")
             np.save(save_path, clim_arr)
+
+    # print the columns in the model df subset
+    print(f"Columns in model df subset: {model_df_subset_grey.columns}")
+
+
+    # Print the column in the obs df subset
+    print(f"Columns in obs df subset: {obs_df_subset_grey.columns}")
 
     sys.exit()
 

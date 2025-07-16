@@ -12,6 +12,10 @@ __pycache__/
 # For some reason have saved some files here
 split_data_anomalies/*.npy
 
+# any of the data files
+model_clim/*.npy
+obs_clim/*.npy
+
 # data files
 data/*.csv
 data/*.nc
