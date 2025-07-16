@@ -8677,10 +8677,10 @@ def main():
 
     # find the 80th percentile of the demand net wind max
     # for the obs
-    obs_dnw_5th = obs_df["demand_net_wind_max"].quantile(0.10)
+    obs_dnw_5th = obs_df["demand_net_wind_max"].quantile(0.01)
 
     # do the same for the model
-    model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.10)
+    model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.01)
 
     # Find the maximum of the demand net wind max for the obs
     obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.90)
@@ -9634,6 +9634,8 @@ def main():
             figsize=(10, 10),
             levels=levels,
         )
+
+        sys.exit()
 
     # Print the time taken
     print(f"Time taken: {time.time() - start_time:.2f} seconds")
