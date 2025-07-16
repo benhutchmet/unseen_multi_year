@@ -9462,17 +9462,30 @@ def main():
         # zero the missing daya here
         missing_days = 0
 
-        # Set up a figure with 5 rows and 5 columns
-        fig, axs = plt.subplots(
-            nrows=5,
-            ncols=5,
-            figsize=(15, 15),
-            subplot_kw={"projection": ccrs.PlateCarree()},
-        )
-
+        # Create figure with GridSpec to control layout
+        fig = plt.figure(figsize=(15, 16))  # Slightly taller to accommodate colorbar
+        
+        # Create GridSpec with space for colorbar at bottom
+        gs = fig.add_gridspec(6, 5,  # 6 rows (5 for plots, 1 for colorbar)
+                            height_ratios=[1, 1, 1, 1, 1, 0.1],  # Last row smaller for colorbar
+                            hspace=0.3, wspace=0.1)  # Reduced spacing between plots
+        
+        # Create axes array
+        axs = np.empty((5, 5), dtype=object)
+        for i in range(5):
+            for j in range(5):
+                axs[i, j] = fig.add_subplot(gs[i, j], projection=ccrs.PlateCarree())
+        
+        # Create axis for colorbar
+        cax = fig.add_subplot(gs[5, :])
+        
         # Set up the levels
         levels_psl_abs = np.array(
             [
+                996,
+                998,
+                1000,
+                1002,
                 1004,
                 1006,
                 1008,
@@ -9530,6 +9543,7 @@ def main():
                 levels=levels_psl_abs,
                 cmap="RdBu_r",
                 transform=ccrs.PlateCarree(),
+                extend="both",
             )
 
             # add coastlines
@@ -9537,7 +9551,8 @@ def main():
 
             # Set up the title
             ax_this.set_title(
-                f"i_year: {init_year_df}, mem: {member_df}, wyear: {winter_year_df}, lead: {lead_df}"
+                f"i_y: {init_year_df}, m: {member_df}, w_y: {winter_year_df}, l: {lead_df}",
+                fontsize=8,
             )
 
             # # Store the value in the subset_arr_this_model_full
@@ -9547,20 +9562,18 @@ def main():
             # subset_arr_this_model_uas[j, :, :] = subset_arr_this_model_uas_index_this
             # subset_arr_this_model_vas[j, :, :] = subset_arr_this_model_vas_index_this
 
-        # Set up a colorbar for the psl plot
+        # Create colorbar using the dedicated axis
         cbar = fig.colorbar(
             psl_plot_this,
-            ax=axs,
+            cax=cax,
             orientation="horizontal",
-            pad=0.05,
-            aspect=50,
-            fraction=0.02,
-            shrink=0.8,
-            label="Mean sea level pressure (hPa)",
+            label="Mean sea level pressure (hPa)"
         )
-
-        # Set a tight layout
-        plt.tight_layout()
+        
+        # Adjust colorbar label size and position
+        cbar.ax.tick_params(labelsize=10)
+        cbar.ax.set_title("Mean sea level pressure (hPa)", 
+                         fontsize=10, pad=10)
 
         # Show the figure
         plt.show()
