@@ -9374,6 +9374,49 @@ def main():
     #     levels=levels,
     # )
 
+    # Set up the save dir for the climatology data
+    save_dir_clim = "/home/users/benhutch/unseen_multi_year/model_clim"
+
+    # bSet up fnames for the model clims
+    model_psl_clim_NA_fname = "HadGEM3-GC31-MM_psl_NA_1960-2018_DJF_day_clim.npy"
+    model_tas_clim_Europe_fname = "HadGEM3-GC31-MM_tas_Europe_1960-2018_DJF_day_clim.npy"
+    model_wind_clim_Europe_fname = "HadGEM3-GC31-MM_sfcWind_Europe_1960-2018_DJF_day_clim.npy"
+    model_uas_clim_Europe_fname = "HadGEM3-GC31-MM_uas_Europe_1960-2018_DJF_day_clim.npy"
+    model_vas_clim_Europe_fname = "HadGEM3-GC31-MM_vas_Europe_1960-2018_DJF_day_clim.npy"
+
+    # Set up a list of fnames
+    model_clim_fnames = [
+        model_psl_clim_NA_fname,
+        model_tas_clim_Europe_fname,
+        model_wind_clim_Europe_fname,
+        model_uas_clim_Europe_fname,
+        model_vas_clim_Europe_fname,
+    ]
+
+    # Set up a list of teh clim arrs
+    clim_arrs = [
+        model_psl_clim,
+        model_tas_clim,
+        model_wind_clim,
+        model_uas_clim,
+        model_vas_clim,
+    ]
+
+    # Loop over this list
+    for i, clim_arr in enumerate(clim_arrs):
+        # Set up the save path
+        save_path = os.path.join(save_dir_clim, model_clim_fnames[i])
+
+        if not os.path.exists(save_dir_clim):
+            os.makedirs(save_dir_clim)
+
+        if not os.path.exists(save_path):
+            print(f"Saving {model_clim_fnames[i]} to {save_path}")
+            np.save(save_path, clim_arr)
+
+    sys.exit()
+
+
     # Load the psl lats
     psl_lats = np.load(
         os.path.join(metadata_dir, "HadGEM3-GC31-MM_psl_NA_1960_DJF_day_lats.npy")

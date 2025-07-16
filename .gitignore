@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Any gifs
+*.gif
+
 # For some reason have saved some files here
 split_data_anomalies/*.npy
 
