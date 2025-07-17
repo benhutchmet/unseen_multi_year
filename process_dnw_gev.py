@@ -2289,9 +2289,6 @@ def main():
     # print the columns of the full_wp_gen_df_test
     print(f"Columns of full_wp_gen_df_test: {full_wp_gen_df_test.columns.tolist()}")
 
-    # drop leaed 1 from the full_wp_gen_df_test
-    full_wp_gen_df_test = full_wp_gen_df_test[full_wp_gen_df_test["lead"] != 1]
-
     # print the shape of the full_wp_gen_df_test
     print(f"Shape of full_wp_gen_df_test after dropping lead 1: {full_wp_gen_df_test.shape}")
 
@@ -2329,6 +2326,18 @@ def main():
         & (df_model_sfcWind["member"] == test_member)
         & (df_model_sfcWind["lead"].isin(np.arange(31, 120 + 1, 1)))
     ]
+
+    # extract the unique leads from the df_model_djf test
+    unique_leads_model = df_model_test["lead"].unique()
+    # extract the unique leads from the full_wp_gen_df_test
+    unique_leads_wp_gen = full_wp_gen_df_test["lead"].unique()
+
+    # Print the min and max of the unique leads
+    print(f"Unique leads in model df: {unique_leads_model.min()} to {unique_leads_model.max()}")
+    print(f"Unique leads in wp gen df: {unique_leads_wp_gen.min()} to {unique_leads_wp_gen.max()}")
+
+    # drop where lead is 91 in wp gen df
+    full_wp_gen_df_test = full_wp_gen_df_test[full_wp_gen_df_test["lead"] != 91]
 
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     arr_file = "HadGEM3-GC31-MM_sfcWind_Europe_1961_DJF_day.npy"
@@ -2430,15 +2439,6 @@ def main():
     # Show the plot  
     plt.tight_layout()
     plt.show()
-
-    # extract the unique leads from the df_model_djf test
-    unique_leads_model = df_model_test["lead"].unique()
-    # extract the unique leads from the full_wp_gen_df_test
-    unique_leads_wp_gen = full_wp_gen_df_test["lead"].unique()
-
-    # Print the min and max of the unique leads
-    print(f"Unique leads in model df: {unique_leads_model.min()} to {unique_leads_model.max()}")
-    print(f"Unique leads in wp gen df: {unique_leads_wp_gen.min()} to {unique_leads_wp_gen.max()}")
 
     sys.exit()
 

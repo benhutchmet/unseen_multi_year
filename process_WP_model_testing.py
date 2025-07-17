@@ -308,8 +308,8 @@ def main():
         for winter_year in winter_years:
             # Set up the indices
             indices_this = np.arange(
-                31 + ((winter_year - 1) * 360),
-                30 + 90 + ((winter_year - 1) * 360) + 1,
+                30 + ((winter_year - 1) * 360), # i: 30 -> lead: 31
+                30 + 90 + ((winter_year - 1) * 360), # i: 120 - 1 -> lead: 120
                 1,
             )
 
