@@ -2561,8 +2561,11 @@ def main():
                     & (full_wp_gen_df["wyear"] == winter_year)
                 ]
 
-                # Limit the leads in df_wp_gen_this to exclude lead 91
-                df_wp_gen_this = df_wp_gen_this[df_wp_gen_this["lead"] != 91]
+                # Limit the leads in df_wp_gen_this to exclude lead 1
+                # FIXME: indexing incorrect here
+                # Should be 31: 121
+                # Instead is 30: 121, so we need to drop the first lead
+                df_wp_gen_this = df_wp_gen_this[df_wp_gen_this["lead"] != 1]
 
                 # # print the shape of df_model_djf_this
                 # print(
