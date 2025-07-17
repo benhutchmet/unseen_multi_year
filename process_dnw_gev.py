@@ -1993,6 +1993,20 @@ def main():
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
 
+    # Set up a dictionary to map the members of df_wp_1961 to the correct members
+    df_members_dict = {
+        1: 10,
+        2: 1,
+        3: 2,
+        4: 3,
+        5: 4,
+        6: 5,
+        7: 6,
+        8: 7,
+        9: 8,
+        10: 9
+    }
+
     # Set up the years test
     test_years = np.arange(1960, 2018 + 1, 1)
     members = np.arange(1, 10 + 1, 1)
@@ -2165,6 +2179,21 @@ def main():
     # Describe the full wp generation df
     print(full_wp_gen_df.describe())
 
+    # Convert the members to correct members using the df_members_dict in df_wp_1961
+    full_wp_gen_df["member"] = full_wp_gen_df["member"].apply(lambda x: df_members_dict[x]).astype(int)
+
+    # Set up test init year
+    test_init_year = 1961
+    test_member = 1
+    test_winter_year = 1
+
+    # Subset the full wp generation df to this init year, member, and winter year
+    full_wp_gen_df_test = full_wp_gen_df[
+        (full_wp_gen_df["init_year"] == test_init_year)
+        & (full_wp_gen_df["member"] == test_member)
+        & (full_wp_gen_df["wyear"] == test_winter_year)
+    ]
+
     # Load the model temperature data
     df_model_tas = pd.read_csv(
         os.path.join(
@@ -2209,13 +2238,6 @@ def main():
         suffixes=("", "_vas"),
     )
 
-    # # Join the df with the full wp generation data
-    # df_model = df_model.merge(
-    #     full_wp_gen_df,
-    #     on=["init_year", "member", "lead"],
-    #     suffixes=("", "_wp_gen"),
-    # )
-
     # rename data to data_uas
     df_model.rename(columns={"data": "data_uas"}, inplace=True)
 
@@ -2248,6 +2270,185 @@ def main():
     # Full wind power gen df
     unique_effective_dec_years_model = df_model_djf["effective_dec_year"].unique()
     unique_effective_dec_years_wp_gen = full_wp_gen_df["effective_dec_year"].unique()
+
+    # subset the df_model to the test init year and member
+    df_model_test = df_model_djf[
+        (df_model_djf["init_year"] == test_init_year)
+        & (df_model_djf["member"] == test_member)
+        & (df_model_djf["winter_year"] == test_winter_year)
+    ]
+
+    # Print the shape of the df_model_test
+    print(f"Shape of df_model_test: {df_model_test.shape}")
+    
+    # Print the shape of the df model wind gen test
+    print(f"Shape of full_wp_gen_df_test: {full_wp_gen_df_test.shape}")
+
+    # print the columns of the df_model_test
+    print(f"Columns of df_model_test: {df_model_test.columns.tolist()}")
+    # print the columns of the full_wp_gen_df_test
+    print(f"Columns of full_wp_gen_df_test: {full_wp_gen_df_test.columns.tolist()}")
+
+    # drop leaed 1 from the full_wp_gen_df_test
+    full_wp_gen_df_test = full_wp_gen_df_test[full_wp_gen_df_test["lead"] != 1]
+
+    # print the shape of the full_wp_gen_df_test
+    print(f"Shape of full_wp_gen_df_test after dropping lead 1: {full_wp_gen_df_test.shape}")
+
+    # Test path
+    test_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/HadGEM3-GC31-MM_dcppA-hindcast_sfcWind_UK_wind_box_1961_1_day.csv"
+
+    # Check if the test path exists
+    if not os.path.exists(test_path):
+        raise FileNotFoundError(f"Test path {test_path} does not exist.")
+    
+    leads_test = np.arange(31, 120 + 1, 1)
+    
+    # Load the test data
+    df_test = pd.read_csv(test_path)
+
+    # Subset the df_test to the test init year, member, and leads
+    df_test = df_test[
+        (df_test["init_year"] == test_init_year)
+        & (df_test["member"] == test_member)
+        & (df_test["lead"].isin(leads_test))
+    ]
+
+    # print the head of the df_test
+    print(df_test.head())
+    
+    # print the tail of the df_test
+    print(df_test.tail())
+
+    # print the shape of the df_test
+    print(f"Shape of df_test: {df_test.shape}")
+
+    # subset df_model_sfcWind to the test init year, member, and winter year
+    df_model_sfcWind_test = df_model_sfcWind[
+        (df_model_sfcWind["init_year"] == test_init_year)
+        & (df_model_sfcWind["member"] == test_member)
+        & (df_model_sfcWind["lead"].isin(np.arange(31, 120 + 1, 1)))
+    ]
+
+    arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
+    arr_file = "HadGEM3-GC31-MM_sfcWind_Europe_1961_DJF_day.npy"
+
+    arr_path = os.path.join(arrs_dir, arr_file)
+
+    # Check if the arr_path exists
+    if not os.path.exists(arr_path):
+        raise FileNotFoundError(f"Array path {arr_path} does not exist.")
+
+    # Load the array
+    arr_model_sfcWind = np.load(arr_path)
+
+    metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
+    # import the lats and lons for the europe sfcWind data
+    lats_wind = np.load(os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"))
+    lons_wind = np.load(os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"))
+
+    # Define the UK wind box
+    wind_gridbox = {"lat1": 50, "lat2": 59.5, "lon1": -6, "lon2": 2}
+
+    # Find the indices of the lats and lons that correspond to the UK wind box
+    lat1_index = np.where(lats_wind >= wind_gridbox["lat1"])[0][0]
+    lat2_index = np.where(lats_wind <= wind_gridbox["lat2"])[0][-1]
+    lon1_index = np.where(lons_wind >= wind_gridbox["lon1"])[0][0]
+    lon2_index = np.where(lons_wind <= wind_gridbox["lon2"])[0][-1]
+
+    # extract the arr_model_sfcWind for the UK wind box
+    arr_model_sfcWind_uk = arr_model_sfcWind[
+        0,
+        1, # index of memeber 1, as goes [10, 1, 2...]
+        32 : 122,  # leads 31 to 121
+        lat1_index:lat2_index + 1,
+        lon1_index:lon2_index + 1,
+    ]
+
+    # arr model sfcWind uk mean
+    # print the shape of the array
+    print(f"Shape of arr_model_sfcWind_uk_mean: {arr_model_sfcWind_uk.shape}")
+
+    # Take the mean of the array along thelat lon axis
+    arr_model_sfcWind_uk_mean = np.mean(arr_model_sfcWind_uk, axis=(1, 2))
+
+    # Set up a figure
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    # Plot the model wind speed data
+    ax.plot(
+        df_model_test["lead"],
+        df_model_test["data_sfcWind"],
+        color="black",
+        label="Model Wind Speed (m/s)",
+    )
+
+    # # plot the df test as a purple dashed line
+    # ax.plot(
+    #     df_test["lead"],
+    #     df_test["data"],
+    #     color="purple",
+    #     linestyle="--",
+    #     label="Test Wind Speed (m/s)",
+    # )
+
+    # Duplicate the y axis
+    ax2 = ax.twinx()
+
+    # Plot the model wind power generation data
+    ax2.plot(
+        full_wp_gen_df_test["lead"] + 30,  # Offset by 29 days to align with leads
+        full_wp_gen_df_test["capacity_factor"],
+        color="red",
+        label="Model CFs",
+    )
+
+    corr, _ = pearsonr(
+        df_model_test["data_sfcWind"],
+        full_wp_gen_df_test["capacity_factor"],
+    )
+
+    # Set the x and y labels
+    ax.set_xlabel("Lead (days)", fontsize=12)
+    ax.set_ylabel("Wind Speed (m/s)", fontsize=12, color="black")
+    ax2.set_ylabel("Capacity Factor", fontsize=12, color="red")
+
+    # Make sure the ticks and labels are also black and red
+    ax.tick_params(axis="y", labelcolor="black")
+    ax2.tick_params(axis="y", labelcolor="red")
+
+    # Set the title
+    ax.set_title(f"Model Wind Speed and Wind Power Generation\n"
+                    f"Init Year: {test_init_year}, Member: {test_member}, "
+                    f"Winter Year: {test_winter_year}\n"
+                    f"Pearson Correlation: {corr:.2f}",
+                    fontsize=12)
+    # Include a legend
+    ax.legend(loc="upper left", fontsize=10)
+    ax2.legend(loc="upper right", fontsize=10)
+
+    # Show the plot  
+    plt.tight_layout()
+    plt.show()
+
+    # extract the unique leads from the df_model_djf test
+    unique_leads_model = df_model_test["lead"].unique()
+    # extract the unique leads from the full_wp_gen_df_test
+    unique_leads_wp_gen = full_wp_gen_df_test["lead"].unique()
+
+    # Print the min and max of the unique leads
+    print(f"Unique leads in model df: {unique_leads_model.min()} to {unique_leads_model.max()}")
+    print(f"Unique leads in wp gen df: {unique_leads_wp_gen.min()} to {unique_leads_wp_gen.max()}")
+
+    sys.exit()
+
+
+    # # Join the df with the full wp generation data
+    # df_model = df_model.merge(
+    #     full_wp_gen_df,
+    #     on=["init_year", "member", "lead"],
+    #     suffixes=("", "_wp_gen"),
+    # )
 
     # print the first and last of these
     print(f"Unique effective dec years in model df: {unique_effective_dec_years_model[:5]} ... {unique_effective_dec_years_model[-5:]}")
