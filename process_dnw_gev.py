@@ -2151,6 +2151,11 @@ def main():
     # Import the non-detrended data here
     # ---------------------------
 
+    # # print
+    # print("------------------------")
+    # print("Importing the non-detrended data")
+    # print("------------------------")
+
     # Loop through the years
     for year in tqdm(model_init_years):
         # Set up the fname here
@@ -2960,10 +2965,10 @@ def main():
     # Extract the unique effective dec years from the obs
     unique_effective_dec_years_obs = df_obs["effective_dec_year"].unique()
 
-    # Assert that these are the same
-    assert np.array_equal(
-        unique_effective_dec_years, unique_effective_dec_years_obs
-    ), "The effective dec years in the model and obs dataframes do not match!"
+    # # Assert that these are the same
+    # assert np.array_equal(
+    #     unique_effective_dec_years, unique_effective_dec_years_obs
+    # ), "The effective dec years in the model and obs dataframes do not match!"
 
     # # Test the new function before all detrending takes place
     # pivot_emp_rps_dnw(
@@ -3479,7 +3484,30 @@ def main():
         # Save the obs data
         df_obs.to_csv(full_field_obs_path, index=False)
 
-    sys.exit()
+    # print the columns in the df_model_djf
+    print(df_model_djf.columns)
+    
+    # Print the columns in the df_obs
+    print(df_obs.columns)
+
+    # # Do the same but with uas
+    plot_multi_var_perc(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="total_gen",
+        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # DnW on the x-axis
+        y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
+        xlabel="Demand percentiles",
+        ylabel="Demand (GW)",
+        title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+        legend_y1="Demand (GW)",
+        legend_y2="Wind Power Generation (GW)",
+        y2_var_name_model="total_gen",
+        y2_label="Wind Power Generation (GW)",
+        figsize=(5, 6),
+        inverse_flag=False,
+    )
 
     # sys.exit()
 
@@ -3623,6 +3651,23 @@ def main():
         process_min=False,
     )
 
+    block_max_obs_demand = gev_funcs.obs_block_min_max(
+        df=df_obs,
+        time_name="effective_dec_year",
+        min_max_var_name="data_c_dt_UK_demand",
+        new_df_cols=[
+            "total_gen",
+            "data_c_dt_UK_demand",
+            "time",
+            "data_c_dt",
+            "data_sfcWind_dt",
+        ],
+        process_min=False,
+    )
+
+    # make sure effective dec year is in the block max obs data
+    block_max_obs_dnw["effective_dec_year"] = block_max_obs_dnw["time"].dt.year
+
     # now for the model data
     # for the bias correctded data
     block_max_model_dnw = gev_funcs.model_block_min_max(
@@ -3647,6 +3692,43 @@ def main():
     block_max_model_dnw["effective_dec_year"] = block_max_model_dnw["init_year"] + (
         block_max_model_dnw["winter_year"] - 1
     )
+
+    # print the columns in df_model_djf
+    print(df_model_djf.columns)
+
+    block_max_model_demand = gev_funcs.model_block_min_max(
+        df=df_model_djf,
+        time_name="init_year",
+        min_max_var_name="data_tas_c_drift_bc_dt_UK_demand",
+        new_df_cols=[
+            "total_gen",
+            "lead",
+            "data_tas_c_drift_bc_dt",
+            "total_gen",
+            "delta_p_hpa",
+            "data_uas",
+            "data_vas",
+        ],
+        winter_year="winter_year",
+        process_min=False,
+    )
+
+    # make sure effective dec year is in the block max obs data
+    block_max_model_demand["effective_dec_year"] = (
+        block_max_model_demand["init_year"] + (block_max_model_demand["winter_year"] - 1)
+    )
+
+    # Print the shape of the block max obs dnw
+    print(f"Shape of block_max_obs_dnw: {block_max_obs_dnw.shape}")
+
+    # Print the shape of the block max model dnw
+    print(f"Shape of block_max_model_dnw: {block_max_model_dnw.shape}")
+
+    # Print the head of the block max obs dnw
+    print(block_max_obs_dnw.head())
+
+    # Print the head of the block max model dnw
+    print(block_max_model_dnw.head())
 
     # Set up a list to store the dfs
     dfs_list = []
@@ -3955,6 +4037,43 @@ def main():
         figsize=(5, 6),
         inverse_flag=False,
     )
+
+    # # print the columns in block max obs demand and model demand
+    # print(block_max_obs_demand.columns)
+    # print(block_max_model_demand.columns)
+
+    # # Where there are duplicate columns, drop one of these
+    # if block_max_model_demand.columns.duplicated().any():
+    #     block_max_model_demand = block_max_model_demand.loc[:, ~block_max_model_demand.columns.duplicated()]
+
+    # # Print the columns of block max model demand
+    # print(block_max_model_demand.columns)
+
+    # # same for the obs
+    # if block_max_obs_demand.columns.duplicated().any():
+    #     block_max_obs_demand = block_max_obs_demand.loc[:, ~block_max_obs_demand.columns.duplicated()]
+
+    # # Print the columns of block max obs demand
+    # print(block_max_obs_demand.columns)
+
+    # # # Do the same but with demand
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_demand,
+    #     model_df=block_max_model_demand,
+    #     x_var_name_obs="data_c_dt_UK_demand",
+    #     y_var_name_obs="total_gen",
+    #     x_var_name_model="data_tas_c_drift_bc_dt_UK_demand_max", # DnW on the x-axis
+    #     y_var_name_model="data_tas_c_drift_bc_dt", # Demand on the y1-axis
+    #     xlabel="Demand percentiles",
+    #     ylabel="Demand (GW)",
+    #     title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+    #     legend_y1="Demand (GW)",
+    #     legend_y2="Wind Power Generation (GW)",
+    #     y2_var_name_model="total_gen",
+    #     y2_label="Wind Power Generation (GW)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    # )
 
     # sys.exit()
 
@@ -4291,30 +4410,30 @@ def main():
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
 
-    # # plot the return period plots here
-    # # first the empirical return periods
-    plot_emp_rps(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        obs_val_name="demand_net_wind_max",
-        model_val_name="demand_net_wind_bc_max",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        ylabel="Demand net wind (GW)",
-        nsamples=1000,
-        ylims=(44, 52),
-        blue_line=np.max,
-        high_values_rare=True,
-        figsize=(5, 5),
-        wind_2005_toggle=False,
-        title="e) Chance > 1995-96 DnW"
-    )
+    # # # plot the return period plots here
+    # # # first the empirical return periods
+    # plot_emp_rps(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     obs_val_name="demand_net_wind_max",
+    #     model_val_name="demand_net_wind_bc_max",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     ylabel="Demand net wind (GW)",
+    #     nsamples=1000,
+    #     ylims=(44, 52),
+    #     blue_line=np.max,
+    #     high_values_rare=True,
+    #     figsize=(5, 5),
+    #     wind_2005_toggle=False,
+    #     title="e) Chance > 1995-96 DnW"
+    # )
 
-    # print the block max obs dnw max row
-    print("Block max obs dnw max row")
-    print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
+    # # print the block max obs dnw max row
+    # print("Block max obs dnw max row")
+    # print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
 
-    sys.exit()
+    # sys.exit()
 
     # # # plot the GEV fitted return periods
     # # plot_gev_rps(
@@ -4385,11 +4504,11 @@ def main():
 
     # set up a fname for the obs dnw df
     obs_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_obs_demand_net_wind_30-06-2025_2020-2024.csv"
+        dfs_dir, "block_maxima_obs_demand_net_wind_17-07-2025_2020-2024.csv"
     )
     # set up a fname for the model dnw df
     model_dnw_fpath = os.path.join(
-        dfs_dir, "block_maxima_model_demand_net_wind_30-06-2025_2020-2024.csv"
+        dfs_dir, "block_maxima_model_demand_net_wind_17-07-2025_2020-2024.csv"
     )
 
     # if the fpath does not exist, svae the dtaa

@@ -55,7 +55,7 @@ def main():
     start_time = time.time()
 
     # Set up the hard coded variables
-    maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind_30-06-2025_2020-2024.csv"
+    maxima_dnw_path = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/block_maxima_model_demand_net_wind_17-07-2025_2020-2024.csv"
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
     subset_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/subset/"
     model = "HadGEM3-GC31-MM"
@@ -155,11 +155,18 @@ def main():
     #     arrs_dir,
     #     f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
     # )
-    # same but for uas
-    test_file_path = os.path.join(
-        arrs_dir,
-        f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day_*_*.npy",
-    )
+    if args.variable not in ["psl", "tas", "sfcWind"]:
+        # same but for uas
+        test_file_path = os.path.join(
+            arrs_dir,
+            f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day_*_*.npy",
+        )
+    else:
+        # set up the test file path for psl
+        test_file_path = os.path.join(
+            arrs_dir,
+            f"HadGEM3-GC31-MM_{args.variable}_{args.region}_1960_{args.season}_day.npy",
+        )
 
 
     # Glob the test file path
@@ -241,11 +248,19 @@ def main():
         # Strip the first 4 characters and format as an int
         effective_dec_year_int = int(effective_dec_year)
 
-        # set up the file to extract
-        model_data_path = os.path.join(
-            arrs_dir,
-            f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}_*_*.npy",
-        )
+        # if variable is noit psl
+        if args.variable not in ["psl", "tas", "sfcWind"]:
+            # set up the file to extract
+            model_data_path = os.path.join(
+                arrs_dir,
+                f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}_*_*.npy",
+            )
+        else:
+            # set up the file to extract for psl
+            model_data_path = os.path.join(
+                arrs_dir,
+                f"{model}_{args.variable}_{args.region}_{init_year}_{args.season}_{temp_res}.npy",
+            )
 
         # glob the model data path
         model_data_paths = glob.glob(model_data_path)
