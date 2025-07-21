@@ -4207,7 +4207,7 @@ def main():
         obs_df=block_max_obs_dnw,
         model_df=block_max_model_dnw,
         x_var_name_obs="data_c_dt",
-        y_var_name_obs="total_gen_dt",
+        y_var_name_obs="total_gen",
         x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
         y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
         xlabel="Demand net wind percentiles",
@@ -4215,7 +4215,7 @@ def main():
         title="Percentiles of demand net wind vs demand/WP gen, DnW days",
         legend_y1="Demand (GW)",
         legend_y2="Wind Power Generation (GW)",
-        y2_var_name_model="total_gen",
+        y2_var_name_model="total_gen_dt",
         y2_label="Wind Power Generation (GW)",
         figsize=(5, 6),
         inverse_flag=False,
