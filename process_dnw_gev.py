@@ -22,6 +22,7 @@ import warnings
 # Third-party imports
 import numpy as np
 import xarray as xr
+import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import shapely.geometry
@@ -40,7 +41,7 @@ from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
 from iris.util import equalise_attributes
 
-# Local imports
+# # Local imports
 import gev_functions as gev_funcs
 from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
@@ -3580,6 +3581,84 @@ def main():
     # Print the columns in the df_obs
     print(df_obs.columns)
 
+    # Set the threhsold for wind speed
+    ws_threshold = 4.5
+
+    # Set the threshold of demand
+    demand_threshold = 43.5
+
+    # demand net wind threshold
+    demand_net_wind_threshold = 35.0
+
+    # Find the percentile for the value of ws_threshold in the model data
+    # using df_model_djf and the column total_gen
+    ws_percentile = percentileofscore(
+        df_model_djf["total_gen"],
+        ws_threshold,
+        kind="rank"
+    )
+
+    ws_percentile_dt = percentileofscore(
+        df_model_djf["total_gen_dt"],
+        ws_threshold,
+        kind="rank"
+    )
+
+    # Print the percentile
+    print(f"Wind speed threshold percentile: {ws_percentile:.2f}")
+    print(f"Wind speed threshold percentile (detrended): {ws_percentile_dt:.2f}")
+
+    # Find the demand threshold percentile
+    demand_percentile = percentileofscore(
+        df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
+        demand_threshold,
+        kind="rank"
+    )
+
+    # Print the percentile
+    print(f"Demand threshold percentile: {demand_percentile:.2f}")
+
+    # Print the demand net wind threshold percentile
+    demand_net_wind_percentile = percentileofscore(
+        df_model_djf["demand_net_wind_bc"],
+        demand_net_wind_threshold,
+        kind="rank"
+    )
+
+    print(f"Demand net wind threshold percentile: {demand_net_wind_percentile:.2f}")
+
+    # Plot the distribution of total gen as a histogram
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df_model_djf["total_gen"], bins=50, kde=True)
+    plt.axvline(ws_threshold, color='red', linestyle='--', label='Wind Speed Threshold')
+    plt.xlabel("Total Wind Power Generation (GW)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Total Wind Power Generation")
+    plt.legend()
+    plt.show()
+
+    # Plot the distribution of demand as a histogram
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df_model_djf["data_tas_c_drift_bc_dt_UK_demand"], bins=50, kde=True)
+    plt.axvline(demand_threshold, color='green', linestyle='--', label='Demand Threshold')
+    plt.xlabel("Demand (GW)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Demand")
+    plt.legend()
+    plt.show()
+
+    # Plot the distribution of demand net wind as a histogram
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df_model_djf["demand_net_wind_bc"], bins=50, kde=True)
+    plt.axvline(demand_net_wind_threshold, color='purple', linestyle='--', label='Demand Net Wind Threshold')
+    plt.xlabel("Demand Net Wind (GW)")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Demand Net Wind")
+    plt.legend()
+    plt.show()
+
+    # sys.exit()
+
     # # Do the same but with uas
     plot_multi_var_perc(
         obs_df=df_obs,
@@ -4128,7 +4207,7 @@ def main():
         obs_df=block_max_obs_dnw,
         model_df=block_max_model_dnw,
         x_var_name_obs="data_c_dt",
-        y_var_name_obs="total_gen",
+        y_var_name_obs="total_gen_dt",
         x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
         y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
         xlabel="Demand net wind percentiles",
@@ -4141,6 +4220,8 @@ def main():
         figsize=(5, 6),
         inverse_flag=False,
     )
+
+    sys.exit()
 
     # # print the columns in block max obs demand and model demand
     # print(block_max_obs_demand.columns)

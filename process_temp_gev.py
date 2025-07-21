@@ -39,6 +39,7 @@ from iris.util import equalise_attributes
 
 # Local imports
 import gev_functions as gev_funcs
+
 # from process_dnw_gev import (
 #     select_leads_wyears_DJF,
 #     plot_distributions_extremes,
@@ -368,10 +369,14 @@ def pivot_emp_rps(
     # ax.set_yticklabels(["0%", "0.5%", "1.0%", "1.5%", "2.0%", "2.5%", "3.0%", "3.5%"])  # Tick labels
 
     # Set new tick labels
-    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    ax.set_yticks(
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    )
     # Set new tick labels for the primary y-axis
     # Set up yticks for the primary y-axis
-    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    ax.set_yticks(
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    )
     ax.set_yticklabels(
         [
             "0%",
@@ -387,6 +392,14 @@ def pivot_emp_rps(
             "10%",
             "11%",
             "12%",
+            "13%",
+            "14%",
+            "15%",
+            "16%",
+            "17%",
+            "18%",
+            "19%",
+            "20%",
         ]
     )
 
@@ -397,9 +410,35 @@ def pivot_emp_rps(
     ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
 
     # Set tick labels for the second y-axis (ensure the number of labels matches the number of ticks)
+    # ax2.set_yticklabels(
+    #     ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"]
+    # )  # 13 labels
+
     ax2.set_yticklabels(
-        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"]
-    )  # 13 labels
+        [
+            "",  # 0% - undefined
+            "100",  # 1% - 100 year return period
+            "50",  # 2% - 50 year return period
+            "33",  # 3% - 33 year return period
+            "25",  # 4% - 25 year return period
+            "20",  # 5% - 20 year return period
+            "17",  # 6% - 17 year return period
+            "14",  # 7% - 14 year return period
+            "13",  # 8% - 13 year return period
+            "11",  # 9% - 11 year return period
+            "10",  # 10% - 10 year return period
+            "9",  # 11% - 9 year return period
+            "8",  # 12% - 8 year return period
+            "8",  # 13% - 8 year return period (7.7 rounds to 8)
+            "7",  # 14% - 7 year return period
+            "7",  # 15% - 7 year return period (6.7 rounds to 7)
+            "6",  # 16% - 6 year return period
+            "6",  # 17% - 6 year return period (5.9 rounds to 6)
+            "6",  # 18% - 6 year return period (5.6 rounds to 6)
+            "5",  # 19% - 5 year return period
+            "5",  # 20% - 5 year return period
+        ]
+    )
 
     # Set the y-axis limits for both axes to ensure alignment
     ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
@@ -2017,7 +2056,9 @@ def main():
     start_time = time.time()
 
     # set iup the delta p filepath
-    delta_p_fpath = "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+    delta_p_fpath = (
+        "/home/users/benhutch/unseen_multi_year/dfs/ERA5_delta_p_1961_2024_DJF_day.csv"
+    )
 
     # # # Set up the test path
     # arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
@@ -2492,9 +2533,7 @@ def main():
         df_delta_p = pd.read_csv(delta_p_fpath)
 
     # convert df delta p time to datetime
-    df_delta_p["time"] = pd.to_datetime(
-        df_delta_p["time"]
-    )
+    df_delta_p["time"] = pd.to_datetime(df_delta_p["time"])
 
     # print the type of trhe time column in df delta p
     print(f"Type of time column in df_delta_p: {type(df_delta_p['time'].iloc[0])}")
@@ -2503,11 +2542,11 @@ def main():
     print(f"Type of time column in df_obs: {type(df_obs['time'].iloc[0])}")
 
     df_obs = df_obs.merge(
-            df_delta_p,
-            on=["time"],
-            suffixes=("", "delta_p"),
-        )
-    
+        df_delta_p,
+        on=["time"],
+        suffixes=("", "delta_p"),
+    )
+
     # print the head of df obs
     print(df_obs.head())
 
@@ -2516,7 +2555,7 @@ def main():
 
     # divide delta p by 100
     df_obs["delta_p_index"] = df_obs["delta_p_index"] / 100
-    
+
     # sys.exit()
 
     # Subset the model wind data to the common winter years
@@ -2618,7 +2657,15 @@ def main():
         df=df_model,
         time_name="init_year",
         min_max_var_name="data_tas_c",
-        new_df_cols=["init_year", "member", "lead", "data_sfcWind", "delta_p_hpa", "data_uas", "data_vas"],
+        new_df_cols=[
+            "init_year",
+            "member",
+            "lead",
+            "data_sfcWind",
+            "delta_p_hpa",
+            "data_uas",
+            "data_vas",
+        ],
         winter_year="winter_year",
         process_min=True,
     )
@@ -2628,7 +2675,15 @@ def main():
         df=df_model,
         time_name="init_year",
         min_max_var_name="data_sfcWind",
-        new_df_cols=["init_year", "member", "lead", "data_tas_c", "delta_p_hpa", "data_uas", "data_vas"],
+        new_df_cols=[
+            "init_year",
+            "member",
+            "lead",
+            "data_tas_c",
+            "delta_p_hpa",
+            "data_uas",
+            "data_vas",
+        ],
         winter_year="winter_year",
         process_min=True,
     )
@@ -2689,7 +2744,9 @@ def main():
     # )
 
     # Set up the path to hazel demand data
-    hazel_path = "/home/users/benhutch/NGrid_demand/csv_files/gas_electricity_demand_data.csv"
+    hazel_path = (
+        "/home/users/benhutch/NGrid_demand/csv_files/gas_electricity_demand_data.csv"
+    )
 
     # import the hazel data
     if os.path.exists(hazel_path):
@@ -2741,7 +2798,7 @@ def main():
     # )
 
     # sys.exit()
-    
+
     # # plot the percentiles of demand against wind speed
     # plot_multi_var_perc(
     #     obs_df=df_obs_copy,
@@ -2832,9 +2889,7 @@ def main():
     tenth_percentile_temp = df_obs_copy["data_tas_c"].quantile(0.10)
 
     # subset the df obs copy to low temperature
-    df_obs_low_temp = df_obs_copy[
-        df_obs_copy["data_tas_c"] <= tenth_percentile_temp
-    ]
+    df_obs_low_temp = df_obs_copy[df_obs_copy["data_tas_c"] <= tenth_percentile_temp]
 
     # print the shape of df obs high demand
     print(f"Shape of df_obs_high_demand: {df_obs_high_demand.shape}")
@@ -2872,7 +2927,6 @@ def main():
 
     # sys.exit()
 
-
     # plot_multi_var_perc(
     #         obs_df=df_obs_copy,
     #         model_df=df_obs_copy,
@@ -2908,7 +2962,7 @@ def main():
     #         xlims=(80, 105),
     #         x2_var_name_model="elec_demand_5yrRmean_nohols",
     #     )
-    
+
     # sys.exit()
 
     # # plot the percentiles of demand against wind speed
@@ -2994,7 +3048,9 @@ def main():
     eighty_percentile_demand = df_obs_copy["elec_demand_5yrRmean_nohols"].quantile(0.80)
 
     # Subset the df_obs_copy to values above the 80th percentile
-    df_obs_high_demand = df_obs_copy[df_obs_copy["elec_demand_5yrRmean_nohols"] > eighty_percentile_demand]
+    df_obs_high_demand = df_obs_copy[
+        df_obs_copy["elec_demand_5yrRmean_nohols"] > eighty_percentile_demand
+    ]
 
     # # Plot the percentiles of demand against wind speed for the high demand days
     # plot_multi_var_perc(
@@ -3210,7 +3266,8 @@ def main():
     # # subset the ensemble to force the wind speed to be less than 5 m/s
     df_model_low_wind = df_model[df_model["data_sfcWind"] < tenth_percentile]
     df_model_higher_wind = df_model[
-        (df_model["data_sfcWind"] > central_lower) & (df_model["data_sfcWind"] < central_upper)
+        (df_model["data_sfcWind"] > central_lower)
+        & (df_model["data_sfcWind"] < central_upper)
     ]
 
     # Set up the directory which we save to
@@ -3348,7 +3405,6 @@ def main():
     #     y1_zero_line=True,
     #     xlims=(80, 100),
     # )
-
 
     # # For all days, plot the percentiles of T against sfcWind
     # plot_multi_var_perc(
@@ -3573,7 +3629,6 @@ def main():
     #     inverse_flag=True,
     # )
 
-
     # # Set up the block minima model wind short
     # block_minima_model_wind_short = gev_funcs.model_block_min_max(
     #     df=df_model_wind_short,
@@ -3724,7 +3779,6 @@ def main():
     # block_minima_model_wind_short["effective_dec_year"] = block_minima_model_wind_short[
     #     "init_year"
     # ] + (block_minima_model_wind_short["winter_year"] - 1)
-
 
     # print the columns for the model data
     print("Model data columns:")
@@ -3877,19 +3931,19 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # # Test the new function
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_tas,
-    #     model_df=block_minima_model_tas_drift_corr,
-    #     obs_val_name="data_tas_c_min",
-    #     model_val_name="data_tas_c_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="tas",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    #     title="b) Chance of < 1986-87 temperature by year",
-    # )
+    # Test the new function
+    pivot_emp_rps(
+        obs_df=block_minima_obs_tas,
+        model_df=block_minima_model_tas_drift_corr,
+        obs_val_name="data_tas_c_min",
+        model_val_name="data_tas_c_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="tas",
+        nsamples=1000,
+        figsize=(5, 5),
+        title="b) Chance of < 1986-87 temperature by year",
+    )
 
     # # DO the same for wind speed
     # pivot_emp_rps(
@@ -3920,7 +3974,7 @@ def main():
     #     wind_2005_toggle=True,
     # )
 
-    # sys.exit()
+    sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
@@ -4414,7 +4468,7 @@ def main():
         blue_line=np.min,
         high_values_rare=False,
         figsize=(5, 5),
-        title="a) Chance < 1986-87 temperature"
+        title="a) Chance < 1986-87 temperature",
     )
 
     # # do thye same thing fo wind speed
@@ -4447,7 +4501,7 @@ def main():
         blue_line=np.min,
         high_values_rare=False,
         figsize=(5, 5),
-        title="c) Chance < 2005-06 wind speed"
+        title="c) Chance < 2005-06 wind speed",
     )
 
     sys.exit()
