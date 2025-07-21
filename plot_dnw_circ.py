@@ -4939,40 +4939,88 @@ def plot_var_composites_model(
         )
     elif var_name == "sfcWind":
         cmap = "PRGn"
+        # levels = np.array(
+        #     [
+        #         -5,
+        #         -4,
+        #         -3,
+        #         -2,
+        #         -1,
+        #         1,
+        #         2,
+        #         3,
+        #         4,
+        #         5,
+        #     ]
+        # )
         levels = np.array(
             [
-                -5,
-                -4,
-                -3,
-                -2,
                 -1,
+                -0.9,
+                -0.8,
+                -0.7,
+                -0.6,
+                -0.5,
+                -0.4,
+                -0.3,
+                -0.2,
+                -0.1,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
+                0.5,
+                0.6,
+                0.7,
+                0.8,
+                0.9,
                 1,
-                2,
-                3,
-                4,
-                5,
             ]
         )
     elif var_name in ["uas", "vas"]:
         cmap = "PRGn"
+        # levels = np.array(
+        #     [
+        #         -2,
+        #         -1.75,
+        #         -1.5,
+        #         -1.25,
+        #         -1,
+        #         -0.75,
+        #         -0.5,
+        #         -0.25,
+        #         0.25,
+        #         0.5,
+        #         0.75,
+        #         1,
+        #         1.25,
+        #         1.5,
+        #         1.75,
+        #         2,
+        #     ]
+        # )
         levels = np.array(
             [
-                -4,
-                -3.5,
-                -3,
-                -2.5,
-                -2,
-                -1.5,
                 -1,
+                -0.9,
+                -0.8,
+                -0.7,
+                -0.6,
                 -0.5,
+                -0.4,
+                -0.3,
+                -0.2,
+                -0.1,
+                0.1,
+                0.2,
+                0.3,
+                0.4,
                 0.5,
+                0.6,
+                0.7,
+                0.8,
+                0.9,
                 1,
-                1.5,
-                2,
-                2.5,
-                3,
-                3.5,
-                4,
             ]
         )
     elif var_name == "psl":
@@ -5237,16 +5285,43 @@ def plot_var_composites_model(
                 MASK_MATRIX_RESHAPED == 0, anoms_this_model
             )
 
-        # Plot the model data on the right
-        im_model = ax_this.contourf(
-            lons,
-            lats,
-            anoms_this_model,
-            cmap=cmap,
-            transform=ccrs.PlateCarree(),
-            levels=levels,
-            extend="both",
-        )
+        if i == 0:
+            # Sva ethe field here
+            lowest_composite = anoms_this_model
+
+            # Plot the model data on the right
+            im_model = ax_this.contourf(
+                lons,
+                lats,
+                anoms_this_model,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
+        else:
+            # Plot the model data on the right
+            im_model = ax_this.contourf(
+                lons,
+                lats,
+                anoms_this_model - lowest_composite,
+                cmap=cmap,
+                transform=ccrs.PlateCarree(),
+                levels=levels,
+                extend="both",
+            )
+
+            # Include a textbox in the top left for the difference
+            ax_this.text(
+                0.05,
+                0.95,
+                f"lowest quartile diff",
+                horizontalalignment="left",
+                verticalalignment="top",
+                transform=ax_this.transAxes,
+                fontsize=12,
+                bbox=dict(facecolor="white", alpha=0.5),
+            )
 
         # add coastlines to all of these
         ax_this.coastlines()
@@ -8789,15 +8864,15 @@ def main():
 
     # do the same for the model
     model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.05)
-    model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.90)
-    model_dnw_93th = model_df["demand_net_wind_bc_max"].quantile(0.93)
-    model_dnw_96th = model_df["demand_net_wind_bc_max"].quantile(0.96)
+    model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.80)
+    model_dnw_93th = model_df["demand_net_wind_bc_max"].quantile(0.86)
+    model_dnw_96th = model_df["demand_net_wind_bc_max"].quantile(0.93)
 
     # Find the maximum of the demand net wind max for the obs
     obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.95)
 
-    # Find the maximum of the demand net wind max for the model
-    model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.95)
+    # # Find the maximum of the demand net wind max for the model
+    # model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.95)
 
     # find the 99th percentile of the demand net wind max
     obs_dnw_99th = obs_df["demand_net_wind_max"].quantile(0.99)
@@ -8806,8 +8881,8 @@ def main():
     model_dnw_99th = model_df["demand_net_wind_bc_max"].quantile(0.99)
 
     # subset the model df to grey points
-    model_df_subset_grey = model_df
-        model_df["demand_net_wind_bc_max"] >= model_dnw_90th
+    model_df_subset_grey = model_df[
+        (model_df["demand_net_wind_bc_max"] >= model_dnw_90th)
         & (model_df["demand_net_wind_bc_max"] < model_dnw_93th)
     ]
 
@@ -8840,6 +8915,20 @@ def main():
 
     # print the values of obs df subset red
     print(f"Obs df subset red: {obs_df_subset_red}")
+
+    # Print the shape of all the ubset model arrs
+    print(f"Shape of model psl subset: {model_psl_subset.shape}")
+    print(f"Shape of model wind subset: {model_wind_subset.shape}")
+    print(f"Shape of model temp subset: {model_temp_subset.shape}")
+    print(f"Shape of model vas subset: {model_vas_subset.shape}")
+    print(f"Shape of model uas subset: {model_uas_subset.shape}")
+
+    # print the shape of all the subset model arrs grey, yellow, red
+    print(f"Shape of model psl subset grey: {model_df_subset_grey.shape}")
+    print(f"Shape of model psl subset yellow: {model_df_subset_yellow.shape}")
+    print(f"Shape of model psl subset red: {model_df_subset_red.shape}")
+
+    # sys.exit()
 
     # # plot the composites
     # # plot the composites f`or all of the winter days
@@ -10543,6 +10632,18 @@ def main():
         multi_lons_path=lons_paths_list,
         multi_var_names=["psl", "tas", "sfcWind"],
         figsize=(plot_width, plot_height),
+    )
+
+    # Do the same for sfcWind
+    plot_var_composites_model(
+        subset_dfs_model=subset_dfs_model,
+        subset_arrs_model=subset_arrs_model_wind,
+        clim_arrs_model=clim_arrs_model_wind,
+        model_index_dicts=model_index_dicts_wind,
+        lats_path=lats_europe_wind,
+        lons_path=lons_europe_wind,
+        var_name="sfcWind",
+        figsize=(10, 10),
     )
 
     # test the new function

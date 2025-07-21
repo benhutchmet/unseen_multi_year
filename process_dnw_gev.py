@@ -154,6 +154,15 @@ def pivot_emp_rps_dnw(
         slope_model_wind * model_df_copy[model_time_name] + intercept_model_wind
     )
 
+    # print the mean of the wind model df
+    # both detrended and not detrended
+    print(
+        f"Mean {model_var_name_wind} detrended: {model_df_copy[f'{model_var_name_wind}_dt'].mean()}"
+    )
+    print(
+        f"Mean {model_var_name_wind} not detrended: {model_df_copy[model_var_name_wind].mean()}"
+    )
+
     # Detrend the observed data
     obs_df_copy[f"{obs_var_name_tas}_dt"] = obs_df_copy[obs_var_name_tas] - (
         slope_obs_tas * obs_df_copy[obs_time_name] + intercept_obs_tas
@@ -229,6 +238,14 @@ def pivot_emp_rps_dnw(
 
     # Print the obs max dnw value
     print(f"Obs max dnw value: {obs_max_dnw}")
+
+    # print this row
+    print("Obs block maxima row for max dnw:")
+    print(
+        obs_block_maxima[
+            obs_block_maxima["dnw_max"] == obs_block_maxima["dnw_max"].max()
+        ]
+    )
 
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
@@ -323,10 +340,16 @@ def pivot_emp_rps_dnw(
         # calculayte the trend point bias
         trend_point_bias_this_tas = obs_trend_point_this_tas - trend_val_this_tas
         trend_point_bias_this_wind = obs_trend_point_this_wind - trend_val_this_wind
+        # trend_point_bias_this_wind = 0
 
         # Bias correct the trend val this tas bc
         trend_val_this_tas_bc = trend_val_this_tas + trend_point_bias_this_tas
         trend_val_this_wind_bc = trend_val_this_wind + trend_point_bias_this_wind
+
+        # # do the extract bias corection for the wind data
+        # trend_val_this_wind_bc = (
+        #     trend_val_this_wind_bc - 0.355
+        # )
 
         # Adjust the model data for this time point
         model_adjusted_this_tas = np.array(
@@ -334,6 +357,13 @@ def pivot_emp_rps_dnw(
         )
         model_adjusted_this_wind = np.array(
             model_df_copy[f"{model_var_name_wind}_dt"] + trend_val_this_wind_bc
+        )
+
+        # print the time point and the mean of the wind data
+        print(f"Processing time point: {time_point}")
+        print(
+            f"Mean {model_var_name_wind} at time point {time_point}: "
+            f"{model_adjusted_this_wind.mean()}"
         )
 
         # Set up a new column in the dataframes for this data
@@ -392,6 +422,31 @@ def pivot_emp_rps_dnw(
             - model_df_copy[f"{model_var_name_wind}_dt_this_{time_point}"]
         )
 
+        # if the time point is the final time point, then
+        if time_point == model_time_points[-1]:
+            # print the time point this
+            print(f"Processing time point: {time_point}")
+
+            # print the mean o the UK demand
+            print(
+                f"Mean UK demand at time point {time_point}: {model_df_copy[f'{model_var_name_tas_this}_UK_demand'].mean()}"
+            )
+
+            # Print the mean of the wind power generation
+            print(
+                f"Mean wind power generation at time point {time_point}: {model_df_copy[f'{model_var_name_wind}_dt_this_{time_point}'].mean()}"
+            )
+
+            # Print the mean of the demand net wind
+            print(
+                f"Mean demand net wind at time point {time_point}: {model_df_copy[f'dnw_{time_point}'].mean()}"
+            )
+
+            # print the obs max dnw
+            print(
+                f"Obs max dnw at time point {time_point}: {obs_max_dnw}"
+            )
+
         # Calculate the block maxima for the model
         model_block_maxima = gev_funcs.model_block_min_max(
             df=model_df_copy,
@@ -447,6 +502,16 @@ def pivot_emp_rps_dnw(
         obs_extreme_index_central = np.abs(
             model_df_central_rps_this["sorted"] - obs_max_dnw
         ).argmin()
+
+        # if time point is the final time point, then
+        if time_point == model_time_points[-1]:
+            # print the obs extreme index central
+            print(f"Obs extreme index central: {obs_extreme_index_central}")
+
+            # print the value of this row
+            print(
+                f"Value of obs extreme index central: {model_df_central_rps_this.iloc[obs_extreme_index_central]}"
+            )
 
         # Set up the 0025 and 0975 quantiles
         model_df_central_rps_this["0025"] = np.quantile(
@@ -2160,13 +2225,13 @@ def main():
     for year in tqdm(model_init_years):
         # Set up the fname here
         # NOTE: Updated for no dt option here
-        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_dt.csv"
+        fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_no_dt.csv"
 
-        # If the full path does not exist, raise an error
-        if not os.path.exists(os.path.join(wp_output_dir, fname_this)):
-            raise FileNotFoundError(
-                f"File {fname_this} does not exist in {wp_output_dir}. Please check the path."
-            )
+        # # If the full path does not exist, raise an error
+        # if not os.path.exists(os.path.join(wp_output_dir, fname_this)):
+        #     raise FileNotFoundError(
+        #         f"File {fname_this} does not exist in {wp_output_dir}. Please check the path."
+        #     )
         
         # Load in the data
         wp_gen_df_this = pd.read_csv(os.path.join(wp_output_dir, fname_this))
@@ -2913,7 +2978,7 @@ def main():
 
     # sys.exit()
 
-    #     # Plot the lead pdfs to visualise the biases/drifts
+    # Plot the lead pdfs to visualise the biases/drifts
     # gev_funcs.plot_lead_pdfs(
     #     model_df=df_model_djf,
     #     obs_df=df_obs,
@@ -2951,13 +3016,13 @@ def main():
         df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
 
-    # # # rename "Capacity Factor" as combined_cfs
-    # df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
+    # # rename "Capacity Factor" as combined_cfs
+    df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
-    # # # quantify wp_generation from the capacity factor
-    # df_obs["total_gen"] = (
-    #     df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
-    # )
+    # # quantify wp_generation from the capacity factor
+    df_obs["total_gen"] = (
+        df_obs["combined_cfs"] * (onshore_cap_gw + offshore_cap_gw)
+    )
 
     # Extract the unique effective dec years from the model df
     unique_effective_dec_years = df_model_djf_new["effective_dec_year"].unique()
@@ -2980,7 +3045,7 @@ def main():
     #     model_var_name_tas="data_tas_c_drift_bc",
     #     model_time_name="effective_dec_year",
     #     obs_time_name="effective_dec_year",
-    #     nsamples=1000,
+    #     nsamples=10,
     #     figsize=(5, 5),
     # )
 
@@ -3036,6 +3101,31 @@ def main():
         obs_y_axis_name="data_c",
         suffix="_dt",
     )
+
+    # print the mean total gen pre detrending
+    print(f"Mean total gen pre detrending: {df_model_djf['total_gen'].mean()}")
+
+    # Perform the detrending on the model data
+    df_model_djf = gev_funcs.pivot_detrend_model(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_x_axis_name="effective_dec_year",
+        model_y_axis_name="total_gen",
+        obs_x_axis_name="effective_dec_year",
+        obs_y_axis_name="total_gen",
+        suffix="_dt",
+    )
+
+    # print the mean total gen post detrending
+    print(f"Mean total gen post detrending: {df_model_djf['total_gen_dt'].mean()}")
+
+    # # Print the head of the df_model_djf
+    # print(df_model_djf.head())
+
+    # # Print the tail of the df_model_djf
+    # print(df_model_djf.tail())
+
+    # sys.exit()
 
     # compare the biases between these
     # Plot the lead pdfs to visualise the biases/drifts
@@ -3425,13 +3515,13 @@ def main():
     # Calculate demand net wind for the NON-BIAS CORRECTED model data
     df_model_djf["demand_net_wind"] = (
         df_model_djf["data_tas_c_dt_UK_demand"]
-        - df_model_djf["total_gen"]
+        - df_model_djf["total_gen_dt"]
     )
 
     # Calculate demand net wind for the BIAS CORRECTED model data
     df_model_djf["demand_net_wind_bc"] = (
         df_model_djf["data_tas_c_drift_bc_dt_UK_demand"]
-        - df_model_djf["total_gen"]
+        - df_model_djf["total_gen_dt"]
     )
 
     # # Loop over the hdd_coeffs
@@ -3462,10 +3552,10 @@ def main():
 
     # Set up a fname for the full field model data
     full_field_model_fname = (
-        "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_17-07-2025_dnw.csv"
+        "full_field_model_tas_wind_UK_1961-2024_DJF_detrended_21-07-2025_dnw.csv"
     )
     full_field_obs_fname = (
-        "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_17-07-2025_dnw.csv"
+        "full_field_obs_tas_wind_UK_1961-2024_DJF_detrended_21-07-2025_dnw.csv"
     )
 
     # Set up the paths
@@ -3668,6 +3758,20 @@ def main():
     # make sure effective dec year is in the block max obs data
     block_max_obs_dnw["effective_dec_year"] = block_max_obs_dnw["time"].dt.year
 
+    # describe the df_model_djf dataframe
+    print(df_model_djf.describe())
+
+    # print the mean uk demand
+    print(f"Mean UK demand: {df_model_djf['data_tas_c_drift_bc_dt_UK_demand'].mean()} GW")
+
+    # print the mean total gen
+    print(f"Mean total gen: {df_model_djf['total_gen'].mean()} GW")
+
+    # print the mean demand net wind
+    print(f"Mean demand net wind: {df_model_djf['demand_net_wind_bc'].mean()} GW")
+
+    # sys.exit()
+
     # now for the model data
     # for the bias correctded data
     block_max_model_dnw = gev_funcs.model_block_min_max(
@@ -3675,7 +3779,7 @@ def main():
         time_name="init_year",
         min_max_var_name="demand_net_wind_bc",
         new_df_cols=[
-            "total_gen",
+            "total_gen_dt",
             "data_tas_c_drift_bc_dt_UK_demand",
             "lead",
             "data_tas_c_drift_bc_dt",
@@ -3701,7 +3805,7 @@ def main():
         time_name="init_year",
         min_max_var_name="data_tas_c_drift_bc_dt_UK_demand",
         new_df_cols=[
-            "total_gen",
+            "total_gen_dt",
             "lead",
             "data_tas_c_drift_bc_dt",
             "total_gen",
@@ -4412,28 +4516,28 @@ def main():
 
     # # # plot the return period plots here
     # # # first the empirical return periods
-    # plot_emp_rps(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     obs_val_name="demand_net_wind_max",
-    #     model_val_name="demand_net_wind_bc_max",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     ylabel="Demand net wind (GW)",
-    #     nsamples=1000,
-    #     ylims=(44, 52),
-    #     blue_line=np.max,
-    #     high_values_rare=True,
-    #     figsize=(5, 5),
-    #     wind_2005_toggle=False,
-    #     title="e) Chance > 1995-96 DnW"
-    # )
-
+    plot_emp_rps(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        obs_val_name="demand_net_wind_max",
+        model_val_name="demand_net_wind_bc_max",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        ylabel="Demand net wind (GW)",
+        nsamples=1000,
+        ylims=(44, 52),
+        blue_line=np.max,
+        high_values_rare=True,
+        figsize=(5, 5),
+        wind_2005_toggle=False,
+        title="e) Chance > 1995-96 DnW"
+    )
+ 
     # # print the block max obs dnw max row
-    # print("Block max obs dnw max row")
-    # print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
+    print("Block max obs dnw max row")
+    print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
 
-    # sys.exit()
+    sys.exit()
 
     # # # plot the GEV fitted return periods
     # # plot_gev_rps(
