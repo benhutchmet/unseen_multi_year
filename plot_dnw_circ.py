@@ -8864,15 +8864,15 @@ def main():
 
     # do the same for the model
     model_dnw_5th = model_df["demand_net_wind_bc_max"].quantile(0.05)
-    model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.80)
-    model_dnw_93th = model_df["demand_net_wind_bc_max"].quantile(0.86)
-    model_dnw_96th = model_df["demand_net_wind_bc_max"].quantile(0.93)
+    # model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.80)
+    # model_dnw_93th = model_df["demand_net_wind_bc_max"].quantile(0.86)
+    # model_dnw_96th = model_df["demand_net_wind_bc_max"].quantile(0.93)
 
     # Find the maximum of the demand net wind max for the obs
-    obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.95)
+    obs_dnw_90th = obs_df["demand_net_wind_max"].quantile(0.90)
 
     # # Find the maximum of the demand net wind max for the model
-    # model_dnw_90th = model_df["demand_net_wind_bc_max"].quantile(0.95)
+    model_dnw_95th = model_df["demand_net_wind_bc_max"].quantile(0.95)
 
     # find the 99th percentile of the demand net wind max
     obs_dnw_99th = obs_df["demand_net_wind_max"].quantile(0.99)
@@ -8881,18 +8881,15 @@ def main():
     model_dnw_99th = model_df["demand_net_wind_bc_max"].quantile(0.99)
 
     # subset the model df to grey points
-    model_df_subset_grey = model_df[
-        (model_df["demand_net_wind_bc_max"] >= model_dnw_90th)
-        & (model_df["demand_net_wind_bc_max"] < model_dnw_93th)
-    ]
+    model_df_subset_grey = model_df[model_df["demand_net_wind_bc_max"] < model_dnw_5th]
 
     # do the same for the obs
     obs_df_subset_grey = obs_df[obs_df["demand_net_wind_max"] < obs_dnw_5th]
 
     # subset the model df to yellow points
     model_df_subset_yellow = model_df[
-        (model_df["demand_net_wind_bc_max"] >= model_dnw_93th)
-        & (model_df["demand_net_wind_bc_max"] < model_dnw_96th)
+        (model_df["demand_net_wind_bc_max"] >= model_dnw_95th)
+        & (model_df["demand_net_wind_bc_max"] < model_dnw_99th)
     ]
 
     # do the same for the obs
@@ -8902,7 +8899,7 @@ def main():
     ]
 
     # subset the model df to red points
-    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max"] >= model_dnw_96th]
+    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max"] >= model_dnw_99th]
 
     # do the same for the obs
     obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_99th]
