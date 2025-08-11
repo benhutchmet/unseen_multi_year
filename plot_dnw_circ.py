@@ -5420,7 +5420,7 @@ def plot_multi_var_composites_model(
     names_list = [
         "Low DnW days",
         "Medium DnW days",
-        "Peak DnW days",
+        "High DnW days",
     ]
 
     # Set up the axes
@@ -8884,11 +8884,11 @@ def main():
     # # Find the maximum of the demand net wind max for the model
     model_dnw_55th = model_df["demand_net_wind_bc_max"].quantile(0.55)
 
-    # find the 99th percentile of the demand net wind max
-    obs_dnw_99th = obs_df["demand_net_wind_max"].quantile(0.99)
+    # find the 95th percentile of the demand net wind max
+    obs_dnw_95th = obs_df["demand_net_wind_max"].quantile(0.95)
 
     # do the same for the model
-    model_dnw_99th = model_df["demand_net_wind_bc_max"].quantile(0.99)
+    model_dnw_95th = model_df["demand_net_wind_bc_max"].quantile(0.95)
 
     # subset the model df to grey points
     model_df_subset_grey = model_df[model_df["demand_net_wind_bc_max"] < model_dnw_5th]
@@ -8909,10 +8909,10 @@ def main():
     ]
 
     # subset the model df to red points
-    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max"] >= model_dnw_99th]
+    model_df_subset_red = model_df[model_df["demand_net_wind_bc_max"] >= model_dnw_95th]
 
     # do the same for the obs
-    obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_99th]
+    obs_df_subset_red = obs_df[obs_df["demand_net_wind_max"] >= obs_dnw_95th]
 
     # print the shape of moel df subset red
     print(f"Shape of model df subset red: {model_df_subset_red.shape}")
