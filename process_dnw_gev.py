@@ -1549,6 +1549,110 @@ def plot_multi_var_perc(
         figsize=figsize,
     )
 
+    # if y1 zero line is True
+    if y1_zero_line:
+        # include a red dashed zero line
+        ax.axhline(
+            0,
+            color="red",
+            linestyle="--",
+        )
+
+    # If there is a y2 variable, plot it
+    if y2_var_name_model is not None:
+        # Create a second y-axis
+        ax2 = ax.twinx()
+
+        if inverse_flag:
+            ax2.plot(
+                100 - model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_mean"],
+                color="k",
+                label=f"{legend_y2}",
+                zorder=4
+            )
+
+            # # plot the lower bounds as a dashed red line
+            # ax2.plot(
+            #     100 - model_percs_5["percentile"],
+            #     model_percs_5[f"{y2_var_name_model}_lower"],
+            #     color="k",
+            #     linestyle="--",
+            # )
+
+            # # plot the upper bounds as a dashed red line
+            # ax2.plot(
+            #     100 - model_percs_5["percentile"],
+            #     model_percs_5[f"{y2_var_name_model}_upper"],
+            #     color="k",
+            #     linestyle="--",
+            # )
+        else:
+            ax2.plot(
+                model_percs_5["percentile"],
+                model_percs_5[f"{y2_var_name_model}_mean"],
+                color="k",
+                label=f"{legend_y2}",
+                zorder=4
+            )
+
+            # # plot the lower bounds as a dashed red line
+            # ax2.plot(
+            #     model_percs_5["percentile"],
+            #     model_percs_5[f"{y2_var_name_model}_lower"],
+            #     color="k",
+            #     linestyle="--",
+            # )
+
+            # # plot the upper bounds as a dashed red line
+            # ax2.plot(
+            #     model_percs_5["percentile"],
+            #     model_percs_5[f"{y2_var_name_model}_upper"],
+            #     color="k",
+            #     linestyle="--",
+            # )
+
+            if x2_var_name_model is not None:
+                ax2.plot(
+                    model_percs_5_x2["percentile"],
+                    model_percs_5_x2[f"{y2_var_name_model}_mean"],
+                    color="green",
+                    label=f"{legend_y2}",
+                    zorder=4
+                )
+
+                # plot the lower bounds as a dashed orange line
+                ax2.plot(
+                    model_percs_5_x2["percentile"],
+                    model_percs_5_x2[f"{y2_var_name_model}_lower"],
+                    color="green",
+                    linestyle="--",
+                    zorder=4
+                )
+
+                # plot the upper bounds as a dashed orange line
+                ax2.plot(
+                    model_percs_5_x2["percentile"],
+                    model_percs_5_x2[f"{y2_var_name_model}_upper"],
+                    color="green",
+                    linestyle="--",
+                    zorder=4
+                )
+
+        # incldue a blue dashed zero line
+        # ax2.axhline(
+        #     0,
+        #     color="blue",
+        #     linestyle="--",
+        # )
+
+        # Set the y2 label
+        ax2.set_ylabel(f"{y2_label}", fontsize=12, color="k")
+
+        # make sure the ticks/labels are also blue
+        ax2.tick_params(axis="y", labelcolor="k")
+        ax2.spines["right"].set_color("k")
+
     # if the inverse flag is set, invert the y axis
     if inverse_flag:
         # Do the same for the model
@@ -1692,109 +1796,6 @@ def plot_multi_var_perc(
                 zorder=3,
             )
 
-    # if y1 zero line is True
-    if y1_zero_line:
-        # include a red dashed zero line
-        ax.axhline(
-            0,
-            color="red",
-            linestyle="--",
-        )
-
-    # If there is a y2 variable, plot it
-    if y2_var_name_model is not None:
-        # Create a second y-axis
-        ax2 = ax.twinx()
-
-        if inverse_flag:
-            ax2.plot(
-                100 - model_percs_5["percentile"],
-                model_percs_5[f"{y2_var_name_model}_mean"],
-                color="k",
-                label=f"{legend_y2}",
-                zorder=1
-            )
-
-            # # plot the lower bounds as a dashed red line
-            # ax2.plot(
-            #     100 - model_percs_5["percentile"],
-            #     model_percs_5[f"{y2_var_name_model}_lower"],
-            #     color="k",
-            #     linestyle="--",
-            # )
-
-            # # plot the upper bounds as a dashed red line
-            # ax2.plot(
-            #     100 - model_percs_5["percentile"],
-            #     model_percs_5[f"{y2_var_name_model}_upper"],
-            #     color="k",
-            #     linestyle="--",
-            # )
-        else:
-            ax2.plot(
-                model_percs_5["percentile"],
-                model_percs_5[f"{y2_var_name_model}_mean"],
-                color="k",
-                label=f"{legend_y2}",
-                zorder=1
-            )
-
-            # # plot the lower bounds as a dashed red line
-            # ax2.plot(
-            #     model_percs_5["percentile"],
-            #     model_percs_5[f"{y2_var_name_model}_lower"],
-            #     color="k",
-            #     linestyle="--",
-            # )
-
-            # # plot the upper bounds as a dashed red line
-            # ax2.plot(
-            #     model_percs_5["percentile"],
-            #     model_percs_5[f"{y2_var_name_model}_upper"],
-            #     color="k",
-            #     linestyle="--",
-            # )
-
-            if x2_var_name_model is not None:
-                ax2.plot(
-                    model_percs_5_x2["percentile"],
-                    model_percs_5_x2[f"{y2_var_name_model}_mean"],
-                    color="green",
-                    label=f"{legend_y2}",
-                    zorder=1
-                )
-
-                # plot the lower bounds as a dashed orange line
-                ax2.plot(
-                    model_percs_5_x2["percentile"],
-                    model_percs_5_x2[f"{y2_var_name_model}_lower"],
-                    color="green",
-                    linestyle="--",
-                    zorder=1
-                )
-
-                # plot the upper bounds as a dashed orange line
-                ax2.plot(
-                    model_percs_5_x2["percentile"],
-                    model_percs_5_x2[f"{y2_var_name_model}_upper"],
-                    color="green",
-                    linestyle="--",
-                    zorder=1
-                )
-
-        # incldue a blue dashed zero line
-        # ax2.axhline(
-        #     0,
-        #     color="blue",
-        #     linestyle="--",
-        # )
-
-        # Set the y2 label
-        ax2.set_ylabel(f"{y2_label}", fontsize=12, color="k")
-
-        # make sure the ticks/labels are also blue
-        ax2.tick_params(axis="y", labelcolor="k")
-        ax2.spines["right"].set_color("k")
 
     # if xlims is not none
     if xlims is not None:
@@ -1816,6 +1817,12 @@ def plot_multi_var_perc(
         # Assert that full_distr_y1 is not none
         assert full_distr_y1 is not None, "Values of full distribution must be provided"
         
+        # Set y1_hlines as the min and max of y1 values
+        y1_hlines = [
+            np.min(model_percs_5[f"{y_var_name_model}_mean"]),
+            np.max(model_percs_5[f"{y_var_name_model}_mean"])
+        ]
+
         for y1_hline in y1_hlines:
             # Draw the horizontal line
             ax.axhline(y=y1_hline, color="red", linestyle="--", linewidth=0.8)
@@ -1825,11 +1832,11 @@ def plot_multi_var_perc(
             
             # Add text label above the line
             ax.text(
-                0.02,  # x position (2% from left edge)
-                y1_hline + 0.5,  # y position (slightly above the line)
-                f'{percentile_y1:.1f}th %ile',
+                0.35,  # x position (35% from left edge)
+                y1_hline + 0.15,  # y position (slightly above the line)
+                f'{round(percentile_y1)}%',
                 transform=ax.get_yaxis_transform(),  # Use y-axis transform for positioning
-                fontsize=8,
+                fontsize=10,
                 color="red",
                 verticalalignment='bottom',
                 bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7, edgecolor="red")
@@ -1838,6 +1845,11 @@ def plot_multi_var_perc(
     if y2_hlines is not None:
         # Assert that full_distr_y2 is not None
         assert full_distr_y2 is not None, "Values of full distribution for y2 must be provided"
+
+        y2_hlines = [
+            np.min(model_percs_5[f"{y2_var_name_model}_mean"]),
+            np.max(model_percs_5[f"{y2_var_name_model}_mean"])
+        ]
 
         for y2_hline in y2_hlines:
             # Draw the horizontal line
@@ -1848,11 +1860,11 @@ def plot_multi_var_perc(
             
             # Add text label above the line
             ax2.text(
-                0.98,  # x position (98% from left edge, on the right side)
-                y2_hline + 0.1,  # y position (slightly above the line)
-                f'{percentile_y2:.1f}th %ile',
+                0.6,  # x position (60% from left edge, on the right side)
+                y2_hline + 0.05,  # y position (slightly above the line)
+                f'{int(round(percentile_y2))}%',
                 transform=ax2.get_yaxis_transform(),  # Use y-axis transform for positioning
-                fontsize=8,
+                fontsize=10,
                 color="k",
                 verticalalignment='bottom',
                 horizontalalignment='right',
@@ -4284,6 +4296,7 @@ def main():
         y2_label="Wind Power Generation (GW)",
         figsize=(5, 6),
         inverse_flag=False,
+        xlims=[-10, 110],
         ylims=[43, 53],
         y2_lims=[2, 5.5],
         y1_hlines=[44, 50],
