@@ -1344,6 +1344,10 @@ def plot_multi_var_perc(
     ylims: tuple[float, float] = None,
     y2_lims: tuple[float, float] = None,
     x2_var_name_model: str = None,
+    y1_hlines: list[float] = None,
+    y2_hlines: list[float] = None,
+    full_distr_y1: np.ndarray = None,
+    full_distr_y2: np.ndarray = None,
 ):
     """
     Plots the relationship between variables as percentiles. E.g., binned by
@@ -1553,6 +1557,7 @@ def plot_multi_var_perc(
             model_percs_5[f"{y_var_name_model}_mean"],
             color="red",
             label=f"{legend_y1}",
+            zorder=3,
         )
 
         # # plot the lower bounds as a dashed red line
@@ -1578,6 +1583,7 @@ def plot_multi_var_perc(
                 model_percs_5_x2[f"{y_var_name_model}_mean"],
                 color="orange",
                 label=f"{legend_y1}",
+                zorder=3,
             )
 
             # # plot the lower bounds as a dashed orange line
@@ -1603,6 +1609,7 @@ def plot_multi_var_perc(
                 color="red",
                 linestyle="--",
                 label=f"{legend_y2}",
+                zorder=3,
             )
 
         # Plot the 5% percentiles for temperature for wind speed
@@ -1629,6 +1636,7 @@ def plot_multi_var_perc(
                 color="red",
                 linestyle="--",
                 label=f"{legend_y1}",
+                zorder=3,
             )
 
         # Do the same for the model
@@ -1637,6 +1645,7 @@ def plot_multi_var_perc(
             model_percs_5[f"{y_var_name_model}_mean"],
             color="red",
             label=f"{legend_y1}",
+            zorder=3,
         )
 
         # plot the lower bounds as a dashed red line
@@ -1662,6 +1671,7 @@ def plot_multi_var_perc(
                 model_percs_5_x2[f"{y_var_name_model}_mean"],
                 color="orange",
                 label=f"{legend_y2}",
+                zorder=3,
             )
 
             # plot the lower bounds as a dashed orange line
@@ -1670,6 +1680,7 @@ def plot_multi_var_perc(
                 model_percs_5_x2[f"{y_var_name_model}_lower"],
                 color="orange",
                 linestyle="--",
+                zorder=3,
             )
 
             # plot the upper bounds as a dashed orange line
@@ -1678,6 +1689,7 @@ def plot_multi_var_perc(
                 model_percs_5_x2[f"{y_var_name_model}_upper"],
                 color="orange",
                 linestyle="--",
+                zorder=3,
             )
 
     # if y1 zero line is True
@@ -1700,6 +1712,7 @@ def plot_multi_var_perc(
                 model_percs_5[f"{y2_var_name_model}_mean"],
                 color="k",
                 label=f"{legend_y2}",
+                zorder=1
             )
 
             # # plot the lower bounds as a dashed red line
@@ -1723,6 +1736,7 @@ def plot_multi_var_perc(
                 model_percs_5[f"{y2_var_name_model}_mean"],
                 color="k",
                 label=f"{legend_y2}",
+                zorder=1
             )
 
             # # plot the lower bounds as a dashed red line
@@ -1747,6 +1761,7 @@ def plot_multi_var_perc(
                     model_percs_5_x2[f"{y2_var_name_model}_mean"],
                     color="green",
                     label=f"{legend_y2}",
+                    zorder=1
                 )
 
                 # plot the lower bounds as a dashed orange line
@@ -1755,6 +1770,7 @@ def plot_multi_var_perc(
                     model_percs_5_x2[f"{y2_var_name_model}_lower"],
                     color="green",
                     linestyle="--",
+                    zorder=1
                 )
 
                 # plot the upper bounds as a dashed orange line
@@ -1763,6 +1779,7 @@ def plot_multi_var_perc(
                     model_percs_5_x2[f"{y2_var_name_model}_upper"],
                     color="green",
                     linestyle="--",
+                    zorder=1
                 )
 
         # incldue a blue dashed zero line
@@ -1793,6 +1810,54 @@ def plot_multi_var_perc(
     if y2_lims is not None:
         # Set the y2lims
         ax2.set_ylim(y2_lims)
+
+    # if y1_hlines and y2_hlines are not none
+    if y1_hlines is not None:
+        # Assert that full_distr_y1 is not none
+        assert full_distr_y1 is not None, "Values of full distribution must be provided"
+        
+        for y1_hline in y1_hlines:
+            # Draw the horizontal line
+            ax.axhline(y=y1_hline, color="red", linestyle="--", linewidth=0.8)
+            
+            # Calculate the percentile this value represents in the full distribution
+            percentile_y1 = percentileofscore(full_distr_y1, y1_hline, kind='rank')
+            
+            # Add text label above the line
+            ax.text(
+                0.02,  # x position (2% from left edge)
+                y1_hline + 0.5,  # y position (slightly above the line)
+                f'{percentile_y1:.1f}th %ile',
+                transform=ax.get_yaxis_transform(),  # Use y-axis transform for positioning
+                fontsize=8,
+                color="red",
+                verticalalignment='bottom',
+                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7, edgecolor="red")
+            )
+
+    if y2_hlines is not None:
+        # Assert that full_distr_y2 is not None
+        assert full_distr_y2 is not None, "Values of full distribution for y2 must be provided"
+
+        for y2_hline in y2_hlines:
+            # Draw the horizontal line
+            ax2.axhline(y=y2_hline, color="k", linestyle="--", linewidth=0.8)
+            
+            # Calculate the percentile this value represents in the full distribution
+            percentile_y2 = percentileofscore(full_distr_y2, y2_hline, kind='rank')
+            
+            # Add text label above the line
+            ax2.text(
+                0.98,  # x position (98% from left edge, on the right side)
+                y2_hline + 0.1,  # y position (slightly above the line)
+                f'{percentile_y2:.1f}th %ile',
+                transform=ax2.get_yaxis_transform(),  # Use y-axis transform for positioning
+                fontsize=8,
+                color="k",
+                verticalalignment='bottom',
+                horizontalalignment='right',
+                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7, edgecolor="k")
+            )
 
     # Set the x and y labels
     ax.set_xlabel(f"{xlabel}", fontsize=12)
@@ -4219,6 +4284,10 @@ def main():
         y2_label="Wind Power Generation (GW)",
         figsize=(5, 6),
         inverse_flag=False,
+        y1_hlines=[44, 50],
+        y2_hlines=[2.5, 4.5],
+        full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
+        full_distr_y2=df_model_djf["total_gen"]
     )
 
     sys.exit()
