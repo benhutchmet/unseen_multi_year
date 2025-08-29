@@ -4284,6 +4284,8 @@ def main():
         y2_label="Wind Power Generation (GW)",
         figsize=(5, 6),
         inverse_flag=False,
+        ylims=[43, 53],
+        y2_lims=[2, 5.5],
         y1_hlines=[44, 50],
         y2_hlines=[2.5, 4.5],
         full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
