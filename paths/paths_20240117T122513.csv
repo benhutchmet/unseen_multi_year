@@ -27,7 +27,6 @@ psl,Amon,dcppA-hindcast,CanESM5,/badc/cmip6/data/CMIP6/DCPP/CCCma/CanESM5/dcppA-
 psl,Amon,dcppA-hindcast,CMCC-CM2-SR5,/badc/cmip6/data/CMIP6/DCPP/CMCC/CMCC-CM2-SR5/dcppA-hindcast
 psl,Amon,dcppA-hindcast,MPI-ESM1-2-LR,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/MPI-ESM1-2-LR
 psl,Amon,dcppA-hindcast,FGOALS-f3-L,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/FGOALS-f3-L
-psl,Amon,dcppA-hindcast,MIROC6,/badc/cmip6/data/CMIP6/DCPP/MIROC/MIROC6/dcppA-hindcast
 psl,Amon,dcppA-hindcast,IPSL-CM6A-LR,/badc/cmip6/data/CMIP6/DCPP/IPSL/IPSL-CM6A-LR/dcppA-hindcast
 psl,Amon,dcppA-hindcast,CESM1-1-CAM5-CMIP5,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/CESM1-1-CAM5-CMIP5
 psl,Amon,dcppA-hindcast,EC-Earth3,/gws/nopw/j04/canari/users/benhutch/dcppA-hindcast/data/psl/EC-Earth3
