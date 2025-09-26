@@ -314,7 +314,7 @@ def main():
     # constraint_lat = (50.28, 59.72)  # degrees north
 
     # Set up the fname
-    fname = "ERA5_UK_wind_power_generation_cfs_constrained_2021_2025_daily_test.csv"
+    fname = "ERA5_UK_wind_power_generation_cfs_constrained_1961_2025_daily_test_26092025.csv"
     fpath = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind"
 
     # if the directory does not exist, create it
@@ -333,7 +333,7 @@ def main():
     base_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/"
 
     # Set up the remaining years
-    remaining_years = [str(year) for year in range(2021, 2025 + 1)]
+    remaining_years = [str(year) for year in range(1960, 2025 + 1)]
 
     # Set up the path to the observed data
     remaining_files_dir = os.path.join(base_path, "year_month")
@@ -781,6 +781,7 @@ def main():
 
     # Add the capacity factor to the dataframe
     wp_cf_ts["Capacity Factor"] = cfs
+
 
     # Print the head of the dataframe
     print(wp_cf_ts.head())

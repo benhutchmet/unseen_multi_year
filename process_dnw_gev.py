@@ -52,7 +52,6 @@ from functions import sigmoid, dot_plot, plot_rp_extremes, empirical_return_leve
 # Silence warnings
 warnings.filterwarnings("ignore")
 
-
 # Set up a function to do pivoting for DnW
 # As we detrend at the temp/wind stage pre-transformation
 # and pre-block max identification
@@ -2299,11 +2298,74 @@ def main():
     # print("Importing the non-detrended data")
     # print("------------------------")
 
+    # ----------------
+    # Load the .npy files containing wp data
+    # ----------------
+
+    arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
+
+    fname_no_drift_bc = "HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_NO_drift_bc_anoms_1960-2018.npy"
+    fname_drift_bc = "HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_drift_bc_anoms_1960-2018.npy"
+
+    # Load the .npy files
+    arr_no_drift_bc = np.load(os.path.join(arrs_dir, fname_no_drift_bc))
+    arr_drift_bc = np.load(os.path.join(arrs_dir, fname_drift_bc))
+
+    # print the shapes of the .np files
+    print(f"shape no drift bc {arr_no_drift_bc.shape}")
+    print(f"shape drift bc {arr_drift_bc.shape}")
+
+    metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
+    # import the lats and lons for the europe sfcWind data
+    lats_wind = np.load(os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lats.npy"))
+    lons_wind = np.load(os.path.join(metadata_dir, "HadGEM3-GC31-MM_sfcWind_Europe_1960_DJF_day_lons.npy"))
+
+    # Define the UK wind box
+    wind_gridbox = {"lat1": 50, "lat2": 59.5, "lon1": -6, "lon2": 2}
+
+    # Find the indices of the lats and lons that correspond to the UK wind box
+    lat1_index = np.where(lats_wind >= wind_gridbox["lat1"])[0][0]
+    lat2_index = np.where(lats_wind <= wind_gridbox["lat2"])[0][-1]
+    lon1_index = np.where(lons_wind >= wind_gridbox["lon1"])[0][0]
+    lon2_index = np.where(lons_wind <= wind_gridbox["lon2"])[0][-1]
+    
+    arr_no_drift_bc_uk = arr_no_drift_bc[
+        :, # all init years
+        :, # all members
+        :,  # all winter days
+        :, # all winter years
+        lat1_index:lat2_index + 1,
+        lon1_index:lon2_index + 1,
+    ]
+
+    arr_drift_bc_uk = arr_drift_bc[
+        :, # all init years
+        :, # all members
+        :90,  # all winter days (apart from 91)
+        :, # all winter years
+        lat1_index:lat2_index + 1,
+        lon1_index:lon2_index + 1,
+    ]
+
+    arr_no_drift_bc_uk_mean = np.mean(arr_no_drift_bc_uk, axis=(-2, -1))
+    arr_drift_bc_uk_mean = np.mean(arr_drift_bc_uk, axis=(-2, -1))
+
+    # print the shapes of these
+    print("Shape of arr_no_drift_bc_uk_mean:", arr_no_drift_bc_uk_mean.shape)
+    print("Shape of arr_drift_bc_uk_mean:", arr_drift_bc_uk_mean.shape)
+
+    # Set up the df containing wind speed with drift corr
+    df_drift_corr = pd.DataFrame()
+    df_no_drift_corr = pd.DataFrame()
+
     # Loop through the years
     for year in tqdm(model_init_years):
         # Set up the fname here
         # NOTE: Updated for no dt option here
         fname_this = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_no_dt.csv"
+
+        fname_this_drift_corr = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_drift_bc_no_dt_hh_ws.csv"
+        fname_this_no_drift_corr = f"HadGEM3-GC31-MM_WP_gen_United_Kingdom_{year}_NO_drift_bc_no_dt_hh_ws.csv"
 
         # # If the full path does not exist, raise an error
         # if not os.path.exists(os.path.join(wp_output_dir, fname_this)):
@@ -2313,9 +2375,15 @@ def main():
         
         # Load in the data
         wp_gen_df_this = pd.read_csv(os.path.join(wp_output_dir, fname_this))
+        wp_gen_df_this_drift_corr = pd.read_csv(os.path.join(wp_output_dir, fname_this_drift_corr))
+        wp_gen_df_this_no_drift_corr = pd.read_csv(os.path.join(wp_output_dir, fname_this_no_drift_corr))
 
         # Concatenate this df to the full df
         full_wp_gen_df = pd.concat([full_wp_gen_df, wp_gen_df_this],
+                                ignore_index=True)
+        df_drift_corr = pd.concat([df_drift_corr, wp_gen_df_this_drift_corr],
+                                ignore_index=True)
+        df_no_drift_corr = pd.concat([df_no_drift_corr, wp_gen_df_this_no_drift_corr],
                                 ignore_index=True)
         
     # Print the head of the full wp generation df
@@ -2327,6 +2395,32 @@ def main():
     # Describe the full wp generation df
     print(full_wp_gen_df.describe())
 
+    print("------------------")
+    print("DRIFT CORRECTION")
+    print("------------------")
+    # describe the df dirt corr
+    print(df_drift_corr.describe())
+
+    print("------------------")
+    print("NO DRIFT CORRECTION")
+    print("------------------")
+    # describe the non drift corr
+    print(df_no_drift_corr.describe())
+
+    # if lead == 91 in df_drift_corr, then drop this lead
+    if 91 in df_drift_corr["lead"].values:
+        df_drift_corr = df_drift_corr[df_drift_corr["lead"] != 91]
+
+    # same for df_no_drift_corr
+    if 91 in df_no_drift_corr["lead"].values:
+        df_no_drift_corr = df_no_drift_corr[df_no_drift_corr["lead"] != 91]
+
+    # correct the members
+    df_drift_corr["member"] = df_drift_corr["member"].apply(lambda x: df_members_dict[x]).astype(int)
+
+    # correct the members
+    df_no_drift_corr["member"] = df_no_drift_corr["member"].apply(lambda x: df_members_dict[x]).astype(int)
+    
     # Convert the members to correct members using the df_members_dict in df_wp_1961
     full_wp_gen_df["member"] = full_wp_gen_df["member"].apply(lambda x: df_members_dict[x]).astype(int)
 
@@ -2342,6 +2436,10 @@ def main():
     print("Dropping where leads are 91")
     # Drop the rows where the lead is 91
     full_wp_gen_df = full_wp_gen_df[full_wp_gen_df["lead"] != 91]
+
+    # add the hh_ws_drift_corr and hh_ws_no_drift_corr into full_wp_gen_df
+    full_wp_gen_df['hh_ws_drift_corr'] = df_drift_corr['hh_ws']
+    full_wp_gen_df['hh_ws_no_drift_corr'] = df_no_drift_corr['spatial_mean_ws_hh']
 
     # Print the shape of the full wp generation df after dropping leads 91
     print(f"Shape of full_wp_gen_df after dropping leads 91: {full_wp_gen_df.shape}")
@@ -2859,6 +2957,26 @@ def main():
     # print the tail of the df_obs
     print(df_obs.tail())
 
+    # Print statistics for arr_no_drift_bc_uk_mean
+    print("Stats for arr_no_drift_bc_uk_mean:")
+    print(f"Mean: {np.mean(arr_no_drift_bc_uk_mean):.3f}")
+    print(f"Min: {np.min(arr_no_drift_bc_uk_mean):.3f}")
+    print(f"Max: {np.max(arr_no_drift_bc_uk_mean):.3f}")
+    print(f"25th percentile: {np.percentile(arr_no_drift_bc_uk_mean, 25):.3f}")
+    print(f"50th percentile (median): {np.percentile(arr_no_drift_bc_uk_mean, 50):.3f}")
+    print(f"70th percentile: {np.percentile(arr_no_drift_bc_uk_mean, 70):.3f}")
+
+    # Print statistics for arr_drift_bc_uk_mean
+    print("Stats for arr_drift_bc_uk_mean:")
+    print(f"Mean: {np.mean(arr_drift_bc_uk_mean):.3f}")
+    print(f"Min: {np.min(arr_drift_bc_uk_mean):.3f}")
+    print(f"Max: {np.max(arr_drift_bc_uk_mean):.3f}")
+    print(f"25th percentile: {np.percentile(arr_drift_bc_uk_mean, 25):.3f}")
+    print(f"50th percentile (median): {np.percentile(arr_drift_bc_uk_mean, 50):.3f}")
+    print(f"70th percentile: {np.percentile(arr_drift_bc_uk_mean, 70):.3f}")
+
+    print(df_obs.describe())
+
     # sys.exit()
 
     # sys.exit()
@@ -2904,6 +3022,23 @@ def main():
         constant_period=True,
     )
 
+    print(df_model_djf.columns())
+
+    # Apply the dirft correction to the model data - sfcwind
+    df_model_djf = model_drift_corr_plot(
+        model_df=df_model_djf,
+        model_var_name="data_sfcWind",
+        obs_df=df_obs,
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+        xlabel="10m wind speed (m/s)",
+        year1_year2_tuple=(1970, 2017),
+        lead_day_name="lead",
+        constant_period=True,
+    )
+
+    sys.exit()
+
     # --------------------------------
     # Append the model WP generation data to the df_model_djf
     # --------------------------------
@@ -2948,6 +3083,8 @@ def main():
     # Print the shape of the df_model_djf_new
     print(f"Shape of df_model_djf_new: {df_model_djf_new.shape}")
 
+    print(df_model_djf_new.columns)
+    
     # Print the head of the df_model_djf_new
     print(df_model_djf_new.head())
 
@@ -3704,56 +3841,56 @@ def main():
 
     print(f"Demand net wind threshold percentile: {demand_net_wind_percentile:.2f}")
 
-    # Plot the distribution of total gen as a histogram
-    plt.figure(figsize=(10, 5))
-    sns.histplot(df_model_djf["total_gen"], bins=50, kde=True)
-    plt.axvline(ws_threshold, color='red', linestyle='--', label='Wind Speed Threshold')
-    plt.xlabel("Total Wind Power Generation (GW)")
-    plt.ylabel("Frequency")
-    plt.title("Distribution of Total Wind Power Generation")
-    plt.legend()
-    plt.show()
+    # # Plot the distribution of total gen as a histogram
+    # plt.figure(figsize=(10, 5))
+    # sns.histplot(df_model_djf["total_gen"], bins=50, kde=True)
+    # plt.axvline(ws_threshold, color='red', linestyle='--', label='Wind Speed Threshold')
+    # plt.xlabel("Total Wind Power Generation (GW)")
+    # plt.ylabel("Frequency")
+    # plt.title("Distribution of Total Wind Power Generation")
+    # plt.legend()
+    # plt.show()
 
-    # Plot the distribution of demand as a histogram
-    plt.figure(figsize=(10, 5))
-    sns.histplot(df_model_djf["data_tas_c_drift_bc_dt_UK_demand"], bins=50, kde=True)
-    plt.axvline(demand_threshold, color='green', linestyle='--', label='Demand Threshold')
-    plt.xlabel("Demand (GW)")
-    plt.ylabel("Frequency")
-    plt.title("Distribution of Demand")
-    plt.legend()
-    plt.show()
+    # # Plot the distribution of demand as a histogram
+    # plt.figure(figsize=(10, 5))
+    # sns.histplot(df_model_djf["data_tas_c_drift_bc_dt_UK_demand"], bins=50, kde=True)
+    # plt.axvline(demand_threshold, color='green', linestyle='--', label='Demand Threshold')
+    # plt.xlabel("Demand (GW)")
+    # plt.ylabel("Frequency")
+    # plt.title("Distribution of Demand")
+    # plt.legend()
+    # plt.show()
 
-    # Plot the distribution of demand net wind as a histogram
-    plt.figure(figsize=(10, 5))
-    sns.histplot(df_model_djf["demand_net_wind_bc"], bins=50, kde=True)
-    plt.axvline(demand_net_wind_threshold, color='purple', linestyle='--', label='Demand Net Wind Threshold')
-    plt.xlabel("Demand Net Wind (GW)")
-    plt.ylabel("Frequency")
-    plt.title("Distribution of Demand Net Wind")
-    plt.legend()
-    plt.show()
+    # # Plot the distribution of demand net wind as a histogram
+    # plt.figure(figsize=(10, 5))
+    # sns.histplot(df_model_djf["demand_net_wind_bc"], bins=50, kde=True)
+    # plt.axvline(demand_net_wind_threshold, color='purple', linestyle='--', label='Demand Net Wind Threshold')
+    # plt.xlabel("Demand Net Wind (GW)")
+    # plt.ylabel("Frequency")
+    # plt.title("Distribution of Demand Net Wind")
+    # plt.legend()
+    # plt.show()
 
-    # sys.exit()
+    # # sys.exit()
 
-    # # Do the same but with uas
-    plot_multi_var_perc(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="total_gen",
-        x_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # DnW on the x-axis
-        y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
-        xlabel="Demand percentiles",
-        ylabel="Demand (GW)",
-        title="Percentiles of demand net wind vs demand/WP gen, DnW days",
-        legend_y1="Demand (GW)",
-        legend_y2="Wind Power Generation (GW)",
-        y2_var_name_model="total_gen",
-        y2_label="Wind Power Generation (GW)",
-        figsize=(5, 6),
-        inverse_flag=False,
-    )
+    # # # Do the same but with uas
+    # plot_multi_var_perc(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="total_gen",
+    #     x_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # DnW on the x-axis
+    #     y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
+    #     xlabel="Demand percentiles",
+    #     ylabel="Demand (GW)",
+    #     title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+    #     legend_y1="Demand (GW)",
+    #     legend_y2="Wind Power Generation (GW)",
+    #     y2_var_name_model="total_gen",
+    #     y2_label="Wind Power Generation (GW)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    # )
 
     # sys.exit()
 
@@ -3793,36 +3930,51 @@ def main():
         ("i", "j"),
     ]
 
+    # print the columns in df obs
+    print(df_obs.columns)
+
+    # describe the df obs
+    print(df_obs.describe())
+
+    print(df_model_djf_new.describe())
+
+    # print the columns in df_model_djf
+    print(df_model.columns)
+
+    sys.exit()
+
     # plot the PDFs for multivariatie testing
-    # gev_funcs.plot_multi_var_dist(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf,
-    #     model_df_bc=df_model_djf,
-    #     obs_var_names=obs_var_names,
-    #     model_var_names=model_var_names,
-    #     model_var_names_bc=model_var_names_bc,
-    #     row_titles=[
-    #         "Temp (°C)",
-    #         "Demand (GW)",
-    #         "10m wind speed (m/s)",
-    #         "Wind power gen. (GW)",
-    #         "Demand net wind (GW)",
-    #     ],
-    #     subplot_titles=subplot_titles,
-    #     figsize=(15, 15),
-    # )
+    gev_funcs.plot_multi_var_dist(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        model_df_bc=df_model_djf,
+        obs_var_names=obs_var_names,
+        model_var_names=model_var_names,
+        model_var_names_bc=model_var_names_bc,
+        row_titles=[
+            "Temp (°C)",
+            "Demand (GW)",
+            "10m wind speed (m/s)",
+            "Wind power gen. (GW)",
+            "Demand net wind (GW)",
+        ],
+        subplot_titles=subplot_titles,
+        figsize=(15, 15),
+    )
 
     # # now plot the relationships between variables here
-    # gev_funcs.plot_rel_var(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf,
-    #     model_df_bc=df_model_djf,
-    #     obs_var_names=("data_c_dt", "data_sfcWind_dt"),
-    #     model_var_names=("data_tas_c_dt", "data_sfcWind_dt"),
-    #     model_var_names_bc=("data_tas_c_drift_bc_dt", "data_sfcWind_drift_bc_dt"),
-    #     row_title="T vs sfcWind",
-    #     figsize=(15, 5),
-    # )
+    gev_funcs.plot_rel_var(
+        obs_df=df_obs,
+        model_df=df_model_djf,
+        model_df_bc=df_model_djf,
+        obs_var_names=("data_c_dt", "data_sfcWind_dt"),
+        model_var_names=("data_tas_c_dt", "data_sfcWind_dt"),
+        model_var_names_bc=("data_tas_c_drift_bc_dt", "data_sfcWind_drift_bc_dt"),
+        row_title="T vs sfcWind",
+        figsize=(15, 5),
+    )
+
+    sys.exit()
 
     # # Ensure the 'time' column is in datetime format
     # df_obs["time"] = pd.to_datetime(df_obs["time"])
@@ -3989,6 +4141,43 @@ def main():
 
     # Print the head of the block max model dnw
     print(block_max_model_dnw.head())
+
+    # Drop where data is 2025 in the obs
+    # Keep rows where effective_dec_year is NOT 2025
+    block_max_obs_dnw = block_max_obs_dnw[block_max_obs_dnw["effective_dec_year"] != 2025]
+
+    # process the GEV params for the bias corrected wind speed data
+    gev_params_dnw= gev_funcs.process_gev_params(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        obs_var_name="demand_net_wind_max",
+        model_var_name="demand_net_wind_bc_max",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        nboot=1000,
+        model_lead_name="winter_year",
+    )
+
+    # Now test the plotting function for these
+    gev_funcs.plot_gev_params_subplots(
+        gev_params_top_raw=gev_params_dnw,
+        gev_params_top_bc=gev_params_dnw,
+        gev_params_bottom_raw=gev_params_dnw,
+        gev_params_bottom_bc=gev_params_dnw,
+        obs_df_top=block_max_obs_dnw,
+        model_df_top=block_max_model_dnw,
+        obs_df_bottom=block_max_obs_dnw,
+        model_df_bottom=block_max_model_dnw,
+        obs_var_name_top="demand_net_wind_max",
+        model_var_name_top="demand_net_wind_bc_max",
+        obs_var_name_bottom="demand_net_wind_max",
+        model_var_name_bottom="demand_net_wind_bc_max",
+        title_top="i) DJF block maxima DnW (GW)",
+        title_bottom="i) DJF block maxima DnW (GW)",
+        figsize=(15, 10),
+    )
+
+    sys.exit()
 
     # Set up a list to store the dfs
     dfs_list = []
@@ -5377,39 +5566,39 @@ def main():
             "init_year"
         ] + (block_maxima_model_dnw["winter_year"] - 1)
 
-    # Now compare the trends
-    gev_funcs.compare_trends(
-        model_df_full_field=df_model_djf,
-        obs_df_full_field=df_obs,
-        model_df_block=block_maxima_model_dnw,
-        obs_df_block=block_maxima_obs_dnw,
-        model_var_name_full_field="demand_net_wind",
-        obs_var_name_full_field="demand_net_wind",
-        model_var_name_block="demand_net_wind_max",
-        obs_var_name_block="demand_net_wind_max",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        ylabel="Demand Net Wind (GW)",
-        suptitle="Demand Net Wind trends (temp + wind lead BC)",
-        figsize=(15, 5),
-    )
+    # # Now compare the trends
+    # gev_funcs.compare_trends(
+    #     model_df_full_field=df_model_djf,
+    #     obs_df_full_field=df_obs,
+    #     model_df_block=block_maxima_model_dnw,
+    #     obs_df_block=block_maxima_obs_dnw,
+    #     model_var_name_full_field="demand_net_wind",
+    #     obs_var_name_full_field="demand_net_wind",
+    #     model_var_name_block="demand_net_wind_max",
+    #     obs_var_name_block="demand_net_wind_max",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     ylabel="Demand Net Wind (GW)",
+    #     suptitle="Demand Net Wind trends (temp + wind lead BC)",
+    #     figsize=(15, 5),
+    # )
 
-    # Now compare the trends for the detrended data
-    gev_funcs.compare_trends(
-        model_df_full_field=df_model_djf_dt,
-        obs_df_full_field=df_obs_dt,
-        model_df_block=block_maxima_model_dnw_dt,
-        obs_df_block=block_maxima_obs_dnw_dt,
-        model_var_name_full_field="demand_net_wind",
-        obs_var_name_full_field="demand_net_wind",
-        model_var_name_block="demand_net_wind_max",
-        obs_var_name_block="demand_net_wind_max",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        ylabel="Demand Net Wind (GW)",
-        suptitle="Demand Net Wind trends (detrended, temp + wind lead BC)",
-        figsize=(15, 5),
-    )
+    # # Now compare the trends for the detrended data
+    # gev_funcs.compare_trends(
+    #     model_df_full_field=df_model_djf_dt,
+    #     obs_df_full_field=df_obs_dt,
+    #     model_df_block=block_maxima_model_dnw_dt,
+    #     obs_df_block=block_maxima_obs_dnw_dt,
+    #     model_var_name_full_field="demand_net_wind",
+    #     obs_var_name_full_field="demand_net_wind",
+    #     model_var_name_block="demand_net_wind_max",
+    #     obs_var_name_block="demand_net_wind_max",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     ylabel="Demand Net Wind (GW)",
+    #     suptitle="Demand Net Wind trends (detrended, temp + wind lead BC)",
+    #     figsize=(15, 5),
+    # )
 
     # print the columns in the block_maxima_model_dnw_dt
     print(block_maxima_model_dnw_dt.columns)

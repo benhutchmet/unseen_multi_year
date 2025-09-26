@@ -87,6 +87,21 @@ def main():
     # Set up a timer
     start_time = time.time()
 
+    # fname_ttest = "HadGEM3-GC31-MM_WP_gen_United_Kingdom_1992_NO_drift_bc_no_dt_hh_ws.csv"
+    # fdir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/model/WP_gen/"
+    # fpath_ttest = os.path.join(fdir, fname_ttest)
+
+    # # load the df and print the head
+    # df_ttest = pd.read_csv(fpath_ttest)
+
+    # print("Test DataFrame head:")
+    # print(df_ttest.head())
+
+    # print("Test DataFrame tail:")
+    # print(df_ttest.tail())
+
+    # sys.exit()
+
     # Set up the hard-coded variables
     subset_arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/subset_WP/"
 
@@ -156,7 +171,7 @@ def main():
         # Set up the output path for the model data
         output_model_data_path = os.path.join(
             output_df_path,
-            f"HadGEM3-GC31-MM_WP_gen_{COUNTRY_str}_{year_this}_drift_bc_no_dt.csv",
+            f"HadGEM3-GC31-MM_WP_gen_{COUNTRY_str}_{year_this}_NO_drift_bc_no_dt_hh_ws.csv",
         )
 
         # If the output model data path already exists, remove it
@@ -170,7 +185,7 @@ def main():
         year_no_this = (int(year_this) - 1960) + 1
 
         # Set up the fname for the array data to load
-        fname_year = f"data_anoms_plus_obs_year_{year_no_this}_no_dt.npy"
+        fname_year = f"data_anoms_plus_obs_year_{year_no_this}_no_dt_no_drift_bc.npy"
 
         fpath = os.path.join(store_dir, fname_year)
 
@@ -323,6 +338,13 @@ def main():
         print(f"Capacity factors mean: {np.mean(capacity_factors)}, "
                 f"Capacity factors std: {np.std(capacity_factors)}")
         
+        ws_hh_spatial_mean = np.mean(ws_hh, axis=(-2, -1))
+        print(f"Spatial mean wind speed at hub height shape: {ws_hh_spatial_mean.shape}")
+        print(f"Spatial mean wind speed at hub height min: {np.min(ws_hh_spatial_mean)}, "
+                f"max: {np.max(ws_hh_spatial_mean)}, "
+                f"mean: {np.mean(ws_hh_spatial_mean)}, "
+                f"std: {np.std(ws_hh_spatial_mean)}")
+
         # Set up a model df to store the data in
         model_df = pd.DataFrame()
 
@@ -332,6 +354,7 @@ def main():
                 for i_wyear in range(capacity_factors.shape[2]):  # Use the third dimension of capacity_factors
                     # Extract the model values this
                     cf_this = capacity_factors[i_member, i_day, i_wyear]
+                    ws_hh_spatial_mean_this = ws_hh_spatial_mean[i_member, i_day, i_wyear]
 
                     # Set up the df this
                     model_df_this = pd.DataFrame(
@@ -340,6 +363,7 @@ def main():
                             "lead": [i_day + 1],  # Use i_day + 1 to represent the day
                             "wyear": [i_wyear + 1],  # Use i_wyear + 1 to represent the winter year
                             "capacity_factor": [cf_this],
+                            "spatial_mean_ws_hh": [ws_hh_spatial_mean_this],
                         }
                     )
 

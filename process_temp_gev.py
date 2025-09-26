@@ -3931,19 +3931,19 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # Test the new function
-    pivot_emp_rps(
-        obs_df=block_minima_obs_tas,
-        model_df=block_minima_model_tas_drift_corr,
-        obs_val_name="data_tas_c_min",
-        model_val_name="data_tas_c_min_drift_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        var_name="tas",
-        nsamples=1000,
-        figsize=(5, 5),
-        title="b) Chance of < 1986-87 temperature by year",
-    )
+    # # Test the new function
+    # pivot_emp_rps(
+    #     obs_df=block_minima_obs_tas,
+    #     model_df=block_minima_model_tas_drift_corr,
+    #     obs_val_name="data_tas_c_min",
+    #     model_val_name="data_tas_c_min_drift_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     var_name="tas",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    #     title="b) Chance of < 1986-87 temperature by year",
+    # )
 
     # # DO the same for wind speed
     # pivot_emp_rps(
@@ -3973,8 +3973,6 @@ def main():
     #     figsize=(5, 5),
     #     wind_2005_toggle=True,
     # )
-
-    sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
@@ -4278,13 +4276,13 @@ def main():
 
     # # perform the lead time dependent bias correction
     # # for the wind speed data
-    # block_minima_model_wind_bc = gev_funcs.lead_time_mean_bias_correct(
-    #     model_df=block_minima_model_wind,
-    #     obs_df=block_minima_obs_wind,
-    #     model_var_name="data_min",
-    #     obs_var_name="data_min",
-    #     lead_name="winter_year",
-    # )
+    block_minima_model_wind_bc = gev_funcs.lead_time_mean_bias_correct(
+        model_df=block_minima_model_wind,
+        obs_df=block_minima_obs_wind,
+        model_var_name="data_min",
+        obs_var_name="data_min",
+        lead_name="winter_year",
+    )
 
     # # print the head of the block minima model tas lead dt bc
     # print(block_minima_model_tas_lead_dt_bc.head())
@@ -4504,8 +4502,6 @@ def main():
         title="c) Chance < 2005-06 wind speed",
     )
 
-    sys.exit()
-
     # # # plot the empirical return periods for wind speed short
     # plot_emp_rps(
     #     obs_df=block_minima_obs_wind_short_dt,
@@ -4689,31 +4685,31 @@ def main():
     # print the head of the block minima model wind drift corr dt
     print(block_minima_model_wind_drift_corr_dt.head())
 
-    # # process the gev params for the bias corrected temp data
-    # gev_params_bc_temp = gev_funcs.process_gev_params(
-    #     obs_df=block_minima_obs_tas_dt,
-    #     model_df=block_minima_model_tas_drift_corr_dt,
-    #     obs_var_name="data_tas_c_min_dt",
-    #     model_var_name="data_tas_c_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     nboot=1000,
-    #     model_lead_name="winter_year",
-    # )
+    # process the gev params for the bias corrected temp data
+    gev_params_bc_temp = gev_funcs.process_gev_params(
+        obs_df=block_minima_obs_tas_dt,
+        model_df=block_minima_model_tas_drift_corr_dt,
+        obs_var_name="data_tas_c_min_dt",
+        model_var_name="data_tas_c_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        nboot=10,
+        model_lead_name="winter_year",
+    )
 
-    # # Process the GEV params for the wind speed data
-    # gev_params_bc_wind = gev_funcs.process_gev_params(
-    #     obs_df=block_minima_obs_wind_dt,
-    #     model_df=block_minima_model_wind_drift_corr_dt,
-    #     obs_var_name="data_sfcWind_min_dt",
-    #     model_var_name="data_sfcWind_min_drift_bc_dt",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     nboot=1000,
-    #     model_lead_name="winter_year",
-    # )
+    # Process the GEV params for the wind speed data
+    gev_params_bc_wind = gev_funcs.process_gev_params(
+        obs_df=block_minima_obs_wind_dt,
+        model_df=block_minima_model_wind_drift_corr_dt,
+        obs_var_name="data_sfcWind_min_dt",
+        model_var_name="data_sfcWind_min_drift_bc_dt",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        nboot=10,
+        model_lead_name="winter_year",
+    )
 
-    # # # process the GEV params for the short wind data
+    # # process the GEV params for the short wind data
     # gev_params_bc_wind_short = gev_funcs.process_gev_params(
     #     obs_df=block_minima_obs_wind_short_dt,
     #     model_df=block_minima_model_wind_short_drift_corr_dt,
@@ -4721,42 +4717,42 @@ def main():
     #     model_var_name="data_min_drift_bc_dt",
     #     obs_time_name="effective_dec_year",
     #     model_time_name="effective_dec_year",
-    #     nboot=100,
+    #     nboot=10,
     #     model_lead_name="winter_year",
     # )
 
-    # # process the GEV params for the bias corrected wind speed data
-    # gev_params_bc_wind = gev_funcs.process_gev_params(
-    #     obs_df=block_minima_obs_wind,
-    #     model_df=block_minima_model_wind_bc,
-    #     obs_var_name="data_min",
-    #     model_var_name="data_min_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     nboot=1000,
-    #     model_lead_name="winter_year",
-    # )
+    # process the GEV params for the bias corrected wind speed data
+    gev_params_bc_wind = gev_funcs.process_gev_params(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind_bc,
+        obs_var_name="data_min",
+        model_var_name="data_min_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        nboot=10,
+        model_lead_name="winter_year",
+    )
 
-    # # Now test the plotting function for these
-    # gev_funcs.plot_gev_params_subplots(
-    #     gev_params_top_raw=gev_params_bc_temp,
-    #     gev_params_top_bc=gev_params_bc_temp,
-    #     gev_params_bottom_raw=gev_params_bc_wind,
-    #     gev_params_bottom_bc=gev_params_bc_wind,
-    #     obs_df_top=block_minima_obs_tas_dt,
-    #     model_df_top=block_minima_model_tas_drift_corr_dt,
-    #     obs_df_bottom=block_minima_obs_wind_dt,
-    #     model_df_bottom=block_minima_model_wind_drift_corr_dt,
-    #     obs_var_name_top="data_tas_c_min_dt",
-    #     model_var_name_top="data_tas_c_min_drift_bc_dt",
-    #     obs_var_name_bottom="data_sfcWind_min_dt",
-    #     model_var_name_bottom="data_sfcWind_min_drift_bc_dt",
-    #     title_top="a) DJF block minima temperature (°C)",
-    #     title_bottom="e) DJF block minima wind speed (m/s)",
-    #     figsize=(15, 10),
-    # )
+    # Now test the plotting function for these
+    gev_funcs.plot_gev_params_subplots(
+        gev_params_top_raw=gev_params_bc_temp,
+        gev_params_top_bc=gev_params_bc_temp,
+        gev_params_bottom_raw=gev_params_bc_wind,
+        gev_params_bottom_bc=gev_params_bc_wind,
+        obs_df_top=block_minima_obs_tas_dt,
+        model_df_top=block_minima_model_tas_drift_corr_dt,
+        obs_df_bottom=block_minima_obs_wind_dt,
+        model_df_bottom=block_minima_model_wind_drift_corr_dt,
+        obs_var_name_top="data_tas_c_min_dt",
+        model_var_name_top="data_tas_c_min_drift_bc_dt",
+        obs_var_name_bottom="data_sfcWind_min_dt",
+        model_var_name_bottom="data_sfcWind_min_drift_bc_dt",
+        title_top="a) DJF block minima temperature (°C)",
+        title_bottom="e) DJF block minima wind speed (m/s)",
+        figsize=(15, 10),
+    )
 
-    # # Now test the plotting function for these
+    # Now test the plotting function for these
     # gev_funcs.plot_gev_params_subplots(
     #     gev_params_top_raw=gev_params_bc_temp,
     #     gev_params_top_bc=gev_params_bc_temp,

@@ -863,6 +863,9 @@ def process_gev_params(
     gev_params["obs_loc_short"] = loc_obs_short
     gev_params["obs_scale_short"] = scale_obs_short
 
+    print("unique times in obs")
+    print(obs_df[obs_time_name].unique())
+    
     # Loop over the nboot
     for i in tqdm(range(nboot)):
         # Set up the psuedo-observed data
@@ -870,6 +873,11 @@ def process_gev_params(
         for t, time in enumerate(obs_df[obs_time_name].unique()):
             # Subset the data
             df_model_this_time = model_df[model_df[model_time_name] == time]
+
+            # # print the head o the df here
+            # print(df_model_this_time.head())
+
+            # print(time)
 
             # Pick a random member
             member_this = np.random.choice(
