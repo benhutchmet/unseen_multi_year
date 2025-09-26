@@ -193,7 +193,7 @@ def main():
 
     # Set up the fname for the data anomalies plus obs
     current_date = time.strftime("%Y%m%d")
-    fname_data_anoms_plus_obs = f"HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_drift_bc_anoms_1960-2018.npy"
+    fname_data_anoms_plus_obs = f"HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_NO_drift_bc_anoms_1960-2018.npy"
 
     # Set up the path to the data anomalies plus obs
     path_data_anoms_plus_obs = os.path.join(
@@ -445,9 +445,10 @@ def main():
         print(f"Max of test data: {np.max(test_data)}")
 
         # Now remove the climatologies from the test data
-        data_anoms = (
-            test_data - wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
-        )
+        # data_anoms = (
+        #     test_data - wyear_climatologies[np.newaxis, np.newaxis, np.newaxis, :, :, :]
+        # )
+        data_anoms = test_data
 
         # Print the shape of the data anomalies
         print(f"Shape of data anomalies: {data_anoms.shape}")
@@ -470,53 +471,56 @@ def main():
             #     f"Shape of data anomalies for winter year {wyear}: {data_anoms_this.shape}"
             # )
 
-            # Set up the effective dec years this
-            effective_dec_years_this = test_years + (wyear - 1)
+            # # Set up the effective dec years this
+            # effective_dec_years_this = test_years + (wyear - 1)
 
-            # Find the common years between the effective dec years and the obs years
-            common_years = np.intersect1d(effective_dec_years_this, valid_dec_years_obs)
+            # # Find the common years between the effective dec years and the obs years
+            # common_years = np.intersect1d(effective_dec_years_this, valid_dec_years_obs)
 
-            # Find the indices of the common years in the effective dec years
-            indices_this_model = np.where(
-                np.isin(effective_dec_years_this, common_years)
-            )[0]
+            # # Find the indices of the common years in the effective dec years
+            # indices_this_model = np.where(
+            #     np.isin(effective_dec_years_this, common_years)
+            # )[0]
 
-            # Find the indices of the common years in the obs years
-            indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
+            # # Find the indices of the common years in the obs years
+            # indices_this_obs = np.where(np.isin(valid_dec_years_obs, common_years))[0]
 
-            # # subset the data anomalies to these indices
-            # data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
+            # # # subset the data anomalies to these indices
+            # # data_anoms_this = data_anoms_this[indices_this_model, :, :, :, :]
 
-            # Subset the obs wind data wmeans to these indices
-            obs_wmeans_this = obs_wind_wmeans[indices_this_obs, :, :]
+            # # Subset the obs wind data wmeans to these indices
+            # obs_wmeans_this = obs_wind_wmeans[indices_this_obs, :, :]
 
-            # Quantify the time mean of obs wind wmeans
-            obs_wmeans_this = np.mean(obs_wmeans_this, axis=0)
+            # # Quantify the time mean of obs wind wmeans
+            # obs_wmeans_this = np.mean(obs_wmeans_this, axis=0)
 
-            # Add the obs wind wmeans to the data anomalies
-            data_anoms_plus_obs_this = (
-                data_anoms_this
-                + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
-            )
+            # # Add the obs wind wmeans to the data anomalies
+            # data_anoms_plus_obs_this = (
+            #     data_anoms_this
+            #     + obs_wmeans_this[np.newaxis, np.newaxis, np.newaxis, :, :]
+            # )
 
-            # Print the shape of the data anomalies plus obs for this winter year
-            print(
-                f"Shape of data anomalies plus obs for winter year {wyear}: {data_anoms_plus_obs_this.shape}"
-            )
-            # Print the shape of obs wmeans this
-            print(f"Shape of obs wmeans this: {obs_wmeans_this.shape}")
-            # Print the shape of data anoms this
-            print(f"Shape of data anoms this: {data_anoms_this.shape}")
+            # # Print the shape of the data anomalies plus obs for this winter year
+            # print(
+            #     f"Shape of data anomalies plus obs for winter year {wyear}: {data_anoms_plus_obs_this.shape}"
+            # )
+            # # Print the shape of obs wmeans this
+            # print(f"Shape of obs wmeans this: {obs_wmeans_this.shape}")
+            # # Print the shape of data anoms this
+            # print(f"Shape of data anoms this: {data_anoms_this.shape}")
 
-            # print the shape of data_anoms_plus_obs
-            print(
-                f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}"
-            )
-            # print the shape of data_anoms_plus_obs
-            print(f"Shape of data_anoms_plus_obs: {data_anoms_plus_obs.shape}")
+            # # print the shape of data_anoms_plus_obs
+            # print(
+            #     f"Shape of data_anoms_plus_obs_this: {data_anoms_plus_obs_this.shape}"
+            # )
+            # # print the shape of data_anoms_plus_obs
+            # print(f"Shape of data_anoms_plus_obs: {data_anoms_plus_obs.shape}")
 
             # Store the data anomalies plus obs in the new array
-            data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
+            # data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_plus_obs_this
+
+            # Second option for no bias correction
+            data_anoms_plus_obs[:, :, :, iwyear, :, :] = data_anoms_this
 
         # Save the data anomalies plus obs to the path
         np.save(path_data_anoms_plus_obs, data_anoms_plus_obs)
@@ -552,7 +556,7 @@ def main():
 
         # Define the filename for the current year
         fname = os.path.join(
-            output_dir, f"data_anoms_plus_obs_year_{year_idx + 1}_no_dt.npy"
+            output_dir, f"data_anoms_plus_obs_year_{year_idx + 1}_no_dt_no_drift_bc.npy"
         )
 
         # Save the array to the file
