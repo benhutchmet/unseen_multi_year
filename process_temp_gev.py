@@ -40,12 +40,12 @@ from iris.util import equalise_attributes
 # Local imports
 import gev_functions as gev_funcs
 
-from process_dnw_gev import (
-    select_leads_wyears_DJF,
-    plot_distributions_extremes,
-    plot_multi_var_perc,
-    ws_to_wp_gen,
-)
+# from process_dnw_gev import (
+#     select_leads_wyears_DJF,
+#     plot_distributions_extremes,
+#     plot_multi_var_perc,
+#     ws_to_wp_gen,
+# )
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")

@@ -5379,6 +5379,7 @@ def plot_multi_var_composites_model(
     multi_lons_path: List[str],
     multi_var_names: List[str],
     figsize: Tuple[int, int] = (8, 9),
+    fontsize: int = 14,
 ):
     """
     Plots the subset composites for multiple model variables.
@@ -5394,6 +5395,7 @@ def plot_multi_var_composites_model(
         multi_lons_path (List[str]): The list of paths to the longitude files.
         multi_var_names (List[str]): The list of variable names to plot.
         figsize (Tuple[int, int]): The figure size.
+        fontsize: The size of fonts.
 
     Returns:
     ========
@@ -5418,9 +5420,9 @@ def plot_multi_var_composites_model(
 
     # Set up the names
     names_list = [
-        "Least extreme DnW days",
-        "Extreme DnW days",
-        "Most extreme DnW days",
+        "Least extreme days",
+        "Extreme days",
+        "Most extreme days",
     ]
 
     # Set up the axes
@@ -5432,10 +5434,15 @@ def plot_multi_var_composites_model(
     axes_list = [ax1, ax2, ax3]
 
     # Set up the labels
+    # plot_labels = [
+    #     ["a", "b", "c"],
+    #     ["d", "e", "f"],
+    #     ["g", "h", "i"],
+    # ]
     plot_labels = [
-        ["a", "b", "c"],
-        ["d", "e", "f"],
-        ["g", "h", "i"],
+        ["a)", "d)", "g)"],
+        ["b)", "e)", "h)"],
+        ["c)", "f)", "i)"],
     ]
 
     # Loop over the mutli var names enumerate
@@ -5775,16 +5782,16 @@ def plot_multi_var_composites_model(
             row_this.coastlines()
 
             # Include a textbox in the top right for N
-            row_this.text(
-                0.95,
-                0.95,
-                f"N = {N_model_this}",
-                horizontalalignment="right",
-                verticalalignment="top",
-                transform=row_this.transAxes,
-                fontsize=12,
-                bbox=dict(facecolor="white", alpha=0.5),
-            )
+            # row_this.text(
+            #     0.95,
+            #     0.95,
+            #     f"N = {N_model_this}",
+            #     horizontalalignment="right",
+            #     verticalalignment="top",
+            #     transform=row_this.transAxes,
+            #     fontsize=12,
+            #     bbox=dict(facecolor="white", alpha=0.5),
+            # )
 
             # if i == 2
             if j == 2:
@@ -5818,49 +5825,48 @@ def plot_multi_var_composites_model(
                         ]
                     )
 
-                    cbar.set_label("hPa", rotation=0, fontsize=12)
+                    cbar.set_label("hPa", rotation=0, fontsize=fontsize)
                 elif i == 1:
-                    cbar.set_label("°C", rotation=0, fontsize=12)
+                    cbar.set_label("°C", rotation=0, fontsize=fontsize)
                 elif i == 2:
 
-                    cbar.set_label("m/s", rotation=0, fontsize=12)
+                    cbar.set_label("m/s", rotation=0, fontsize=fontsize)
 
                 cbar.set_ticks(levels)
 
-            # Set the title for each subplot based on `i`
-            if i == 0 and j == 0:
-                row_this.set_title("Model daily MSLP", fontsize=12, fontweight="bold")
-            elif i == 1 and j == 0:
-                row_this.set_title(
-                    "Model daily airT anoms", fontsize=12, fontweight="bold"
-                )
-            elif i == 2 and j == 0:
-                row_this.set_title(
-                    "Model daily sfcWind anoms", fontsize=12, fontweight="bold"
-                )
+            # # Set the title for each subplot based on `i`
+            # if i == 0 and j == 0:
+            #     row_this.set_title("Model daily MSLP", fontsize=12, fontweight="bold")
+            # elif i == 1 and j == 0:
+            #     row_this.set_title(
+            #         "Model daily airT anoms", fontsize=12, fontweight="bold"
+            #     )
+            # elif i == 2 and j == 0:
+            #     row_this.set_title(
+            #         "Model daily sfcWind anoms", fontsize=12, fontweight="bold"
+            #     )
 
-            # Set up a textbox in the bottom right
-            row_this.text(
-                0.95,
-                0.05,
-                names_list[j],
-                horizontalalignment="right",
-                verticalalignment="bottom",
-                transform=row_this.transAxes,
-                fontsize=12,
-                bbox=dict(facecolor="white", alpha=0.5),
-            )
+            # if i = 0 and j = 0
+            # or i = 0 and j =
+
+            # if i is zero, set the ylabel
+            if i == 0:
+                # Add a text label on the left side instead of ylabel
+                row_this.text(
+                    -0.1, 0.5,
+                    names_list[j],
+                    fontsize=fontsize,
+                    rotation=90,
+                    verticalalignment='center',
+                    horizontalalignment='left',
+                    transform=row_this.transAxes,
+                    fontweight='bold'
+                )
 
             # Include the plot labels in the bottom left
-            row_this.text(
-                0.05,
-                0.05,
+            row_this.set_title(
                 f"{plot_labels[i][j]}",
-                horizontalalignment="left",
-                verticalalignment="bottom",
-                transform=row_this.transAxes,
-                fontsize=12,
-                bbox=dict(facecolor="white", alpha=0.5),
+                fontsize=fontsize,
             )
 
     return None
@@ -10583,7 +10589,7 @@ def main():
         lons_europe_wind,
     ]
 
-    plot_width = 10
+    plot_width = 9
     plot_height = 8
 
     # print the shape of subset arrs tas and subset arras wind

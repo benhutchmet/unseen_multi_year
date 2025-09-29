@@ -42,8 +42,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 from iris.util import equalise_attributes
 
 # # # Local imports
-# import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+import gev_functions as gev_funcs
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -4070,39 +4070,39 @@ def main():
     # print the columns in df_model_djf
     print(df_model.columns)
 
-    # plot the PDFs for multivariatie testing
-    gev_funcs.plot_multi_var_dist(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        model_df_bc=df_model_djf,
-        obs_var_names=obs_var_names,
-        model_var_names=model_var_names,
-        model_var_names_bc=model_var_names_bc,
-        row_titles=[
-            "Temp (°C)",
-            "Demand (GW)",
-            "10m wind speed (m/s)",
-            "Wind power gen. (GW)",
-            "Demand net wind (GW)",
-        ],
-        subplot_titles=subplot_titles,
-        fontsize=14,
-        figsize=(9, 12),
-    )
+    # # plot the PDFs for multivariatie testing
+    # gev_funcs.plot_multi_var_dist(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     model_df_bc=df_model_djf,
+    #     obs_var_names=obs_var_names,
+    #     model_var_names=model_var_names,
+    #     model_var_names_bc=model_var_names_bc,
+    #     row_titles=[
+    #         "Temp (°C)",
+    #         "Demand (GW)",
+    #         "10m wind speed (m/s)",
+    #         "Wind power gen. (GW)",
+    #         "Demand net wind (GW)",
+    #     ],
+    #     subplot_titles=subplot_titles,
+    #     fontsize=14,
+    #     figsize=(9, 12),
+    # )
 
-    # # now plot the relationships between variables here
-    gev_funcs.plot_rel_var(
-        obs_df=df_obs,
-        model_df=df_model_djf,
-        model_df_bc=df_model_djf,
-        obs_var_names=("data_c_dt", "data_sfcWind_dt"),
-        model_var_names=("data_tas_c_dt", "data_sfcWind_dt"),
-        model_var_names_bc=("data_tas_c_drift_bc_dt", "data_sfcWind_drift_bc_dt"),
-        row_title="T vs sfcWind",
-        figsize=(15, 5),
-    )
+    # # # now plot the relationships between variables here
+    # gev_funcs.plot_rel_var(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf,
+    #     model_df_bc=df_model_djf,
+    #     obs_var_names=("data_c_dt", "data_sfcWind_dt"),
+    #     model_var_names=("data_tas_c_dt", "data_sfcWind_dt"),
+    #     model_var_names_bc=("data_tas_c_drift_bc_dt", "data_sfcWind_drift_bc_dt"),
+    #     row_title="T vs sfcWind",
+    #     figsize=(15, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # # Ensure the 'time' column is in datetime format
     # df_obs["time"] = pd.to_datetime(df_obs["time"])
@@ -4192,7 +4192,9 @@ def main():
     )
 
     # make sure effective dec year is in the block max obs data
-    block_max_obs_dnw["effective_dec_year"] = block_max_obs_dnw["time"].dt.year
+    block_max_obs_dnw["effective_dec_year"] = block_max_obs_dnw.apply(
+        lambda row: gev_funcs.determine_effective_dec_year(row), axis=1
+    )
 
     # describe the df_model_djf dataframe
     print(df_model_djf.describe())
@@ -4270,42 +4272,42 @@ def main():
     # Print the head of the block max model dnw
     print(block_max_model_dnw.head())
 
-    # Drop where data is 2025 in the obs
-    # Keep rows where effective_dec_year is NOT 2025
-    block_max_obs_dnw = block_max_obs_dnw[block_max_obs_dnw["effective_dec_year"] != 2025]
+    # # Drop where data is 2025 in the obs
+    # # Keep rows where effective_dec_year is NOT 2025
+    # block_max_obs_dnw = block_max_obs_dnw[block_max_obs_dnw["effective_dec_year"] != 2025]
 
-    # process the GEV params for the bias corrected wind speed data
-    gev_params_dnw= gev_funcs.process_gev_params(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        obs_var_name="demand_net_wind_max",
-        model_var_name="demand_net_wind_bc_max",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        nboot=1000,
-        model_lead_name="winter_year",
-    )
+    # # process the GEV params for the bias corrected wind speed data
+    # gev_params_dnw= gev_funcs.process_gev_params(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     obs_var_name="demand_net_wind_max",
+    #     model_var_name="demand_net_wind_bc_max",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     nboot=1000,
+    #     model_lead_name="winter_year",
+    # )
 
-    # Now test the plotting function for these
-    gev_funcs.plot_gev_params_subplots(
-        gev_params_top_raw=gev_params_dnw,
-        gev_params_top_bc=gev_params_dnw,
-        gev_params_bottom_raw=gev_params_dnw,
-        gev_params_bottom_bc=gev_params_dnw,
-        obs_df_top=block_max_obs_dnw,
-        model_df_top=block_max_model_dnw,
-        obs_df_bottom=block_max_obs_dnw,
-        model_df_bottom=block_max_model_dnw,
-        obs_var_name_top="demand_net_wind_max",
-        model_var_name_top="demand_net_wind_bc_max",
-        obs_var_name_bottom="demand_net_wind_max",
-        model_var_name_bottom="demand_net_wind_bc_max",
-        title_top="i) DJF block maxima DnW (GW)",
-        title_bottom="i) DJF block maxima DnW (GW)",
-        figsize=(15, 10),
-    )
+    # # Now test the plotting function for these
+    # gev_funcs.plot_gev_params_subplots(
+    #     gev_params_top_raw=gev_params_dnw,
+    #     gev_params_top_bc=gev_params_dnw,
+    #     gev_params_bottom_raw=gev_params_dnw,
+    #     gev_params_bottom_bc=gev_params_dnw,
+    #     obs_df_top=block_max_obs_dnw,
+    #     model_df_top=block_max_model_dnw,
+    #     obs_df_bottom=block_max_obs_dnw,
+    #     model_df_bottom=block_max_model_dnw,
+    #     obs_var_name_top="demand_net_wind_max",
+    #     model_var_name_top="demand_net_wind_bc_max",
+    #     obs_var_name_bottom="demand_net_wind_max",
+    #     model_var_name_bottom="demand_net_wind_bc_max",
+    #     title_top="i) DJF block maxima DnW (GW)",
+    #     title_bottom="i) DJF block maxima DnW (GW)",
+    #     figsize=(15, 10),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # Set up a list to store the dfs
     dfs_list = []
@@ -4444,10 +4446,11 @@ def main():
         ylims_right=(30, 60),
         dashed_quant=0.80,
         solid_line=np.max,
-        figsize=(10, 5),
+        figsize=(20, 5),
+        fontsize=14,
     )
 
-    # sys.exit()
+    sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
@@ -4596,31 +4599,31 @@ def main():
     # Print the columns of block max model dnw
     print(block_max_model_dnw.columns)
 
-    # # Do the same but with uas
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="total_gen",
-        x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
-        y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
-        xlabel="Demand net wind percentiles",
-        ylabel="Demand (GW)",
-        title="Percentiles of demand net wind vs demand/WP gen, DnW days",
-        legend_y1="Demand (GW)",
-        legend_y2="Wind Power Generation (GW)",
-        y2_var_name_model="total_gen_dt",
-        y2_label="Wind Power Generation (GW)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        xlims=[-10, 110],
-        ylims=[43, 53],
-        y2_lims=[2, 5.5],
-        y1_hlines=[44, 50],
-        y2_hlines=[2.5, 4.5],
-        full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
-        full_distr_y2=df_model_djf["total_gen"]
-    )
+    # # # Do the same but with uas
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="total_gen",
+    #     x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
+    #     y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Demand (GW)",
+    #     title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+    #     legend_y1="Demand (GW)",
+    #     legend_y2="Wind Power Generation (GW)",
+    #     y2_var_name_model="total_gen_dt",
+    #     y2_label="Wind Power Generation (GW)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     xlims=[-10, 110],
+    #     ylims=[43, 53],
+    #     y2_lims=[2, 5.5],
+    #     y1_hlines=[44, 50],
+    #     y2_hlines=[2.5, 4.5],
+    #     full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
+    #     full_distr_y2=df_model_djf["total_gen"]
+    # )
 
     sys.exit()
 
