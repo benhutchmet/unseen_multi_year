@@ -1167,24 +1167,14 @@ def plot_multi_var_dist(
         # axs[r, 0].set_title(subplot_titles[r][0])
 
         axs[r, 0].set_title(
-            0.05,
-            0.05,
             subplot_titles[r][0],
-            transform=axs[r, 0].transAxes,
-            fontsize=12,
-            verticalalignment="bottom",
-            bbox=dict(facecolor="white", alpha=0.5),
+            fontsize=14,
         )
 
         # do the same for the bias corrected distribution
-        axs[r, 1].text(
-            0.05,
-            0.05,
+        axs[r, 1].set_title(
             subplot_titles[r][1],
-            transform=axs[r, 1].transAxes,
-            fontsize=12,
-            verticalalignment="bottom",
-            bbox=dict(facecolor="white", alpha=0.5),
+            fontsize=14,
         )
 
         # Plot the bias corrected distribution on the second axis
