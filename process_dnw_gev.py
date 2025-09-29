@@ -4052,11 +4052,11 @@ def main():
 
     # Set up the subplot titles
     subplot_titles = [
-        ("a", "b"),
-        ("c", "d"),
-        ("e", "f"),
-        ("g", "h"),
-        ("i", "j"),
+        ("a)", "b)"),
+        ("c)", "d)"),
+        ("e)", "f)"),
+        ("g)", "h)"),
+        ("i)", "j)"),
     ]
 
     # print the columns in df obs
@@ -4086,7 +4086,8 @@ def main():
             "Demand net wind (GW)",
         ],
         subplot_titles=subplot_titles,
-        figsize=(6, 9),
+        fontsize=14,
+        figsize=(9, 12),
     )
 
     # # now plot the relationships between variables here

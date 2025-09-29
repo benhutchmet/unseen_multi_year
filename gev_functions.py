@@ -1097,7 +1097,9 @@ def plot_multi_var_dist(
     model_var_names_bc: list[str],
     row_titles: list[str],
     subplot_titles: list[str],
+    fontsize: int = 12,
     figsize: tuple = (15, 5),
+    save_dir="/gws/nopw/j04/canari/users/benhutch/plots/sep25",
 ) -> None:
     """
     Plot the distributions of multiple variables.
@@ -1120,6 +1122,8 @@ def plot_multi_var_dist(
         List of titles for each row.
     subplot_titles : list[tuple]
         List of titles for each subplot.
+    fontsize : int, optional
+        Font size, by default 12.
     figsize : tuple, optional
         Figure size, by default (15, 5).
 
@@ -1142,7 +1146,7 @@ def plot_multi_var_dist(
             color="red",
             alpha=0.5,
             bins=30,
-            label="model",
+            label="Model",
             density=True,
         )
 
@@ -1152,7 +1156,7 @@ def plot_multi_var_dist(
             color="black",
             alpha=0.5,
             bins=30,
-            label="observed",
+            label="Observed",
             density=True,
         )
 
@@ -1160,21 +1164,22 @@ def plot_multi_var_dist(
         axs[r, 0].set_yticks([])
 
         # Set the row title to the left, rotated 90 degrees and larger font size
-        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=14, fontweight="bold",
+        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=fontsize,
                               labelpad=20)
 
-        # # Set up the subplot title
-        # axs[r, 0].set_title(subplot_titles[r][0])
-
+        # Set subplot titles offset to the left
         axs[r, 0].set_title(
             subplot_titles[r][0],
-            fontsize=14,
+            fontsize=fontsize,
+            loc='left',  # Left-align the title
+            pad=5
         )
 
-        # do the same for the bias corrected distribution
         axs[r, 1].set_title(
             subplot_titles[r][1],
-            fontsize=14,
+            fontsize=fontsize,
+            loc='left',  # Left-align the title
+            pad=5
         )
 
         # Plot the bias corrected distribution on the second axis
@@ -1197,14 +1202,36 @@ def plot_multi_var_dist(
             density=True,
         )
 
-        # if r is 0
+        # Add column headers using text at the figure level (only for first row)
         if r == 0:
-            # Set the title
-            axs[r, 0].set_title("a) Raw", fontweight="bold", fontsize=14)
-            axs[r, 1].set_title("b) Bias corrected", fontweight="bold", fontsize=14)
+            # Get the figure object
+            fig = axs[r, 0].get_figure()
+            
+            # Add "Raw" and "Bias corrected" as text above each column
+            # Calculate positions based on subplot positions
+            bbox0 = axs[r, 0].get_position()
+            bbox1 = axs[r, 1].get_position()
+            
+            fig.text(
+                (bbox0.x0 + bbox0.x1) / 2, 1.001,  # Use fixed y position near top
+                "Raw",
+                fontsize=fontsize + 2,
+                ha='center',
+                va='top',
+                transform=fig.transFigure
+            )
+            
+            fig.text(
+                (bbox1.x0 + bbox1.x1) / 2, 1.001,  # Use fixed y position near top
+                "Bias corrected",
+                fontsize=fontsize + 2,
+                ha='center',
+                va='top',
+                transform=fig.transFigure
+            )
 
             # include a legend
-            axs[r, 1].legend(loc="upper right", fontsize=14)
+            axs[r, 1].legend(loc="upper left", fontsize=fontsize)
 
         axs[r, 1].set_yticks([])
 
@@ -1235,6 +1262,14 @@ def plot_multi_var_dist(
 
     # Specify a tight layout
     fig.tight_layout()
+
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    plot_fname = os.path.join(save_dir, f"multi_var_dists_{current_datetime}.png")
+
+    # Save the figure
+    fig.savefig(plot_fname, dpi=600, bbox_inches="tight", format='png')
+    print(f"Saved plot to {plot_fname}")
 
     # Show the plot
     plt.show()
