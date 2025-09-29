@@ -4314,6 +4314,7 @@ def dot_plot_subplots(
     dashed_quant: float = 0.8,
     solid_line: Callable[[np.ndarray], float] = np.max,
     figsize: tuple = (10, 5),
+    fontsize=12,
     save_prefix: str = "dot_plot",
     save_dir: str = "/gws/nopw/j04/canari/users/benhutch/plots",
     simple_detrend: bool = False,
@@ -4372,6 +4373,9 @@ def dot_plot_subplots(
     figsize: tuple
         The figure size. Default is (10, 5).
 
+    fontsize: int
+        The font size for the figure. Default is 14.
+
     save_prefix: str
         The prefix to use when saving the plots. Default is "dot_plot".
 
@@ -4414,7 +4418,7 @@ def dot_plot_subplots(
     fig, axs = plt.subplots(
         nrows=1,
         ncols=2,
-        figsize=(20, 5),  # Adjust the figsize as needed
+        figsize=figsize,
         sharey=False,
     )
 
@@ -4474,6 +4478,10 @@ def dot_plot_subplots(
             color="blue",
             linestyle="-.",
         )
+
+        # Add faint gridlines
+        ax_big.grid(True, alpha=0.3, linestyle='-', linewidth=0.5, color='gray')
+        ax_big.set_axisbelow(True)  # Place grid behind plot elements
 
         # print the year of the worst observed value
         print("The worst event occurs in the year:", obs_df[obs_val_name].idxmax())
@@ -4666,24 +4674,24 @@ def dot_plot_subplots(
         # )
         
         # include the legend
-        ax_big.legend(fontsize=10, ncol=3, loc="upper center")
+        ax_big.legend(fontsize=fontsize, ncol=3, loc="upper center")
 
         # label the y-axis
-        ax_big.set_ylabel(ylabel, fontsize=14)
+        ax_big.set_ylabel(ylabel, fontsize=fontsize + 2)
 
         # set up the x-axis
 
         # increase the size of the value labels
-        ax_big.tick_params(axis="x", labelsize=12)
+        ax_big.tick_params(axis="x", labelsize=fontsize)
 
         # same for the y-axis
-        ax_big.tick_params(axis="y", labelsize=12)
+        ax_big.tick_params(axis="y", labelsize=fontsize)
 
         # set up the ylims
         ax_big.set_ylim(ylims)
 
         # set the title
-        ax_big.set_title(title, fontsize=14, fontweight="bold")
+        ax_big.set_title(title, fontsize=fontsize + 2, fontweight="bold")
 
         # # do the events plots for the no. exceedance days on the second plot
         # # do the events plots for the no. exceedance days on the second plot

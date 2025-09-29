@@ -41,9 +41,9 @@ from scipy.stats import genextreme as gev
 from sklearn.metrics import mean_squared_error, r2_score
 from iris.util import equalise_attributes
 
-# # Local imports
-import gev_functions as gev_funcs
-from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+# # # Local imports
+# import gev_functions as gev_funcs
+# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")

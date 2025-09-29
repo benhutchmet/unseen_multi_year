@@ -40,12 +40,12 @@ from iris.util import equalise_attributes
 # Local imports
 import gev_functions as gev_funcs
 
-# from process_dnw_gev import (
-#     select_leads_wyears_DJF,
-#     plot_distributions_extremes,
-#     plot_multi_var_perc,
-#     ws_to_wp_gen,
-# )
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+    ws_to_wp_gen,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -3795,29 +3795,29 @@ def main():
     print("Obs wind data columns:")
     print(block_minima_obs_wind.columns)
 
-    # Plot the lead pdfs
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_tas,
-        obs_df=block_minima_obs_tas,
-        model_var_name="data_tas_c_min",
-        obs_var_name="data_tas_c_min",
-        lead_name="winter_year",
-        xlabel="Temperature (C)",
-        suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_tas,
+    #     obs_df=block_minima_obs_tas,
+    #     model_var_name="data_tas_c_min",
+    #     obs_var_name="data_tas_c_min",
+    #     lead_name="winter_year",
+    #     xlabel="Temperature (C)",
+    #     suptitle="Temperature PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+    #     figsize=(10, 5),
+    # )
 
-    # Plot the lead pdfs for wind speed pre drift/bc
-    gev_funcs.plot_lead_pdfs(
-        model_df=block_minima_model_wind,
-        obs_df=block_minima_obs_wind,
-        model_var_name="data_sfcWind_min",
-        obs_var_name="data_sfcWind_min",
-        lead_name="winter_year",
-        xlabel="Wind speed (m/s)",
-        suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs for wind speed pre drift/bc
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=block_minima_model_wind,
+    #     obs_df=block_minima_obs_wind,
+    #     model_var_name="data_sfcWind_min",
+    #     obs_var_name="data_sfcWind_min",
+    #     lead_name="winter_year",
+    #     xlabel="Wind speed (m/s)",
+    #     suptitle="Wind speed PDFs, 1961-2017, DJF block min T (no drift, trend, or bias correction)",
+    #     figsize=(10, 5),
+    # )
 
     # Plot the lead time depedent drift for the model and the corrected model
     block_minima_model_tas_drift_corr = model_drift_corr_plot(
@@ -4276,13 +4276,13 @@ def main():
 
     # # perform the lead time dependent bias correction
     # # for the wind speed data
-    block_minima_model_wind_bc = gev_funcs.lead_time_mean_bias_correct(
-        model_df=block_minima_model_wind,
-        obs_df=block_minima_obs_wind,
-        model_var_name="data_min",
-        obs_var_name="data_min",
-        lead_name="winter_year",
-    )
+    # block_minima_model_wind_bc = gev_funcs.lead_time_mean_bias_correct(
+    #     model_df=block_minima_model_wind,
+    #     obs_df=block_minima_obs_wind,
+    #     model_var_name="data_min",
+    #     obs_var_name="data_min",
+    #     lead_name="winter_year",
+    # )
 
     # # print the head of the block minima model tas lead dt bc
     # print(block_minima_model_tas_lead_dt_bc.head())
@@ -4384,10 +4384,11 @@ def main():
         ylims_right=(0, 8),
         dashed_quant=0.20,
         solid_line=np.min,
-        figsize=(10, 5),
+        figsize=(20, 5),
+        fontsize=14,
     )
 
-    # sys.exit()
+    sys.exit()
 
     # # Dot plot subplots for tas and wind speed short
     # gev_funcs.dot_plot_subplots(

@@ -36,8 +36,8 @@ from sklearn.metrics import silhouette_score
 # Import dictionaries
 import dictionaries as dicts
 
-# Local imports
-import process_dnw_gev as pdg_funcs
+# # Local imports
+# import process_dnw_gev as pdg_funcs
 
 
 # Set up a function for loading the data
