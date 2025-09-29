@@ -3086,6 +3086,13 @@ def main():
                     & (full_wp_gen_df["wyear"] == winter_year)
                 ]
 
+                # Subset the df no drift corr data to this init_year, member, and winter_year
+                df_no_drift_corr_this = df_no_drift_corr[
+                    (df_no_drift_corr["init_year"] == init_year)
+                    & (df_no_drift_corr["member"] == member)
+                    & (df_no_drift_corr["winter_year"] == winter_year)
+                ]
+
                 # # print the shape of df_model_djf_this
                 # print(
                 #     f"Shape of df_model_djf_this for init_year {init_year}, member {member}, winter_year {winter_year}: {df_model_djf_this.shape}"
@@ -3093,6 +3100,8 @@ def main():
 
                 df_model_djf_this["wind_cfs"] = df_wp_gen_this["capacity_factor"].values
 
+                # add a new column for the effective decade year
+                df_model_djf_this["wind_cfs_no_bc"] = df_no_drift_corr_this["capacity_factor"].values
 
                 # Concat the df_model_djf_this to the df_model_djf_new
                 df_model_djf_new = pd.concat(
@@ -3257,6 +3266,10 @@ def main():
         df_model_djf_new["wind_cfs"] * (onshore_cap_gw + offshore_cap_gw)
     )
 
+    df_model_djf_new["total_gen_no_bc"] = (
+        df_model_djf_new["wind_cfs_no_bc"] * (onshore_cap_gw + offshore_cap_gw)
+    )
+
     # # rename "Capacity Factor" as combined_cfs
     df_obs.rename(columns={"Capacity Factor": "combined_cfs"}, inplace=True)
 
@@ -3335,8 +3348,6 @@ def main():
         figsize=(10, 5),
     )
 
-    sys.exit()
-
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
         df=df_obs,
@@ -3397,6 +3408,17 @@ def main():
         obs_df=df_obs,
         model_x_axis_name="effective_dec_year",
         model_y_axis_name="total_gen",
+        obs_x_axis_name="effective_dec_year",
+        obs_y_axis_name="total_gen",
+        suffix="_dt",
+    )
+
+    # Pivot detrend the model data - total gen no bias correction
+    df_model_djf = gev_funcs.pivot_detrend_model(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_x_axis_name="effective_dec_year",
+        model_y_axis_name="total_gen_no_bc",
         obs_x_axis_name="effective_dec_year",
         obs_y_axis_name="total_gen",
         suffix="_dt",
@@ -3490,18 +3512,18 @@ def main():
     # Plot teh block min distribution
     # relative to the full distribution
     # For termpatrue first
-    plot_distributions_extremes(
-        model_df_full_field=df_model_djf,
-        obs_df_full_field=df_obs,
-        model_df_block=df_model_tas_block_min,
-        obs_df_block=df_obs_tas_block_min,
-        model_var_name_full_field="data_tas_c_drift_bc_dt",
-        obs_var_name_full_field="data_c_dt",
-        model_var_name_block="data_tas_c_min_drift_bc_dt",
-        obs_var_name_block="data_c_min_dt",
-        xlabels=["Temperature (°C)", "Temperature (°C)"],
-        percentile=0.05,
-    )
+    # plot_distributions_extremes(
+    #     model_df_full_field=df_model_djf,
+    #     obs_df_full_field=df_obs,
+    #     model_df_block=df_model_tas_block_min,
+    #     obs_df_block=df_obs_tas_block_min,
+    #     model_var_name_full_field="data_tas_c_drift_bc_dt",
+    #     obs_var_name_full_field="data_c_dt",
+    #     model_var_name_block="data_tas_c_min_drift_bc_dt",
+    #     obs_var_name_block="data_c_min_dt",
+    #     xlabels=["Temperature (°C)", "Temperature (°C)"],
+    #     percentile=0.05,
+    # )
 
     # DO the same for wind speed
     # plot_distributions_extremes(
@@ -3599,7 +3621,7 @@ def main():
     print("-----------------")
     print(df_model_djf.describe())
 
-    sys.exit()
+    # sys.exit()
 
     # # find the min and max of the effective_dec_year
     # min_year = ch_df["effective_dec_year"].min()
@@ -3814,7 +3836,7 @@ def main():
     # Calculate demand net wind for the NON-BIAS CORRECTED model data
     df_model_djf["demand_net_wind"] = (
         df_model_djf["data_tas_c_dt_UK_demand"]
-        - df_model_djf["total_gen_dt"]
+        - df_model_djf["total_gen_no_bc_dt"]
     )
 
     # Calculate demand net wind for the BIAS CORRECTED model data
@@ -3983,27 +4005,46 @@ def main():
         "data_c_dt",
         "data_c_dt_UK_demand",
         "data_sfcWind_dt",
-        "data_sfcWind_dt_sigmoid_total_wind_gen",
+        "combined_cfs_dt", # wind gen detrended
         "demand_net_wind",
     ]
+
+    # loop through the obs names and check whether each of them are columns in df_obs
+    for var_name in obs_var_names:
+        if var_name in df_obs.columns:
+            print(f"Column '{var_name}' exists in df_obs.")
+        else:
+            print(f"Column '{var_name}' is missing in df_obs.")
 
     # set up the model var names for plotting
     model_var_names = [
         "data_tas_c_dt",
         "data_tas_c_dt_UK_demand",
         "data_sfcWind_dt",
-        "data_sfcWind_dt_sigmoid_total_wind_gen",
-        "demand_net_wind",
+        "total_gen_no_bc_dt", # WP gen detrended, NO BIAS CORRECTION
+        "demand_net_wind", # NO BC for tas/demand or wind/WP gen
     ]
+
+    for var_name in model_var_names:
+        if var_name in df_model_djf.columns:
+            print(f"Column '{var_name}' exists in df_model_djf.")
+        else:
+            print(f"Column '{var_name}' is missing in df_model_djf.")
 
     # set up the model var names for plotting
     model_var_names_bc = [
         "data_tas_c_drift_bc_dt",
         "data_tas_c_drift_bc_dt_UK_demand",
         "data_sfcWind_drift_bc_dt",
-        "data_sfcWind_drift_bc_dt_sigmoid_total_wind_gen",
-        "demand_net_wind_bc",
+        "total_gen_dt", # WP gen detrended + bias corrected
+        "demand_net_wind_bc", # BC for tas + wind
     ]
+
+    for var_name in model_var_names_bc:
+        if var_name in df_model_djf.columns:
+            print(f"Column '{var_name}' exists in df_model_djf.")
+        else:
+            print(f"Column '{var_name}' is missing in df_model_djf.")
 
     # Set up the subplot titles
     subplot_titles = [
