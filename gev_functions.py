@@ -1166,7 +1166,7 @@ def plot_multi_var_dist(
         # # Set up the subplot title
         # axs[r, 0].set_title(subplot_titles[r][0])
 
-        axs[r, 0].text(
+        axs[r, 0].set_title(
             0.05,
             0.05,
             subplot_titles[r][0],
@@ -1210,11 +1210,11 @@ def plot_multi_var_dist(
         # if r is 0
         if r == 0:
             # Set the title
-            axs[r, 0].set_title("raw", fontweight="bold", fontsize=14)
-            axs[r, 1].set_title("bias corrected", fontweight="bold", fontsize=14)
+            axs[r, 0].set_title("a) Raw", fontweight="bold", fontsize=14)
+            axs[r, 1].set_title("b) Bias corrected", fontweight="bold", fontsize=14)
 
             # include a legend
-            axs[r, 1].legend(loc="upper right")
+            axs[r, 1].legend(loc="upper right", fontsize=14)
 
         axs[r, 1].set_yticks([])
 
@@ -1224,24 +1224,24 @@ def plot_multi_var_dist(
             model_df_bc[model_var_names_bc[r]].mean() - obs_df[obs_var_names[r]].mean()
         )
 
-        # include these in a textbox in the top left
-        axs[r, 0].text(
-            0.05,
-            0.95,
-            f"raw bias = {bias_raw:.2f}",
-            transform=axs[r, 0].transAxes,
-            verticalalignment="top",
-            bbox=dict(facecolor="white", alpha=0.5),
-        )
+        # # include these in a textbox in the top left
+        # axs[r, 0].text(
+        #     0.05,
+        #     0.95,
+        #     f"raw bias = {bias_raw:.2f}",
+        #     transform=axs[r, 0].transAxes,
+        #     verticalalignment="top",
+        #     bbox=dict(facecolor="white", alpha=0.5),
+        # )
 
-        axs[r, 1].text(
-            0.05,
-            0.95,
-            f"BC bias = {bias_bc:.2f}",
-            transform=axs[r, 1].transAxes,
-            verticalalignment="top",
-            bbox=dict(facecolor="white", alpha=0.5),
-        )
+        # axs[r, 1].text(
+        #     0.05,
+        #     0.95,
+        #     f"BC bias = {bias_bc:.2f}",
+        #     transform=axs[r, 1].transAxes,
+        #     verticalalignment="top",
+        #     bbox=dict(facecolor="white", alpha=0.5),
+        # )
 
     # Specify a tight layout
     fig.tight_layout()

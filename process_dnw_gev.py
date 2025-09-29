@@ -4005,9 +4005,10 @@ def main():
         "data_c_dt",
         "data_c_dt_UK_demand",
         "data_sfcWind_dt",
-        "combined_cfs_dt", # wind gen detrended
+        "total_gen", # wind gen detrended
         "demand_net_wind",
     ]
+
 
     # loop through the obs names and check whether each of them are columns in df_obs
     for var_name in obs_var_names:
@@ -4085,7 +4086,7 @@ def main():
             "Demand net wind (GW)",
         ],
         subplot_titles=subplot_titles,
-        figsize=(15, 15),
+        figsize=(6, 9),
     )
 
     # # now plot the relationships between variables here
