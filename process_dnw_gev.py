@@ -2304,16 +2304,16 @@ def main():
 
     arrs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/model/"
 
-    fname_no_drift_bc = "HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_NO_drift_bc_anoms_1960-2018.npy"
-    fname_drift_bc = "HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_drift_bc_anoms_1960-2018.npy"
+    # fname_no_drift_bc = "HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_NO_drift_bc_anoms_1960-2018.npy"
+    # fname_drift_bc = "HadGEM3-GC31-MM_sfcWind_Europe_20250625_DJF_day_drift_bc_anoms_1960-2018.npy"
 
-    # Load the .npy files
-    arr_no_drift_bc = np.load(os.path.join(arrs_dir, fname_no_drift_bc))
-    arr_drift_bc = np.load(os.path.join(arrs_dir, fname_drift_bc))
+    # # Load the .npy files
+    # arr_no_drift_bc = np.load(os.path.join(arrs_dir, fname_no_drift_bc))
+    # arr_drift_bc = np.load(os.path.join(arrs_dir, fname_drift_bc))
 
-    # print the shapes of the .np files
-    print(f"shape no drift bc {arr_no_drift_bc.shape}")
-    print(f"shape drift bc {arr_drift_bc.shape}")
+    # # print the shapes of the .np files
+    # print(f"shape no drift bc {arr_no_drift_bc.shape}")
+    # print(f"shape drift bc {arr_drift_bc.shape}")
 
     metadata_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_arrs/metadata/"
     # import the lats and lons for the europe sfcWind data
@@ -2329,30 +2329,30 @@ def main():
     lon1_index = np.where(lons_wind >= wind_gridbox["lon1"])[0][0]
     lon2_index = np.where(lons_wind <= wind_gridbox["lon2"])[0][-1]
     
-    arr_no_drift_bc_uk = arr_no_drift_bc[
-        :, # all init years
-        :, # all members
-        :,  # all winter days
-        :, # all winter years
-        lat1_index:lat2_index + 1,
-        lon1_index:lon2_index + 1,
-    ]
+    # arr_no_drift_bc_uk = arr_no_drift_bc[
+    #     :, # all init years
+    #     :, # all members
+    #     :,  # all winter days
+    #     :, # all winter years
+    #     lat1_index:lat2_index + 1,
+    #     lon1_index:lon2_index + 1,
+    # ]
 
-    arr_drift_bc_uk = arr_drift_bc[
-        :, # all init years
-        :, # all members
-        :90,  # all winter days (apart from 91)
-        :, # all winter years
-        lat1_index:lat2_index + 1,
-        lon1_index:lon2_index + 1,
-    ]
+    # arr_drift_bc_uk = arr_drift_bc[
+    #     :, # all init years
+    #     :, # all members
+    #     :90,  # all winter days (apart from 91)
+    #     :, # all winter years
+    #     lat1_index:lat2_index + 1,
+    #     lon1_index:lon2_index + 1,
+    # ]
 
-    arr_no_drift_bc_uk_mean = np.mean(arr_no_drift_bc_uk, axis=(-2, -1))
-    arr_drift_bc_uk_mean = np.mean(arr_drift_bc_uk, axis=(-2, -1))
+    # arr_no_drift_bc_uk_mean = np.mean(arr_no_drift_bc_uk, axis=(-2, -1))
+    # arr_drift_bc_uk_mean = np.mean(arr_drift_bc_uk, axis=(-2, -1))
 
     # print the shapes of these
-    print("Shape of arr_no_drift_bc_uk_mean:", arr_no_drift_bc_uk_mean.shape)
-    print("Shape of arr_drift_bc_uk_mean:", arr_drift_bc_uk_mean.shape)
+    # print("Shape of arr_no_drift_bc_uk_mean:", arr_no_drift_bc_uk_mean.shape)
+    # print("Shape of arr_drift_bc_uk_mean:", arr_drift_bc_uk_mean.shape)
 
     # Set up the df containing wind speed with drift corr
     df_drift_corr = pd.DataFrame()
@@ -2394,6 +2394,11 @@ def main():
 
     # Describe the full wp generation df
     print(full_wp_gen_df.describe())
+
+    # rename wyear to winter_year
+    # full_wp_gen_df.rename(columns={"wyear": "winter_year"}, inplace=True)
+    df_drift_corr.rename(columns={"wyear": "winter_year"}, inplace=True)
+    df_no_drift_corr.rename(columns={"wyear": "winter_year"}, inplace=True)
 
     print("------------------")
     print("DRIFT CORRECTION")
@@ -2957,23 +2962,23 @@ def main():
     # print the tail of the df_obs
     print(df_obs.tail())
 
-    # Print statistics for arr_no_drift_bc_uk_mean
-    print("Stats for arr_no_drift_bc_uk_mean:")
-    print(f"Mean: {np.mean(arr_no_drift_bc_uk_mean):.3f}")
-    print(f"Min: {np.min(arr_no_drift_bc_uk_mean):.3f}")
-    print(f"Max: {np.max(arr_no_drift_bc_uk_mean):.3f}")
-    print(f"25th percentile: {np.percentile(arr_no_drift_bc_uk_mean, 25):.3f}")
-    print(f"50th percentile (median): {np.percentile(arr_no_drift_bc_uk_mean, 50):.3f}")
-    print(f"70th percentile: {np.percentile(arr_no_drift_bc_uk_mean, 70):.3f}")
+    # # Print statistics for arr_no_drift_bc_uk_mean
+    # print("Stats for arr_no_drift_bc_uk_mean:")
+    # print(f"Mean: {np.mean(arr_no_drift_bc_uk_mean):.3f}")
+    # print(f"Min: {np.min(arr_no_drift_bc_uk_mean):.3f}")
+    # print(f"Max: {np.max(arr_no_drift_bc_uk_mean):.3f}")
+    # print(f"25th percentile: {np.percentile(arr_no_drift_bc_uk_mean, 25):.3f}")
+    # print(f"50th percentile (median): {np.percentile(arr_no_drift_bc_uk_mean, 50):.3f}")
+    # print(f"70th percentile: {np.percentile(arr_no_drift_bc_uk_mean, 70):.3f}")
 
-    # Print statistics for arr_drift_bc_uk_mean
-    print("Stats for arr_drift_bc_uk_mean:")
-    print(f"Mean: {np.mean(arr_drift_bc_uk_mean):.3f}")
-    print(f"Min: {np.min(arr_drift_bc_uk_mean):.3f}")
-    print(f"Max: {np.max(arr_drift_bc_uk_mean):.3f}")
-    print(f"25th percentile: {np.percentile(arr_drift_bc_uk_mean, 25):.3f}")
-    print(f"50th percentile (median): {np.percentile(arr_drift_bc_uk_mean, 50):.3f}")
-    print(f"70th percentile: {np.percentile(arr_drift_bc_uk_mean, 70):.3f}")
+    # # Print statistics for arr_drift_bc_uk_mean
+    # print("Stats for arr_drift_bc_uk_mean:")
+    # print(f"Mean: {np.mean(arr_drift_bc_uk_mean):.3f}")
+    # print(f"Min: {np.min(arr_drift_bc_uk_mean):.3f}")
+    # print(f"Max: {np.max(arr_drift_bc_uk_mean):.3f}")
+    # print(f"25th percentile: {np.percentile(arr_drift_bc_uk_mean, 25):.3f}")
+    # print(f"50th percentile (median): {np.percentile(arr_drift_bc_uk_mean, 50):.3f}")
+    # print(f"70th percentile: {np.percentile(arr_drift_bc_uk_mean, 70):.3f}")
 
     print(df_obs.describe())
 
@@ -2985,29 +2990,33 @@ def main():
     df_model_djf["data_tas_c"] = df_model_djf["data_tas"] - 273.15
 
     # Plot the lead pdfs to visualise the biases/drifts
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_tas_c",
-    #     obs_var_name="data_c",
-    #     lead_name="winter_year",
-    #     xlabel="Temperature (°C)",
-    #     suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
-    #     figsize=(10, 5),
-    #     # )
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_tas_c",
+        obs_var_name="data_c",
+        lead_name="winter_year",
+        xlabel="Temperature (°C)",
+        suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017",
+        figsize=(10, 5),
+        )
 
-    # # Plot the lead pdfs to visualise the biases/drifts
-    # # but for wind speed
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_sfcWind",
-    #     obs_var_name="data_sfcWind",
-    #     lead_name="winter_year",
-    #     xlabel="10m Wind Speed (m/s)",
-    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
-    #     figsize=(10, 5),
-    # )
+    # Plot the lead pdfs to visualise the biases/drifts
+    # but for wind speed
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_sfcWind",
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+        xlabel="10m Wind Speed (m/s)",
+        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
+        figsize=(10, 5),
+    )
+
+    print("--"*30)
+    print("plotting tas pre-drift correction")
+    print("--"*30)
 
     # Apply the dirft correction to the model data
     df_model_djf = model_drift_corr_plot(
@@ -3022,7 +3031,9 @@ def main():
         constant_period=True,
     )
 
-    print(df_model_djf.columns())
+    print("--"*30)
+    print("plotting sfcWind pre-drift correction")
+    print("--"*30)
 
     # Apply the dirft correction to the model data - sfcwind
     df_model_djf = model_drift_corr_plot(
@@ -3037,7 +3048,7 @@ def main():
         constant_period=True,
     )
 
-    sys.exit()
+    # sys.exit()
 
     # --------------------------------
     # Append the model WP generation data to the df_model_djf
@@ -3166,32 +3177,38 @@ def main():
     #     constant_period=True,
     # )
 
+    print("--"*30)
+    print("plotting tas post-drift correction")
+    print("--"*30)
+
     # plot the lead pdfs to visualise the biases/drifts
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_tas_c_drift_bc",
-    #     obs_var_name="data_c",
-    #     lead_name="winter_year",
-    #     xlabel="Temperature (°C)",
-    #     suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
-    #     figsize=(10, 5),
-    # )
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_tas_c_drift_bc",
+        obs_var_name="data_c",
+        lead_name="winter_year",
+        xlabel="Temperature (°C)",
+        suptitle="Lead dependent temperature PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+        figsize=(10, 5),
+    )
 
-    # # Plot the lead pdfs to visualise the biases/drifts
-    # # but for wind speed
-    # gev_funcs.plot_lead_pdfs(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_var_name="data_sfcWind_drift_bc",
-    #     obs_var_name="data_sfcWind",
-    #     lead_name="winter_year",
-    #     xlabel="10m Wind Speed (m/s)",
-    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
-    #     figsize=(10, 5),
-    # )
+    print("--"*30)
+    print("plotting sfcWind post-drift correction")
+    print("--"*30)
 
-    # sys.exit()
+    # Plot the lead pdfs to visualise the biases/drifts
+    # but for wind speed
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_var_name="data_sfcWind_drift_bc",
+        obs_var_name="data_sfcWind",
+        lead_name="winter_year",
+        xlabel="10m Wind Speed (m/s)",
+        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+        figsize=(10, 5),
+    )
 
     # Plot the lead pdfs to visualise the biases/drifts
     # gev_funcs.plot_lead_pdfs(
@@ -3264,7 +3281,52 @@ def main():
     #     figsize=(5, 5),
     # )
 
-    # sys.exit()
+    print("--"*30)
+    print("pre-detrending, plotting lead pdfs for wind cfs ORIGINAL df_model_djf_new")
+    print("--"*30)
+
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_model_djf_new,
+        obs_df=df_obs,
+        model_var_name="wind_cfs",
+        obs_var_name="combined_cfs",
+        lead_name="winter_year",
+        xlabel="Wind capacity factors",
+        suptitle="Lead dependent wind CFs (ORIGINAL), DJF all days, 1961-2017, no detrend (lead drift BC)",
+        figsize=(10, 5),
+    )
+
+    print("--"*30)
+    print("pre-detrending, plotting lead pdfs for total gen df drift corr")
+    print("--"*30)
+
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_drift_corr,
+        obs_df=df_obs,
+        model_var_name="capacity_factor",
+        obs_var_name="combined_cfs",
+        lead_name="winter_year",
+        xlabel="Wind capacity factors",
+        suptitle="Lead dependent wind CFs (ORIGINAL), DJF all days, 1961-2017, no detrend (lead drift BC)",
+        figsize=(10, 5),
+    )
+
+    print("--"*30)
+    print("pre-detrending, plotting lead pdfs for total gen df NO drift corr")
+    print("--"*30)
+
+    gev_funcs.plot_lead_pdfs(
+        model_df=df_no_drift_corr,
+        obs_df=df_obs,
+        model_var_name="capacity_factor",
+        obs_var_name="combined_cfs",
+        lead_name="winter_year",
+        xlabel="Wind capacity factors",
+        suptitle="Lead dependent wind CFs (ORIGINAL), DJF all days, 1961-2017, no detrend (lead drift BC)",
+        figsize=(10, 5),
+    )
+
+    sys.exit()
 
     # Pivot detrend the obs for temperature
     df_obs = gev_funcs.pivot_detrend_obs(
@@ -3516,6 +3578,19 @@ def main():
     df_obs["total_gen"] = (
         df_obs["combined_cfs_dt"] * (onshore_cap_gw + offshore_cap_gw)
     )
+
+    # describe df_obs
+    print("-----------------")
+    print("description of the obs")
+    print("-----------------")
+    print(df_obs.describe())
+
+    print("-----------------")
+    print("description of the model")
+    print("-----------------")
+    print(df_model_djf.describe())
+
+    sys.exit()
 
     # # find the min and max of the effective_dec_year
     # min_year = ch_df["effective_dec_year"].min()
