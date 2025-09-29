@@ -3464,26 +3464,26 @@ def main():
     # sys.exit()
 
     # # apply a detrend to the wind data
-    # df_model_djf = gev_funcs.pivot_detrend_model(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_x_axis_name="effective_dec_year",
-    #     model_y_axis_name="data_sfcWind_drift_bc",
-    #     obs_x_axis_name="effective_dec_year",
-    #     obs_y_axis_name="data_sfcWind",
-    #     suffix="_dt",
-    # )
+    df_model_djf = gev_funcs.pivot_detrend_model(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_x_axis_name="effective_dec_year",
+        model_y_axis_name="data_sfcWind_drift_bc",
+        obs_x_axis_name="effective_dec_year",
+        obs_y_axis_name="data_sfcWind",
+        suffix="_dt",
+    )
 
-    # # perform the same for the non bias corrected data
-    # df_model_djf = gev_funcs.pivot_detrend_model(
-    #     model_df=df_model_djf,
-    #     obs_df=df_obs,
-    #     model_x_axis_name="effective_dec_year",
-    #     model_y_axis_name="data_sfcWind",
-    #     obs_x_axis_name="effective_dec_year",
-    #     obs_y_axis_name="data_sfcWind",
-    #     suffix="_dt",
-    # )
+    # perform the same for the non bias corrected data
+    df_model_djf = gev_funcs.pivot_detrend_model(
+        model_df=df_model_djf,
+        obs_df=df_obs,
+        model_x_axis_name="effective_dec_year",
+        model_y_axis_name="data_sfcWind",
+        obs_x_axis_name="effective_dec_year",
+        obs_y_axis_name="data_sfcWind",
+        suffix="_dt",
+    )
 
     # # do the same for wind speed
     # gev_funcs.plot_lead_pdfs(
@@ -4015,6 +4015,7 @@ def main():
             print(f"Column '{var_name}' exists in df_obs.")
         else:
             print(f"Column '{var_name}' is missing in df_obs.")
+            raise ValueError(f"Column '{var_name}' is missing in df_obs.")
 
     # set up the model var names for plotting
     model_var_names = [
@@ -4030,6 +4031,7 @@ def main():
             print(f"Column '{var_name}' exists in df_model_djf.")
         else:
             print(f"Column '{var_name}' is missing in df_model_djf.")
+            raise ValueError(f"Column {var_name} is missing in df_model_djf")
 
     # set up the model var names for plotting
     model_var_names_bc = [
@@ -4045,6 +4047,7 @@ def main():
             print(f"Column '{var_name}' exists in df_model_djf.")
         else:
             print(f"Column '{var_name}' is missing in df_model_djf.")
+            raise ValueError(f"Column {var_name} is missing in df_model_djf")
 
     # Set up the subplot titles
     subplot_titles = [
@@ -4065,8 +4068,6 @@ def main():
 
     # print the columns in df_model_djf
     print(df_model.columns)
-
-    sys.exit()
 
     # plot the PDFs for multivariatie testing
     gev_funcs.plot_multi_var_dist(
