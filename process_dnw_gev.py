@@ -2539,6 +2539,15 @@ def main():
         full_wp_gen_df["wyear"] - 1
     )
 
+    df_drift_corr["effective_dec_year"] = df_drift_corr["init_year"] + (
+        df_drift_corr["winter_year"] - 1
+    )
+
+    df_no_drift_corr["effective_dec_year"] = df_no_drift_corr["init_year"] + (
+        df_no_drift_corr["winter_year"] - 1
+    )
+
+
     # # Extract the Unique efefctive dec years from trhe df_model_djf and
     # # Full wind power gen df
     # unique_effective_dec_years_model = df_model_djf["effective_dec_year"].unique()
