@@ -226,12 +226,12 @@ def pivot_emp_rps_dnw(
     )
 
     # Find the max dnw value in obs block maxima
-    obs_max_dnw = obs_block_maxima["dnw_max"].max()
+    # Find the second highest value directly
+    obs_max_dnw = obs_block_maxima["dnw_max"].nlargest(2).iloc[1]
 
-    # Find the time at which this occurs
-    obs_max_dnw_time = obs_block_maxima.loc[
-        obs_block_maxima["dnw_max"] == obs_max_dnw, obs_time_name
-    ].values[0]
+    # Find the time at which the second highest occurs
+    second_max_index = obs_block_maxima["dnw_max"].nlargest(2).index[1]
+    obs_max_dnw_time = obs_block_maxima.loc[second_max_index, obs_time_name]
 
     # print the obs max dnw time
     print(f"Obs max dnw time: {obs_max_dnw_time}")
@@ -640,7 +640,7 @@ def pivot_emp_rps_dnw(
 
     # Set up the title
     ax.set_title(
-        f"f) Chance of > 1995-96 DnW by year",
+        f"f) Chance of > 2010-11 DnW by year",
         fontsize=12,
     )
 
@@ -3290,18 +3290,20 @@ def main():
     # ), "The effective dec years in the model and obs dataframes do not match!"
 
     # # Test the new function before all detrending takes place
-    # pivot_emp_rps_dnw(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf_new,
-    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-    #     obs_var_name_tas="data_c",
-    #     model_var_name_wind="total_gen", # no detrend model WP gen var
-    #     model_var_name_tas="data_tas_c_drift_bc",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     nsamples=10,
-    #     figsize=(5, 5),
-    # )
+    pivot_emp_rps_dnw(
+        obs_df=df_obs,
+        model_df=df_model_djf_new,
+        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+        obs_var_name_tas="data_c",
+        model_var_name_wind="total_gen", # no detrend model WP gen var
+        model_var_name_tas="data_tas_c_drift_bc",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        nsamples=10,
+        figsize=(5, 5),
+    )
+
+    sys.exit()
 
     print("--"*30)
     print("pre-detrending, plotting lead pdfs for wind cfs ORIGINAL df_model_djf_new")
@@ -4450,7 +4452,7 @@ def main():
         fontsize=14,
     )
 
-    sys.exit()
+    # sys.exit()
 
     # gev_funcs.dot_plot_subplots(
     #     obs_df_left=block_max_obs_dnw,
@@ -4625,7 +4627,7 @@ def main():
     #     full_distr_y2=df_model_djf["total_gen"]
     # )
 
-    sys.exit()
+    # sys.exit()
 
     # # print the columns in block max obs demand and model demand
     # print(block_max_obs_demand.columns)
@@ -4999,10 +5001,17 @@ def main():
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
 
+    # exclude the highest value from the observations
+    # Find the index of the row with the maximum demand_net_wind_max
+    max_index = block_max_obs_dnw['demand_net_wind_max'].idxmax()
+
+    # Create a new dataframe excluding that row
+    new_df = block_max_obs_dnw.drop(max_index)
+
     # # # plot the return period plots here
     # # # first the empirical return periods
     plot_emp_rps(
-        obs_df=block_max_obs_dnw,
+        obs_df=new_df,
         model_df=block_max_model_dnw,
         obs_val_name="demand_net_wind_max",
         model_val_name="demand_net_wind_bc_max",
@@ -5015,7 +5024,7 @@ def main():
         high_values_rare=True,
         figsize=(5, 5),
         wind_2005_toggle=False,
-        title="e) Chance > 1995-96 DnW"
+        title="e) Chance > 2010-11 DnW"
     )
  
     # # print the block max obs dnw max row
