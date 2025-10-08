@@ -2908,11 +2908,11 @@ def main():
     print(df_obs_wp_generation.head())
 
     # subset the obs data to D, J, F
-    df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2])]
+    df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2, 3])]
 
     # Subset the wp generation data to D, J, F
     df_obs_wp_generation = df_obs_wp_generation[
-        df_obs_wp_generation["time"].dt.month.isin([12, 1, 2])
+        df_obs_wp_generation["time"].dt.month.isin([12, 1, 2, 3])
     ]
 
     # new column for temp in C
@@ -2925,7 +2925,7 @@ def main():
 
     # Set up the start and end date to use
     start_date = pd.to_datetime("1960-01-01")
-    end_date = pd.to_datetime("2025-02-28")
+    end_date = pd.to_datetime("2025-03-30")
 
     # Create a date range
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
@@ -2937,7 +2937,7 @@ def main():
     df_obs_sfcWind.rename(columns={"obs_mean": "data"}, inplace=True)
 
     # subset the obs data to D, J, F
-    df_obs_sfcWind = df_obs_sfcWind[df_obs_sfcWind["time"].dt.month.isin([12, 1, 2])]
+    df_obs_sfcWind = df_obs_sfcWind[df_obs_sfcWind["time"].dt.month.isin([12, 1, 2, 3])]
 
     # Set time as the index for both dataframes
     df_obs_tas.set_index("time", inplace=True)
