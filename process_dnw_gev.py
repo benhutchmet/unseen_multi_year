@@ -247,6 +247,12 @@ def pivot_emp_rps_dnw(
         ]
     )
 
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    # save the obs max dnw df to the save dir
+    print("saving file to csv")
+    obs_block_maxima.to_csv(os.path.join(save_dir, "obs_dnw_block_maxima_08102025.csv"))
+
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
 
@@ -578,10 +584,11 @@ def pivot_emp_rps_dnw(
 
     # Limit the y-axis to between 0 and 4
     # Set new tick labels
-    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    # ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     # Set new tick labels for the primary y-axis
     # Set up yticks for the primary y-axis
-    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+    # Set up yticks for the primary y-axis
+    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
     ax.set_yticklabels(
         [
             "0%",
@@ -597,6 +604,12 @@ def pivot_emp_rps_dnw(
             "10%",
             "11%",
             "12%",
+            "13%",
+            "14%",
+            "15%",
+            "16%",
+            "17%",
+            "18%",
         ]
     )
 
@@ -606,10 +619,10 @@ def pivot_emp_rps_dnw(
     # Synchronize the tick positions of the second y-axis with the first y-axis
     ax2.set_yticks(ax.get_yticks())  # Use the same tick positions as the primary y-axis
 
-    # Set tick labels for the second y-axis (ensure the number of labels matches the number of ticks)
+    # Set tick labels for the second y-axis (19 labels to match 19 ticks)
     ax2.set_yticklabels(
-        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"]
-    )  # 13 labels
+        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8", "8", "7", "7", "6", "6", "6"]
+    )
 
     # Set the y-axis limits for both axes to ensure alignment
     ax2.set_ylim(ax.get_ylim())  # Match the limits of the primary y-axis
@@ -3299,7 +3312,7 @@ def main():
         model_var_name_tas="data_tas_c_drift_bc",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
-        nsamples=10,
+        nsamples=1000,
         figsize=(5, 5),
     )
 
