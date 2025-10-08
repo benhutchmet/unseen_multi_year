@@ -5480,6 +5480,34 @@ def plot_multi_var_composites_model(
                     5,
                 ]
             )
+            # levels = np.array(
+            #     [
+            #         -2.5,
+            #         -2.0,
+            #         -1.5,
+            #         -1.0,
+            #         -0.5,
+            #         0.5,
+            #         1.0,
+            #         1.5,
+            #         2.0,
+            #         2.5,
+            #     ]
+            # )
+            # levels = np.array(
+            #     [
+            #     -1.25,
+            #     -1.0,
+            #     -0.75,
+            #     -0.5,
+            #     -0.25,
+            #     0.25,
+            #     0.5,
+            #     0.75,
+            #     1.0,
+            #     1.25,
+            #     ]
+            # )
         elif var_name in ["uas", "vas"]:
             cmap = "PRGn"
             levels = np.array(
