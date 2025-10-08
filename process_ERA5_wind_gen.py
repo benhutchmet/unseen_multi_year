@@ -333,7 +333,8 @@ def main():
     base_path = "/gws/nopw/j04/canari/users/benhutch/ERA5/"
 
     # Set up the remaining years
-    remaining_years = [str(year) for year in range(1960, 2025 + 1)]
+    # remaining_years = [str(year) for year in range(1960, 2025 + 1)]
+    remaining_years = ["2018"]
 
     # Set up the path to the observed data
     remaining_files_dir = os.path.join(base_path, "year_month")
@@ -342,15 +343,18 @@ def main():
     obs_cubelist_u10 = []
     obs_cubelist_v10 = []
 
+#  ERA5_EU_85000_zg_T_U_V2018_03.nc
+
     # Loop over the remaining years
     for year in tqdm(remaining_years):
-        for month in ["01", "02", "12"]:
+        for month in ["01", "02", "03", "12"]:
             # if the year is 2025 and the month is 12, then skip
             if year == "2025" and month == "12":
                 continue
             
             # Set up the fname this
-            fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}.nc"
+            # fname_this = f"ERA5_EU_T_U10_V10_msl{year}_{month}.nc"
+            fname_this = f"ERA5_EU_85000_zg_T_U_V{year}_{month}.nc"
 
             # Set up the path to the observed data
             obs_path_this = os.path.join(remaining_files_dir, fname_this)

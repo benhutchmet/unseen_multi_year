@@ -249,9 +249,11 @@ def pivot_emp_rps_dnw(
 
     save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
 
+    current_time = datetime.now().strftime("%d%m%Y_%H%M%S")
+
     # save the obs max dnw df to the save dir
     print("saving file to csv")
-    obs_block_maxima.to_csv(os.path.join(save_dir, "obs_dnw_block_maxima_08102025.csv"))
+    obs_block_maxima.to_csv(os.path.join(save_dir, f"obs_dnw_block_maxima_{current_time}.csv"))
 
     # Set up a new dataframe to append values to
     model_df_plume = pd.DataFrame()
@@ -2145,6 +2147,13 @@ def main():
     # Load the observed wind power generation data
     df_obs_wp_generation = pd.read_csv(obs_wp_generation_path)
 
+    print(df_obs_wp_generation.head())
+    print(df_obs_wp_generation.columns)
+    print(df_obs_wp_generation.shape)
+    print(df_obs_wp_generation.tail())
+
+    sys.exit()
+
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
 
@@ -2907,6 +2916,10 @@ def main():
     # print the head of the df_obs_wp_generation
     print(df_obs_wp_generation.head())
 
+    print(df_obs_wp_generation.tail())
+
+    sys.exit()
+
     # subset the obs data to D, J, F
     df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2, 3])]
 
@@ -3312,7 +3325,7 @@ def main():
         model_var_name_tas="data_tas_c_drift_bc",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
-        nsamples=1000,
+        nsamples=10,
         figsize=(5, 5),
     )
 
