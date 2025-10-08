@@ -2131,9 +2131,13 @@ def main():
 
     # Hardcode the new path to the alternate WP generation data
     # Using Hannah's spatially aggregated method
+    # obs_wp_generation_path = (
+    #     "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2025_daily.csv"
+    # )
     obs_wp_generation_path = (
-        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2025_daily.csv"
+        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2020.csv"
     )
+
 
     # Set up the directory in which the model df data is stored
     wp_output_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/model/WP_gen"
@@ -2147,12 +2151,12 @@ def main():
     # Load the observed wind power generation data
     df_obs_wp_generation = pd.read_csv(obs_wp_generation_path)
 
-    print(df_obs_wp_generation.head())
-    print(df_obs_wp_generation.columns)
-    print(df_obs_wp_generation.shape)
-    print(df_obs_wp_generation.tail())
+    # print(df_obs_wp_generation.head())
+    # print(df_obs_wp_generation.columns)
+    # print(df_obs_wp_generation.shape)
+    # print(df_obs_wp_generation.tail())
 
-    sys.exit()
+    # sys.exit()
 
     # Set up the directory in which the dfs are stored
     dfs_dir = "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/"
