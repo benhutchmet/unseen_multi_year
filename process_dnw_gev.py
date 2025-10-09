@@ -216,6 +216,19 @@ def pivot_emp_rps_dnw(
         - df_obs[f"{obs_var_name_wind}"]
     )
 
+    # Subset df obs to march 2018
+    df_obs_march_18 = df_obs[
+        (df_obs["time"] >= "2018-02-20") & (df_obs["time"] < "2018-04-01")
+    ]
+
+    # save the files
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+
+    current_time = datetime.now().strftime("%d%m%Y_%H%M%S")
+
+    print("saving march 2018 obs dnw to csv")
+    df_obs_march_18.to_csv(os.path.join(save_dir, f"obs_dnw_march_2018_{current_time}.csv"))
+
     # Calculate the block maxima for the obs
     obs_block_maxima = gev_funcs.obs_block_min_max(
         df=df_obs,
@@ -246,10 +259,6 @@ def pivot_emp_rps_dnw(
             obs_block_maxima["dnw_max"] == obs_block_maxima["dnw_max"].max()
         ]
     )
-
-    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
-
-    current_time = datetime.now().strftime("%d%m%Y_%H%M%S")
 
     # save the obs max dnw df to the save dir
     print("saving file to csv")
@@ -2905,9 +2914,9 @@ def main():
     print(df_obs_wp_generation.head())
 
     # Convert the 'time' column to datetime, assuming it represents days since "1952-01-01 00:00:00"
-    # df_obs_wp_generation["time"] = pd.to_datetime(
-    #     df_obs_wp_generation["time"], origin="1952-01-01", unit="D"
-    # )
+    df_obs_wp_generation["time"] = pd.to_datetime(
+        df_obs_wp_generation["time"], origin="1952-01-01", unit="D"
+    )
     # # if time column is not a datetime, convert it
     # if not pd.api.types.is_datetime64_any_dtype(df_obs_wp_generation["time"]):
     #     df_obs_wp_generation["time"] = pd.to_datetime(
@@ -2922,7 +2931,7 @@ def main():
 
     print(df_obs_wp_generation.tail())
 
-    sys.exit()
+    # sys.exit()
 
     # subset the obs data to D, J, F
     df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2, 3])]
@@ -2947,35 +2956,44 @@ def main():
     # Create a date range
     date_range = pd.date_range(start=start_date, end=end_date, freq="D")
 
-    # Make sure time is a datetime
-    df_obs_sfcWind["time"] = date_range
+    # # Make sure time is a datetime
+    # df_obs_sfcWind["time"] = date_range
 
-    # rename the 'obs_mean' column to 'data'
-    df_obs_sfcWind.rename(columns={"obs_mean": "data"}, inplace=True)
+    # # rename the 'obs_mean' column to 'data'
+    # df_obs_sfcWind.rename(columns={"obs_mean": "data"}, inplace=True)
 
-    # subset the obs data to D, J, F
-    df_obs_sfcWind = df_obs_sfcWind[df_obs_sfcWind["time"].dt.month.isin([12, 1, 2, 3])]
+    # # subset the obs data to D, J, F
+    # df_obs_sfcWind = df_obs_sfcWind[df_obs_sfcWind["time"].dt.month.isin([12, 1, 2, 3])]
 
     # Set time as the index for both dataframes
     df_obs_tas.set_index("time", inplace=True)
-    df_obs_sfcWind.set_index("time", inplace=True)
+    # df_obs_sfcWind.set_index("time", inplace=True)
     df_obs_wp_generation.set_index("time", inplace=True)
 
-    # Join the two dataframes with suffixes
-    df_obs = df_obs_tas.join(df_obs_sfcWind, lsuffix="_tas", rsuffix="_sfcWind")
+    # # Join the two dataframes with suffixes
+    # df_obs = df_obs_tas.join(df_obs_sfcWind, lsuffix="_tas", rsuffix="_sfcWind")
 
     # Join the observed wind power generation data
-    df_obs = df_obs.join(
+    df_obs = df_obs_tas.join(
         df_obs_wp_generation,
         lsuffix="",
         rsuffix="_wp_generation",
     )
-
     # Reset the index of df_obs
     df_obs.reset_index(inplace=True)
 
     # Make sure that the time column is datetime
     df_obs["time"] = pd.to_datetime(df_obs["time"])
+
+    # drop any rows past 2020-12-31
+    df_obs = df_obs[df_obs["time"] <= "2020-12-31"]
+
+    # Print the unique months in df_obs
+    print("Unique months in df_obs:", df_obs["time"].dt.month.unique())
+
+    # Print the min and max dates in df_obs
+    print("Min date in df_obs:", df_obs["time"].min())
+    print("Max date in df_obs:", df_obs["time"].max())
 
     # Apply the effective_dec_year to the df_obs
     df_obs["effective_dec_year"] = df_obs.apply(
@@ -3040,18 +3058,18 @@ def main():
         figsize=(10, 5),
         )
 
-    # Plot the lead pdfs to visualise the biases/drifts
-    # but for wind speed
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_sfcWind",
-        obs_var_name="data_sfcWind",
-        lead_name="winter_year",
-        xlabel="10m Wind Speed (m/s)",
-        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs to visualise the biases/drifts
+    # # but for wind speed
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind",
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    #     xlabel="10m Wind Speed (m/s)",
+    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017",
+    #     figsize=(10, 5),
+    # )
 
     print("--"*30)
     print("plotting tas pre-drift correction")
@@ -3074,18 +3092,18 @@ def main():
     print("plotting sfcWind pre-drift correction")
     print("--"*30)
 
-    # Apply the dirft correction to the model data - sfcwind
-    df_model_djf = model_drift_corr_plot(
-        model_df=df_model_djf,
-        model_var_name="data_sfcWind",
-        obs_df=df_obs,
-        obs_var_name="data_sfcWind",
-        lead_name="winter_year",
-        xlabel="10m wind speed (m/s)",
-        year1_year2_tuple=(1970, 2017),
-        lead_day_name="lead",
-        constant_period=True,
-    )
+    # # Apply the dirft correction to the model data - sfcwind
+    # df_model_djf = model_drift_corr_plot(
+    #     model_df=df_model_djf,
+    #     model_var_name="data_sfcWind",
+    #     obs_df=df_obs,
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    #     xlabel="10m wind speed (m/s)",
+    #     year1_year2_tuple=(1970, 2017),
+    #     lead_day_name="lead",
+    #     constant_period=True,
+    # )
 
     # sys.exit()
 
@@ -3245,18 +3263,18 @@ def main():
     print("plotting sfcWind post-drift correction")
     print("--"*30)
 
-    # Plot the lead pdfs to visualise the biases/drifts
-    # but for wind speed
-    gev_funcs.plot_lead_pdfs(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_var_name="data_sfcWind_drift_bc",
-        obs_var_name="data_sfcWind",
-        lead_name="winter_year",
-        xlabel="10m Wind Speed (m/s)",
-        suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
-        figsize=(10, 5),
-    )
+    # # Plot the lead pdfs to visualise the biases/drifts
+    # # but for wind speed
+    # gev_funcs.plot_lead_pdfs(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_var_name="data_sfcWind_drift_bc",
+    #     obs_var_name="data_sfcWind",
+    #     lead_name="winter_year",
+    #     xlabel="10m Wind Speed (m/s)",
+    #     suptitle="Lead dependent wind speed PDFs, DJF all days, 1961-2017 (model drift + bias corrected)",
+    #     figsize=(10, 5),
+    # )
 
     # Plot the lead pdfs to visualise the biases/drifts
     # gev_funcs.plot_lead_pdfs(
@@ -3319,21 +3337,21 @@ def main():
     #     unique_effective_dec_years, unique_effective_dec_years_obs
     # ), "The effective dec years in the model and obs dataframes do not match!"
 
-    # # Test the new function before all detrending takes place
-    pivot_emp_rps_dnw(
-        obs_df=df_obs,
-        model_df=df_model_djf_new,
-        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-        obs_var_name_tas="data_c",
-        model_var_name_wind="total_gen", # no detrend model WP gen var
-        model_var_name_tas="data_tas_c_drift_bc",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        nsamples=10,
-        figsize=(5, 5),
-    )
+    # # # Test the new function before all detrending takes place
+    # pivot_emp_rps_dnw(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf_new,
+    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+    #     obs_var_name_tas="data_c",
+    #     model_var_name_wind="total_gen", # no detrend model WP gen var
+    #     model_var_name_tas="data_tas_c_drift_bc",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     nsamples=10,
+    #     figsize=(5, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     print("--"*30)
     print("pre-detrending, plotting lead pdfs for wind cfs ORIGINAL df_model_djf_new")
@@ -5049,10 +5067,11 @@ def main():
         model_time_name="effective_dec_year",
         ylabel="Demand net wind (GW)",
         nsamples=1000,
-        ylims=(44, 52),
+        ylims=(38, 52),
         blue_line=np.max,
         high_values_rare=True,
         figsize=(5, 5),
+        bonus_line=41.2375317657128,
         wind_2005_toggle=False,
         title="e) Chance > 2010-11 DnW"
     )
