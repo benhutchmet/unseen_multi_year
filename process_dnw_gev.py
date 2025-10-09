@@ -43,7 +43,7 @@ from iris.util import equalise_attributes
 
 # # # Local imports
 import gev_functions as gev_funcs
-from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -4060,13 +4060,13 @@ def main():
     ]
 
 
-    # loop through the obs names and check whether each of them are columns in df_obs
-    for var_name in obs_var_names:
-        if var_name in df_obs.columns:
-            print(f"Column '{var_name}' exists in df_obs.")
-        else:
-            print(f"Column '{var_name}' is missing in df_obs.")
-            raise ValueError(f"Column '{var_name}' is missing in df_obs.")
+    # # loop through the obs names and check whether each of them are columns in df_obs
+    # for var_name in obs_var_names:
+    #     if var_name in df_obs.columns:
+    #         print(f"Column '{var_name}' exists in df_obs.")
+    #     else:
+    #         print(f"Column '{var_name}' is missing in df_obs.")
+    #         raise ValueError(f"Column '{var_name}' is missing in df_obs.")
 
     # set up the model var names for plotting
     model_var_names = [
@@ -4222,7 +4222,6 @@ def main():
             "data_c_dt_UK_demand",
             "time",
             "data_c_dt",
-            "data_sfcWind_dt",
         ],
         process_min=False,
     )
@@ -4236,7 +4235,6 @@ def main():
             "data_c_dt_UK_demand",
             "time",
             "data_c_dt",
-            "data_sfcWind_dt",
         ],
         process_min=False,
     )

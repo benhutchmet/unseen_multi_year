@@ -40,12 +40,12 @@ from iris.util import equalise_attributes
 # Local imports
 import gev_functions as gev_funcs
 
-# from process_dnw_gev import (
-#     select_leads_wyears_DJF,
-#     plot_distributions_extremes,
-#     plot_multi_var_perc,
-#     ws_to_wp_gen,
-# )
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+    ws_to_wp_gen,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -608,7 +608,6 @@ def plot_emp_rps(
     high_values_rare: bool = False,
     figsize: tuple = (5, 5),
     bonus_line: float = None,
-    wind_2005_toggle: bool = True,
     title: str = None,
 ) -> None:
     """
@@ -739,27 +738,6 @@ def plot_emp_rps(
 
     # Extreme value as the min
     extreme_value = blue_line(obs_df[obs_val_name].values)
-
-    # # If ylabel includes "wind" or "Wind", and wind_2005_toggle is True
-    # if ("wind" in ylabel or "Wind" in ylabel) and wind_2005_toggle:
-    #     # Rank the obs values from low to high
-    #     obs_df["rank"] = obs_df[obs_val_name].rank(
-    #         method="first", ascending=True
-    #     )
-    #     # Find the second worst observed extreme
-    #     extreme_value = obs_df.loc[
-    #         obs_df["rank"] == 2, obs_val_name
-    #     ].values[0]
-    # elif "wind" in ylabel or "Wind" in ylabel and not wind_2005_toggle:
-    #     # Find the extreme value
-    #     extreme_value = blue_line(
-    #         obs_df[obs_val_name].values
-    #     )
-    # else:
-    #     # Find the extreme value
-    #     extreme_value = blue_line(
-    #         obs_df[obs_val_name].values
-    #     )
 
     # find the time in which this occurs
     extreme_time = obs_df.loc[
@@ -4388,7 +4366,7 @@ def main():
         fontsize=14,
     )
 
-    sys.exit()
+    # sys.exit()
 
     # # Dot plot subplots for tas and wind speed short
     # gev_funcs.dot_plot_subplots(
@@ -4453,6 +4431,15 @@ def main():
     #     figsize=(5, 5),
     # )
 
+    save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
+    fname = "obs_coldest_days_09102025.csv"
+
+    # Save the obs tas data
+    block_minima_obs_tas_dt.to_csv(os.path.join(
+        save_dir,
+        fname
+    ))
+
     # test the funcion for doing the same thing
     plot_emp_rps(
         obs_df=block_minima_obs_tas_dt,
@@ -4467,8 +4454,11 @@ def main():
         blue_line=np.min,
         high_values_rare=False,
         figsize=(5, 5),
+        bonus_line=-3.749775924307727, # 28-02-2018 Beast from the East
         title="a) Chance < 1986-87 temperature",
     )
+
+    sys.exit()
 
     # # do thye same thing fo wind speed
     # plot_gev_rps(
