@@ -3405,12 +3405,12 @@ def main():
         y_axis_name="data_c",
     )
 
-    # Pivot detrend the obs for wind speed
-    df_obs = gev_funcs.pivot_detrend_obs(
-        df=df_obs,
-        x_axis_name="effective_dec_year",
-        y_axis_name="data_sfcWind",
-    )
+    # # Pivot detrend the obs for wind speed
+    # df_obs = gev_funcs.pivot_detrend_obs(
+    #     df=df_obs,
+    #     x_axis_name="effective_dec_year",
+    #     y_axis_name="data_sfcWind",
+    # )
 
     # rename the column Wind Power Generation (GW) as data_wp_generation
     df_obs.rename(
@@ -3513,27 +3513,27 @@ def main():
 
     # sys.exit()
 
-    # # apply a detrend to the wind data
-    df_model_djf = gev_funcs.pivot_detrend_model(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_x_axis_name="effective_dec_year",
-        model_y_axis_name="data_sfcWind_drift_bc",
-        obs_x_axis_name="effective_dec_year",
-        obs_y_axis_name="data_sfcWind",
-        suffix="_dt",
-    )
+    # # # apply a detrend to the wind data
+    # df_model_djf = gev_funcs.pivot_detrend_model(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_x_axis_name="effective_dec_year",
+    #     model_y_axis_name="data_sfcWind_drift_bc",
+    #     obs_x_axis_name="effective_dec_year",
+    #     obs_y_axis_name="data_sfcWind",
+    #     suffix="_dt",
+    # )
 
-    # perform the same for the non bias corrected data
-    df_model_djf = gev_funcs.pivot_detrend_model(
-        model_df=df_model_djf,
-        obs_df=df_obs,
-        model_x_axis_name="effective_dec_year",
-        model_y_axis_name="data_sfcWind",
-        obs_x_axis_name="effective_dec_year",
-        obs_y_axis_name="data_sfcWind",
-        suffix="_dt",
-    )
+    # # perform the same for the non bias corrected data
+    # df_model_djf = gev_funcs.pivot_detrend_model(
+    #     model_df=df_model_djf,
+    #     obs_df=df_obs,
+    #     model_x_axis_name="effective_dec_year",
+    #     model_y_axis_name="data_sfcWind",
+    #     obs_x_axis_name="effective_dec_year",
+    #     obs_y_axis_name="data_sfcWind",
+    #     suffix="_dt",
+    # )
 
     # # do the same for wind speed
     # gev_funcs.plot_lead_pdfs(
@@ -4077,12 +4077,12 @@ def main():
         "demand_net_wind", # NO BC for tas/demand or wind/WP gen
     ]
 
-    for var_name in model_var_names:
-        if var_name in df_model_djf.columns:
-            print(f"Column '{var_name}' exists in df_model_djf.")
-        else:
-            print(f"Column '{var_name}' is missing in df_model_djf.")
-            raise ValueError(f"Column {var_name} is missing in df_model_djf")
+    # for var_name in model_var_names:
+    #     if var_name in df_model_djf.columns:
+    #         print(f"Column '{var_name}' exists in df_model_djf.")
+    #     else:
+    #         print(f"Column '{var_name}' is missing in df_model_djf.")
+    #         raise ValueError(f"Column {var_name} is missing in df_model_djf")
 
     # set up the model var names for plotting
     model_var_names_bc = [
@@ -4093,12 +4093,12 @@ def main():
         "demand_net_wind_bc", # BC for tas + wind
     ]
 
-    for var_name in model_var_names_bc:
-        if var_name in df_model_djf.columns:
-            print(f"Column '{var_name}' exists in df_model_djf.")
-        else:
-            print(f"Column '{var_name}' is missing in df_model_djf.")
-            raise ValueError(f"Column {var_name} is missing in df_model_djf")
+    # for var_name in model_var_names_bc:
+    #     if var_name in df_model_djf.columns:
+    #         print(f"Column '{var_name}' exists in df_model_djf.")
+    #     else:
+    #         print(f"Column '{var_name}' is missing in df_model_djf.")
+    #         raise ValueError(f"Column {var_name} is missing in df_model_djf")
 
     # Set up the subplot titles
     subplot_titles = [
