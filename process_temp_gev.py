@@ -714,8 +714,43 @@ def plot_emp_rps(
     # Set up the figure
     fig, ax = plt.subplots(figsize=figsize)
 
+    # Find the index closest to 20-year return period
+    target_return_period = 20
+    period_diff = np.abs(obs_df_central_rps["period"] - target_return_period)
+    idx_20yr = np.argmin(period_diff)
+    actual_period = obs_df_central_rps["period"][idx_20yr]
+
+    # Debug: Print the values
+    print(f"Target return period: {target_return_period}")
+    print(f"Actual period found: {actual_period}")
+    print(f"Index: {idx_20yr}")
+    print(f"Width calculation: {actual_period * 0.3}")
+
+    # Extract the bootstrap values at the 20-year return period
+    obs_20yr_values = obs_df_bootstrap_rps[:, idx_20yr]
+
+    median_value = np.median(obs_20yr_values)
+    lower_bound = np.percentile(obs_20yr_values, 2.5)
+    upper_bound = np.percentile(obs_20yr_values, 97.5)
+
+    lower_err = median_value - lower_bound
+    upper_err = upper_bound - median_value
+
+    # Plot the errorbar
+    _ = ax.errorbar(
+        target_return_period,
+        median_value,
+        yerr=[[lower_err], [upper_err]],  # asymmetric errors
+        fmt='x',
+        color='grey',
+        capsize=5,
+        capthick=2,
+        elinewidth=2,
+        label='Obs uncertainty (20-yr)'  # Add this label parameter
+    )
+
     # Plot the central return levels
-    ax.plot(
+    _ = ax.plot(
         model_df_central_rps["period"],
         model_df_central_rps["sorted"],
         color="red",
@@ -739,49 +774,6 @@ def plot_emp_rps(
         label="Rank uncertainty",
     )
 
-    # Find the index closest to 20-year return period
-    target_return_period = 20
-    period_diff = np.abs(obs_df_central_rps["period"] - target_return_period)
-    idx_20yr = np.argmin(period_diff)
-    actual_period = obs_df_central_rps["period"][idx_20yr]
-
-    # Debug: Print the values
-    print(f"Target return period: {target_return_period}")
-    print(f"Actual period found: {actual_period}")
-    print(f"Index: {idx_20yr}")
-    print(f"Width calculation: {actual_period * 0.3}")
-
-    # Extract the bootstrap values at the 20-year return period
-    obs_20yr_values = obs_df_bootstrap_rps[:, idx_20yr]
-
-    # Plot the central estimate for observations at 20-year return period
-    ax.plot(
-        actual_period,
-        obs_df_central_rps["sorted"][idx_20yr],
-        marker='o',
-        markersize=8,
-        color='black',
-        markerfacecolor='white',
-        markeredgewidth=2,
-        label="Obs (20-yr)",
-        zorder=10
-    )
-
-    # Create a boxplot for the 20-year return period uncertainty
-    box_plot = ax.boxplot(
-        obs_20yr_values,
-        positions=[actual_period],
-        widths=[5],  # Try a fixed width first
-        patch_artist=True,
-        boxprops=dict(facecolor='lightgray', alpha=0.7),
-        medianprops=dict(color='black', linewidth=2),
-        whiskerprops=dict(color='black'),
-        capprops=dict(color='black'),
-        flierprops=dict(marker='o', markerfacecolor='gray', markersize=4, alpha=0.6),
-        manage_ticks=False,
-        zorder=5
-    )
-
     # Set up a logarithmic x-axis
     ax.set_xscale("log")
 
@@ -790,8 +782,8 @@ def plot_emp_rps(
 
     # Set the xticks at 1, 5, 10, 20, 50, 100, 200, 500, 1000
     plt.xticks(
-        [1, 5, 10, 20, 50, 100, 200, 500, 1000],
-        ["1", "5", "10", "20", "50", "100", "200", "500", "1000"],
+        [10, 20, 50, 100, 200, 500, 1000],
+        ["10", "20", "50", "100", "200", "500", "1000"],
     )
 
     # Set the ylim
@@ -842,8 +834,6 @@ def plot_emp_rps(
     # include a legend in the top right
     # Add custom legend entry for the boxplot
     handles, labels = ax.get_legend_handles_labels()
-    handles.append(Patch(facecolor='lightgray', alpha=0.7, edgecolor='black'))
-    labels.append('Obs uncertainty (20-yr)')
     
     ax.legend(
         handles=handles,
@@ -4534,11 +4524,10 @@ def main():
         blue_line=np.min,
         high_values_rare=False,
         figsize=(5, 5),
-        bonus_line=-3.749775924307727, # 28-02-2018 Beast from the East
         title="a) Chance < 1986-87 temperature",
     )
 
-    sys.exit()
+    # sys.exit()
 
     # # do thye same thing fo wind speed
     # plot_gev_rps(
@@ -4572,6 +4561,8 @@ def main():
         figsize=(5, 5),
         title="c) Chance < 2005-06 wind speed",
     )
+
+    sys.exit()
 
     # # # plot the empirical return periods for wind speed short
     # plot_emp_rps(
