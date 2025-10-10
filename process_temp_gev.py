@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import pandas as pd
 import shapely.geometry
 import cartopy.io.shapereader as shpreader
@@ -681,6 +682,35 @@ def plot_emp_rps(
         # Append the return levels to the array
         model_df_bootstrap_rps[i, :] = model_df_rls_this["sorted"]
 
+    obs_df_central_rps = empirical_return_level(
+        data=obs_df[obs_val_name].values,
+        high_values_rare=high_values_rare,
+    )
+
+    # set up the same for the observations
+    obs_df_bootstrap_rps = np.zeros([
+        nsamples,
+        len(obs_df_central_rps)
+    ])
+
+    # Loop over the samples
+    for i in tqdm(range(nsamples)):
+        # Resample the obs data
+        obs_vals_this = np.random.choice(
+            obs_df[obs_val_name].values,
+            size=len(obs_df_central_rps["sorted"]),
+            replace=True,
+        )
+
+        # Calculate the empirical return levels
+        obs_df_rls_this = empirical_return_level(
+            data=obs_vals_this,
+            high_values_rare=high_values_rare,
+        )
+
+        # Append the return levels to the array
+        obs_df_bootstrap_rps[i, :] = obs_df_rls_this["sorted"]
+
     # Set up the figure
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -707,6 +737,49 @@ def plot_emp_rps(
         color="red",
         alpha=0.5,
         label="Rank uncertainty",
+    )
+
+    # Find the index closest to 20-year return period
+    target_return_period = 20
+    period_diff = np.abs(obs_df_central_rps["period"] - target_return_period)
+    idx_20yr = np.argmin(period_diff)
+    actual_period = obs_df_central_rps["period"][idx_20yr]
+
+    # Debug: Print the values
+    print(f"Target return period: {target_return_period}")
+    print(f"Actual period found: {actual_period}")
+    print(f"Index: {idx_20yr}")
+    print(f"Width calculation: {actual_period * 0.3}")
+
+    # Extract the bootstrap values at the 20-year return period
+    obs_20yr_values = obs_df_bootstrap_rps[:, idx_20yr]
+
+    # Plot the central estimate for observations at 20-year return period
+    ax.plot(
+        actual_period,
+        obs_df_central_rps["sorted"][idx_20yr],
+        marker='o',
+        markersize=8,
+        color='black',
+        markerfacecolor='white',
+        markeredgewidth=2,
+        label="Obs (20-yr)",
+        zorder=10
+    )
+
+    # Create a boxplot for the 20-year return period uncertainty
+    box_plot = ax.boxplot(
+        obs_20yr_values,
+        positions=[actual_period],
+        widths=[5],  # Try a fixed width first
+        patch_artist=True,
+        boxprops=dict(facecolor='lightgray', alpha=0.7),
+        medianprops=dict(color='black', linewidth=2),
+        whiskerprops=dict(color='black'),
+        capprops=dict(color='black'),
+        flierprops=dict(marker='o', markerfacecolor='gray', markersize=4, alpha=0.6),
+        manage_ticks=False,
+        zorder=5
     )
 
     # Set up a logarithmic x-axis
@@ -767,7 +840,14 @@ def plot_emp_rps(
         )
 
     # include a legend in the top right
+    # Add custom legend entry for the boxplot
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(Patch(facecolor='lightgray', alpha=0.7, edgecolor='black'))
+    labels.append('Obs uncertainty (20-yr)')
+    
     ax.legend(
+        handles=handles,
+        labels=labels,
         loc="upper right",
         fontsize=12,
     )
