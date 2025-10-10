@@ -43,7 +43,7 @@ from iris.util import equalise_attributes
 
 # # # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -2140,12 +2140,12 @@ def main():
 
     # Hardcode the new path to the alternate WP generation data
     # Using Hannah's spatially aggregated method
-    # obs_wp_generation_path = (
-    #     "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2025_daily.csv"
-    # )
     obs_wp_generation_path = (
-        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2020.csv"
+        "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2025_daily.csv"
     )
+    # obs_wp_generation_path = (
+    #     "/gws/nopw/j04/canari/users/benhutch/unseen/saved_dfs/Hannah_wind/ERA5_UK_wind_power_generation_cfs_constrained_1952_2020.csv"
+    # )
 
 
     # Set up the directory in which the model df data is stored
@@ -2913,10 +2913,10 @@ def main():
     # Print the head of df_obs_wp_generation
     print(df_obs_wp_generation.head())
 
-    # Convert the 'time' column to datetime, assuming it represents days since "1952-01-01 00:00:00"
-    df_obs_wp_generation["time"] = pd.to_datetime(
-        df_obs_wp_generation["time"], origin="1952-01-01", unit="D"
-    )
+    # # Convert the 'time' column to datetime, assuming it represents days since "1952-01-01 00:00:00"
+    # df_obs_wp_generation["time"] = pd.to_datetime(
+    #     df_obs_wp_generation["time"], origin="1952-01-01", unit="D"
+    # )
     # # if time column is not a datetime, convert it
     # if not pd.api.types.is_datetime64_any_dtype(df_obs_wp_generation["time"]):
     #     df_obs_wp_generation["time"] = pd.to_datetime(
@@ -2934,11 +2934,11 @@ def main():
     # sys.exit()
 
     # subset the obs data to D, J, F
-    df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2, 3])]
+    df_obs_tas = df_obs_tas[df_obs_tas["time"].dt.month.isin([12, 1, 2])]
 
     # Subset the wp generation data to D, J, F
     df_obs_wp_generation = df_obs_wp_generation[
-        df_obs_wp_generation["time"].dt.month.isin([12, 1, 2, 3])
+        df_obs_wp_generation["time"].dt.month.isin([12, 1, 2])
     ]
 
     # new column for temp in C
@@ -2985,8 +2985,8 @@ def main():
     # Make sure that the time column is datetime
     df_obs["time"] = pd.to_datetime(df_obs["time"])
 
-    # drop any rows past 2020-12-31
-    df_obs = df_obs[df_obs["time"] <= "2020-12-31"]
+    # # drop any rows past 2020-12-31
+    # df_obs = df_obs[df_obs["time"] <= "2020-12-31"]
 
     # Print the unique months in df_obs
     print("Unique months in df_obs:", df_obs["time"].dt.month.unique())
@@ -5047,17 +5047,17 @@ def main():
     # reset the index of the obs data
     block_max_obs_dnw.reset_index(inplace=True)
 
-    # exclude the highest value from the observations
-    # Find the index of the row with the maximum demand_net_wind_max
-    max_index = block_max_obs_dnw['demand_net_wind_max'].idxmax()
+    # # exclude the highest value from the observations
+    # # Find the index of the row with the maximum demand_net_wind_max
+    # max_index = block_max_obs_dnw['demand_net_wind_max'].idxmax()
 
-    # Create a new dataframe excluding that row
-    new_df = block_max_obs_dnw.drop(max_index)
+    # # Create a new dataframe excluding that row
+    # new_df = block_max_obs_dnw.drop(max_index)
 
     # # # plot the return period plots here
     # # # first the empirical return periods
     plot_emp_rps(
-        obs_df=new_df,
+        obs_df=block_max_obs_dnw,
         model_df=block_max_model_dnw,
         obs_val_name="demand_net_wind_max",
         model_val_name="demand_net_wind_bc_max",
@@ -5065,13 +5065,11 @@ def main():
         model_time_name="effective_dec_year",
         ylabel="Demand net wind (GW)",
         nsamples=1000,
-        ylims=(38, 52),
+        ylims=(44, 52),
         blue_line=np.max,
         high_values_rare=True,
         figsize=(5, 5),
-        bonus_line=41.2375317657128,
-        wind_2005_toggle=False,
-        title="e) Chance > 2010-11 DnW"
+        title="e) Chance > 1995-96 DnW"
     )
  
     # # print the block max obs dnw max row
