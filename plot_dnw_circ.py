@@ -5420,9 +5420,9 @@ def plot_multi_var_composites_model(
 
     # Set up the names
     names_list = [
-        "Least extreme days",
-        "Extreme days",
-        "Most extreme days",
+        "P0-5",
+        "P50-55",
+        "P95-100",
     ]
 
     # Set up the axes

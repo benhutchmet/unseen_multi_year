@@ -52,3 +52,9 @@ ua,Amon,dcppA-hindcast,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-
 ua,Amon,dcppA-hindcast,MPI-ESM1-2-HR,/badc/cmip6/data/CMIP6/DCPP/MPI-M/MPI-ESM1-2-HR/dcppA-hindcast
 ua,Amon,dcppA-hindcast,CMCC-CM2-SR5,/badc/cmip6/data/CMIP6/DCPP/CMCC/CMCC-CM2-SR5/dcppA-hindcast
 ua,Amon,dcppA-hindcast,NorCPM1,/badc/cmip6/data/CMIP6/DCPP/NCC/NorCPM1/dcppA-hindcast
+tas,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
+sfcWind,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
+zg,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
+psl,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
+uas,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
+vas,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
