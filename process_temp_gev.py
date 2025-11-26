@@ -720,6 +720,11 @@ def plot_emp_rps(
     idx_20yr = np.argmin(period_diff)
     actual_period = obs_df_central_rps["period"][idx_20yr]
 
+    # Do the same for the model estimate
+    period_diff_model = np.abs(model_df_central_rps["period"] - target_return_period)
+    idx_20yr_model_central = np.argmin(period_diff_model)
+    actual_period_model_central = model_df_central_rps["period"][idx_20yr_model_central]
+
     # Debug: Print the values
     print(f"Target return period: {target_return_period}")
     print(f"Actual period found: {actual_period}")
@@ -735,6 +740,26 @@ def plot_emp_rps(
 
     lower_err = median_value - lower_bound
     upper_err = upper_bound - median_value
+
+    # Print the median value
+    print(f"median value obs {median_value}")
+    print(f"lower value obs {lower_err}")
+    print(f"upper value obs {upper_err}")
+
+    # Extract the bootstrap values at the 20-year return period for the model
+    model_20yr_values = model_df_bootstrap_rps[:, idx_20yr_model_central]
+
+    median_value_model = np.median(model_20yr_values)
+    lower_bound_model = np.percentile(model_20yr_values, 2.5)
+    upper_bound_model = np.percentile(model_20yr_values, 97.5)
+
+    lower_err_model = median_value_model - lower_bound_model
+    upper_err_model = upper_bound_model - median_value_model
+
+    # Print the median value for the model
+    print(f"median value model {median_value_model}")
+    print(f"lower value model {lower_err_model}")
+    print(f"upper value model {upper_err_model}")
 
     # Plot the errorbar
     _ = ax.errorbar(
@@ -4426,8 +4451,8 @@ def main():
         model_time_name="effective_dec_year",
         ylabel_left="Temperature (°C)",
         ylabel_right="Wind speed (m/s)",
-        title_left="a) Block minima temperature (°C)",
-        title_right="b) Block minima wind speed (m/s)",
+        title_left="a) Coldest winter day (°C)",
+        title_right="c) Maximum demand net wind winter day (GW)",
         ylims_left=(-12, 8),
         ylims_right=(0, 8),
         dashed_quant=0.20,
