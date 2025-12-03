@@ -64,7 +64,6 @@ sfcWind,Amon,dcppC-atl-control,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/
 sfcWind,Amon,dcppC-ipv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-ipv-pos/
 sfcWind,Amon,dcppC-ipv-neg,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-ipv-neg/
 sfcWind,Amon,dcppC-pac-control,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-pac-control/
-zg,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
 uas,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
 vas,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-pos/
 uas,Amon,dcppC-amv-neg,HadGEM3-GC31-MM,/badc/cmip6/data/CMIP6/DCPP/MOHC/HadGEM3-GC31-MM/dcppC-amv-neg/
@@ -93,3 +92,11 @@ psl,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/gws/nopw/j04/ncas_climate_vol1/users/pmo
 psl,Amon,dcppC-amv-pos,IPSL-CM6A-LR,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/psl/
 psl,Amon,dcppC-amv-pos,EC-Earth3,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/psl/
 psl,Amon,dcppC-amv-pos,CNRM-CM6-1,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/psl/
+zg,Amon,dcppC-amv-neg,HadGEM3-GC31-MM,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/NEG/zg/
+zg,Amon,dcppC-amv-neg,IPSL-CM6A-LR,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/NEG/zg/
+zg,Amon,dcppC-amv-neg,EC-Earth3,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/NEG/zg/
+zg,Amon,dcppC-amv-neg,CNRM-CM6-1,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/NEG/zg/
+zg,Amon,dcppC-amv-pos,HadGEM3-GC31-MM,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/zg/
+zg,Amon,dcppC-amv-pos,IPSL-CM6A-LR,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/zg/
+zg,Amon,dcppC-amv-pos,EC-Earth3,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/zg/
+zg,Amon,dcppC-amv-pos,CNRM-CM6-1,/gws/nopw/j04/ncas_climate_vol1/users/pmonerie/cmip6/DCPPC/POS/zg/
