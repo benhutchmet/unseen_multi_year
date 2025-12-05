@@ -1868,7 +1868,7 @@ def plot_multi_var_perc(
             
             # Add text label above the line
             ax.text(
-                0.35,  # x position (35% from left edge)
+                0.30,  # x position (35% from left edge)
                 y1_hline + 0.15,  # y position (slightly above the line)
                 f'{round(percentile_y1)}%',
                 transform=ax.get_yaxis_transform(),  # Use y-axis transform for positioning
