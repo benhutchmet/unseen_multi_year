@@ -43,7 +43,7 @@ from iris.util import equalise_attributes
 
 # # # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -3332,26 +3332,26 @@ def main():
     # Extract the unique effective dec years from the obs
     unique_effective_dec_years_obs = df_obs["effective_dec_year"].unique()
 
-    # # Assert that these are the same
-    # assert np.array_equal(
-    #     unique_effective_dec_years, unique_effective_dec_years_obs
-    # ), "The effective dec years in the model and obs dataframes do not match!"
+    # Assert that these are the same
+    assert np.array_equal(
+        unique_effective_dec_years, unique_effective_dec_years_obs
+    ), "The effective dec years in the model and obs dataframes do not match!"
 
-    # # # Test the new function before all detrending takes place
-    # pivot_emp_rps_dnw(
-    #     obs_df=df_obs,
-    #     model_df=df_model_djf_new,
-    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-    #     obs_var_name_tas="data_c",
-    #     model_var_name_wind="total_gen", # no detrend model WP gen var
-    #     model_var_name_tas="data_tas_c_drift_bc",
-    #     model_time_name="effective_dec_year",
-    #     obs_time_name="effective_dec_year",
-    #     nsamples=10,
-    #     figsize=(5, 5),
-    # )
+    # # Test the new function before all detrending takes place
+    pivot_emp_rps_dnw(
+        obs_df=df_obs,
+        model_df=df_model_djf_new,
+        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+        obs_var_name_tas="data_c",
+        model_var_name_wind="total_gen", # no detrend model WP gen var
+        model_var_name_tas="data_tas_c_drift_bc",
+        model_time_name="effective_dec_year",
+        obs_time_name="effective_dec_year",
+        nsamples=10,
+        figsize=(5, 5),
+    )
 
-    # sys.exit()
+    sys.exit()
 
     print("--"*30)
     print("pre-detrending, plotting lead pdfs for wind cfs ORIGINAL df_model_djf_new")

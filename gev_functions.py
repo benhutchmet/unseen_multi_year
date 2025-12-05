@@ -4827,19 +4827,19 @@ def dot_plot_subplots(
     # specify a tight layout
     plt.tight_layout()
 
-    # # set up a fname for the plot
-    # fname = f"obs-{obs_val_name}_model-{model_val_name}_quantile-{dashed_quant}_solid-{solid_line.__name__}_{save_prefix}_{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.pdf"
+    # Set up the save directory
+    save_dir = "/home/users/benhutch/unseen_multi_year/paper_figures"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-    # # form the savepath
-    # savepath = os.path.join(save_dir, fname)
+    # Set up the current time in DD-MM-YY_HH:MM:SS format
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # if not os.path.exists(savepath):
-    #     print(f"Saving plot to {savepath}")
-    #     # save the plot
-    #     plt.savefig(savepath, bbox_inches="tight", dpi=800)
+    plot_fname = os.path.join(save_dir, f"dot_plots_subplots_{current_datetime}.png")
 
-    #     # print that we have saved the plot
-    #     print(f"Saved plot to {savepath}")
+    # Save the figure
+    fig.savefig(plot_fname, dpi=1000, bbox_inches="tight", format="png")
+    print(f"Saved plot to {plot_fname}")
 
     return
 

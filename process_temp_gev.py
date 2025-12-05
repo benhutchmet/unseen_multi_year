@@ -41,12 +41,12 @@ from iris.util import equalise_attributes
 # Local imports
 import gev_functions as gev_funcs
 
-from process_dnw_gev import (
-    select_leads_wyears_DJF,
-    plot_distributions_extremes,
-    plot_multi_var_perc,
-    ws_to_wp_gen,
-)
+# from process_dnw_gev import (
+#     select_leads_wyears_DJF,
+#     plot_distributions_extremes,
+#     plot_multi_var_perc,
+#     ws_to_wp_gen,
+# )
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -70,6 +70,7 @@ def pivot_emp_rps(
     figsize: tuple = (5, 5),
     wind_2005_toggle=True,
     title: str = None,
+    fontsize: int = 14,
 ) -> None:
     """
     Pivots the entire ensemble around each year in turn and quantifies
@@ -96,6 +97,8 @@ def pivot_emp_rps(
             Number of samples to use for the empirical return periods, by default 10000.
         figsize : tuple, optional
             Figure size, by default (5, 5).
+        fontsize : int, optional
+            Font size for plot labels, by default 14.
 
     Returns
     =======
@@ -447,19 +450,19 @@ def pivot_emp_rps(
     # Set the y axis labels
     ax2.set_ylabel(
         "Return period (years)",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set up the xlabel
     ax.set_xlabel(
         "Year",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set up the ylabel
     ax.set_ylabel(
         "Chance of event",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set the xlims as the min and max of the model time
@@ -471,7 +474,7 @@ def pivot_emp_rps(
     # Set up the title
     ax.set_title(
         title if title is not None else f"Empirical Return Periods for {var_name}",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # include faint gridlines
@@ -482,7 +485,21 @@ def pivot_emp_rps(
         alpha=0.5,
     )
 
-    # Show the plot
+    # Set up the save directory
+    save_dir = "/home/users/benhutch/unseen_multi_year/paper_figures"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Set up the current time in DD-MM-YY_HH:MM:SS format
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    plot_fname = os.path.join(save_dir, f"rps_pivot_{current_datetime}.png")
+
+    # Save the figure
+    fig.savefig(plot_fname, dpi=1000, bbox_inches="tight", format="png")
+    print(f"Saved plot to {plot_fname}")
+
+    # Show the plot (after saving)
     plt.show()
 
     return None
@@ -610,6 +627,7 @@ def plot_emp_rps(
     figsize: tuple = (5, 5),
     bonus_line: float = None,
     title: str = None,
+    fontsize: int = 14,
 ) -> None:
     """
     Plot the empirical return periods for the model data.
@@ -817,13 +835,13 @@ def plot_emp_rps(
     # Set the y labels
     ax.set_ylabel(
         ylabel,
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set the x labels
     ax.set_xlabel(
         "Return period (years)",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Extreme value as the min
@@ -864,12 +882,12 @@ def plot_emp_rps(
         handles=handles,
         labels=labels,
         loc="upper right",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set the title if provided
     if title is not None:
-        ax.set_title(title, fontsize=12)
+        ax.set_title(title, fontsize=fontsize)
 
     # Now find the rp for the worst event
     obs_extreme_index_central = np.abs(
@@ -907,6 +925,20 @@ def plot_emp_rps(
     print(
         f"Full row for the 0.975 quantile: {model_df_central_rps.iloc[obs_extreme_index_975]}"
     )
+
+    # Set up the save directory
+    save_dir = "/home/users/benhutch/unseen_multi_year/paper_figures"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Set up the current time in DD-MM-YY_HH:MM:SS format
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    plot_fname = os.path.join(save_dir, f"emp_rps_{current_datetime}.png")
+
+    # Save the figure
+    fig.savefig(plot_fname, dpi=1000, bbox_inches="tight", format="png")
+    print(f"Saved plot to {plot_fname}")
 
     return None
 
@@ -4452,7 +4484,7 @@ def main():
         ylabel_left="Temperature (°C)",
         ylabel_right="Wind speed (m/s)",
         title_left="a) Coldest winter day (°C)",
-        title_right="c) Maximum demand net wind winter day (GW)",
+        title_right="b) Calmest winter day (m/s)",
         ylims_left=(-12, 8),
         ylims_right=(0, 8),
         dashed_quant=0.20,
@@ -4545,7 +4577,7 @@ def main():
         model_time_name="effective_dec_year",
         ylabel="Temperature (°C)",
         nsamples=1000,
-        ylims=(-9, -2.5),
+        ylims=(-9, -1),
         blue_line=np.min,
         high_values_rare=False,
         figsize=(5, 5),
@@ -4781,7 +4813,7 @@ def main():
         model_var_name="data_tas_c_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
-        nboot=1000,
+        nboot=10,
         model_lead_name="winter_year",
     )
 
@@ -4793,7 +4825,7 @@ def main():
         model_var_name="data_sfcWind_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
-        nboot=1000,
+        nboot=10,
         model_lead_name="winter_year",
     )
 
