@@ -43,7 +43,7 @@ from iris.util import equalise_attributes
 
 # # # Local imports
 import gev_functions as gev_funcs
-# from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
+from process_temp_gev import model_drift_corr_plot, plot_gev_rps, plot_emp_rps
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -1383,6 +1383,7 @@ def plot_multi_var_perc(
     y2_hlines: list[float] = None,
     full_distr_y1: np.ndarray = None,
     full_distr_y2: np.ndarray = None,
+    fontsize: int = 14,
 ):
     """
     Plots the relationship between variables as percentiles. E.g., binned by
@@ -1682,7 +1683,7 @@ def plot_multi_var_perc(
         # )
 
         # Set the y2 label
-        ax2.set_ylabel(f"{y2_label}", fontsize=12, color="k")
+        ax2.set_ylabel(f"{y2_label}", fontsize=fontsize, color="k")
 
         # make sure the ticks/labels are also blue
         ax2.tick_params(axis="y", labelcolor="k")
@@ -1871,7 +1872,7 @@ def plot_multi_var_perc(
                 y1_hline + 0.15,  # y position (slightly above the line)
                 f'{round(percentile_y1)}%',
                 transform=ax.get_yaxis_transform(),  # Use y-axis transform for positioning
-                fontsize=10,
+                fontsize=12,
                 color="red",
                 verticalalignment='bottom',
                 bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7, edgecolor="red")
@@ -1899,7 +1900,7 @@ def plot_multi_var_perc(
                 y2_hline + 0.05,  # y position (slightly above the line)
                 f'{int(round(percentile_y2))}%',
                 transform=ax2.get_yaxis_transform(),  # Use y-axis transform for positioning
-                fontsize=10,
+                fontsize=12,
                 color="k",
                 verticalalignment='bottom',
                 horizontalalignment='right',
@@ -1907,8 +1908,8 @@ def plot_multi_var_perc(
             )
 
     # Set the x and y labels
-    ax.set_xlabel(f"{xlabel}", fontsize=12)
-    ax.set_ylabel(f"{ylabel}", fontsize=12, color="red")
+    ax.set_xlabel(f"{xlabel}", fontsize=fontsize)
+    ax.set_ylabel(f"{ylabel}", fontsize=fontsize, color="red")
 
     # Make sure the ticks and labels are also red
     ax.tick_params(axis="y", labelcolor="red")
@@ -3349,21 +3350,21 @@ def main():
         unique_effective_dec_years, unique_effective_dec_years_obs
     ), "The effective dec years in the model and obs dataframes do not match!"
 
-    # # Test the new function before all detrending takes place
-    pivot_emp_rps_dnw(
-        obs_df=df_obs,
-        model_df=df_model_djf_new,
-        obs_var_name_wind="total_gen", # no detrend obs WP gen variable
-        obs_var_name_tas="data_c",
-        model_var_name_wind="total_gen", # no detrend model WP gen var
-        model_var_name_tas="data_tas_c_drift_bc",
-        model_time_name="effective_dec_year",
-        obs_time_name="effective_dec_year",
-        nsamples=1000,
-        figsize=(5, 5),
-    )
+    # # # Test the new function before all detrending takes place
+    # pivot_emp_rps_dnw(
+    #     obs_df=df_obs,
+    #     model_df=df_model_djf_new,
+    #     obs_var_name_wind="total_gen", # no detrend obs WP gen variable
+    #     obs_var_name_tas="data_c",
+    #     model_var_name_wind="total_gen", # no detrend model WP gen var
+    #     model_var_name_tas="data_tas_c_drift_bc",
+    #     model_time_name="effective_dec_year",
+    #     obs_time_name="effective_dec_year",
+    #     nsamples=1000,
+    #     figsize=(5, 5),
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     print("--"*30)
     print("pre-detrending, plotting lead pdfs for wind cfs ORIGINAL df_model_djf_new")
@@ -4659,33 +4660,33 @@ def main():
     # Print the columns of block max model dnw
     print(block_max_model_dnw.columns)
 
-    # # # Do the same but with uas
-    # plot_multi_var_perc(
-    #     obs_df=block_max_obs_dnw,
-    #     model_df=block_max_model_dnw,
-    #     x_var_name_obs="data_c_dt",
-    #     y_var_name_obs="total_gen",
-    #     x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
-    #     y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
-    #     xlabel="Demand net wind percentiles",
-    #     ylabel="Demand (GW)",
-    #     title="Percentiles of demand net wind vs demand/WP gen, DnW days",
-    #     legend_y1="Demand (GW)",
-    #     legend_y2="Wind Power Generation (GW)",
-    #     y2_var_name_model="total_gen_dt",
-    #     y2_label="Wind Power Generation (GW)",
-    #     figsize=(5, 6),
-    #     inverse_flag=False,
-    #     xlims=[-10, 110],
-    #     ylims=[43, 53],
-    #     y2_lims=[2, 5.5],
-    #     y1_hlines=[44, 50],
-    #     y2_hlines=[2.5, 4.5],
-    #     full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
-    #     full_distr_y2=df_model_djf["total_gen"]
-    # )
+    # # Do the same but with uas
+    plot_multi_var_perc(
+        obs_df=block_max_obs_dnw,
+        model_df=block_max_model_dnw,
+        x_var_name_obs="data_c_dt",
+        y_var_name_obs="total_gen",
+        x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
+        y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
+        xlabel="Demand net wind percentiles",
+        ylabel="Demand (GW)",
+        title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+        legend_y1="Demand (GW)",
+        legend_y2="Wind Power Generation (GW)",
+        y2_var_name_model="total_gen_dt",
+        y2_label="Wind Power Generation (GW)",
+        figsize=(5, 6),
+        inverse_flag=False,
+        xlims=[-10, 110],
+        ylims=[43, 53],
+        y2_lims=[2, 5.5],
+        y1_hlines=[44, 50],
+        y2_hlines=[2.5, 4.5],
+        full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
+        full_distr_y2=df_model_djf["total_gen"]
+    )
 
-    # sys.exit()
+    sys.exit()
 
     # # print the columns in block max obs demand and model demand
     # print(block_max_obs_demand.columns)
