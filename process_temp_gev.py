@@ -41,12 +41,12 @@ from iris.util import equalise_attributes
 # Local imports
 import gev_functions as gev_funcs
 
-# from process_dnw_gev import (
-#     select_leads_wyears_DJF,
-#     plot_distributions_extremes,
-#     plot_multi_var_perc,
-#     ws_to_wp_gen,
-# )
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+    ws_to_wp_gen,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -374,12 +374,12 @@ def pivot_emp_rps(
 
     # Set new tick labels
     ax.set_yticks(
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     )
     # Set new tick labels for the primary y-axis
     # Set up yticks for the primary y-axis
     ax.set_yticks(
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     )
     ax.set_yticklabels(
         [
@@ -396,14 +396,6 @@ def pivot_emp_rps(
             "10%",
             "11%",
             "12%",
-            "13%",
-            "14%",
-            "15%",
-            "16%",
-            "17%",
-            "18%",
-            "19%",
-            "20%",
         ]
     )
 
@@ -433,14 +425,6 @@ def pivot_emp_rps(
             "10",  # 10% - 10 year return period
             "9",  # 11% - 9 year return period
             "8",  # 12% - 8 year return period
-            "8",  # 13% - 8 year return period (7.7 rounds to 8)
-            "7",  # 14% - 7 year return period
-            "7",  # 15% - 7 year return period (6.7 rounds to 7)
-            "6",  # 16% - 6 year return period
-            "6",  # 17% - 6 year return period (5.9 rounds to 6)
-            "6",  # 18% - 6 year return period (5.6 rounds to 6)
-            "5",  # 19% - 5 year return period
-            "5",  # 20% - 5 year return period
         ]
     )
 
@@ -493,7 +477,7 @@ def pivot_emp_rps(
     # Set up the current time in DD-MM-YY_HH:MM:SS format
     current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    plot_fname = os.path.join(save_dir, f"rps_pivot_{current_datetime}.png")
+    plot_fname = os.path.join(save_dir, f"rps_pivot_temp_wind_{current_datetime}.png")
 
     # Save the figure
     fig.savefig(plot_fname, dpi=1000, bbox_inches="tight", format="png")
@@ -4036,34 +4020,34 @@ def main():
     #     else:
     #         print("No valid data for this lead time.")
 
-    # # Test the new function
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_tas,
-    #     model_df=block_minima_model_tas_drift_corr,
-    #     obs_val_name="data_tas_c_min",
-    #     model_val_name="data_tas_c_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="tas",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    #     title="b) Chance of < 1986-87 temperature by year",
-    # )
+    # Test the new function
+    pivot_emp_rps(
+        obs_df=block_minima_obs_tas,
+        model_df=block_minima_model_tas_drift_corr,
+        obs_val_name="data_tas_c_min",
+        model_val_name="data_tas_c_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="tas",
+        nsamples=1000,
+        figsize=(5, 5),
+        title="b) Chance of < 1986-87 temperature",
+    )
 
-    # # DO the same for wind speed
-    # pivot_emp_rps(
-    #     obs_df=block_minima_obs_wind,
-    #     model_df=block_minima_model_wind_drift_corr,
-    #     obs_val_name="data_sfcWind_min",
-    #     model_val_name="data_sfcWind_min_drift_bc",
-    #     obs_time_name="effective_dec_year",
-    #     model_time_name="effective_dec_year",
-    #     var_name="sfcWind",
-    #     nsamples=1000,
-    #     figsize=(5, 5),
-    #     wind_2005_toggle=True,
-    #     title="d) Chance of < 2005-06 wind speed by year"
-    # )
+    # DO the same for wind speed
+    pivot_emp_rps(
+        obs_df=block_minima_obs_wind,
+        model_df=block_minima_model_wind_drift_corr,
+        obs_val_name="data_sfcWind_min",
+        model_val_name="data_sfcWind_min_drift_bc",
+        obs_time_name="effective_dec_year",
+        model_time_name="effective_dec_year",
+        var_name="sfcWind",
+        nsamples=1000,
+        figsize=(5, 5),
+        wind_2005_toggle=True,
+        title="d) Chance of < 2005-06 wind speed"
+    )
 
     # Do the same for wind speed short
     # pivot_emp_rps(
@@ -4078,6 +4062,8 @@ def main():
     #     figsize=(5, 5),
     #     wind_2005_toggle=True,
     # )
+
+    sys.exit()
 
     # Use a function to correct the overall rolling mean trends
     block_minima_model_tas_drift_corr_dt = gev_funcs.pivot_detrend_model(
