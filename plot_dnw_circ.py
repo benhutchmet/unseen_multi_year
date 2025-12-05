@@ -5897,6 +5897,23 @@ def plot_multi_var_composites_model(
                 fontsize=fontsize,
             )
 
+    # Set up the save directory
+    save_dir = "/home/users/benhutch/unseen_multi_year/paper_figures"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Set up the current time in DD-MM-YY_HH:MM:SS format
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    plot_fname = os.path.join(save_dir, f"circ_anoms_{current_datetime}.png")
+
+    # Save the figure
+    fig.savefig(plot_fname, dpi=1000, bbox_inches="tight", format="png")
+    print(f"Saved plot to {plot_fname}")
+
+    # Show the plot
+    plt.show()
+
     return None
 
 

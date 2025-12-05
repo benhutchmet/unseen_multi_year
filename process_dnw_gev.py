@@ -4674,33 +4674,33 @@ def main():
     # Print the columns of block max model dnw
     print(block_max_model_dnw.columns)
 
-    # # Do the same but with uas
-    plot_multi_var_perc(
-        obs_df=block_max_obs_dnw,
-        model_df=block_max_model_dnw,
-        x_var_name_obs="data_c_dt",
-        y_var_name_obs="total_gen",
-        x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
-        y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
-        xlabel="Demand net wind percentiles",
-        ylabel="Demand (GW)",
-        title="Percentiles of demand net wind vs demand/WP gen, DnW days",
-        legend_y1="Demand (GW)",
-        legend_y2="Wind Power Generation (GW)",
-        y2_var_name_model="total_gen_dt",
-        y2_label="Wind Power Generation (GW)",
-        figsize=(5, 6),
-        inverse_flag=False,
-        xlims=[-10, 110],
-        ylims=[43, 53],
-        y2_lims=[2, 5.5],
-        y1_hlines=[44, 50],
-        y2_hlines=[2.5, 4.5],
-        full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
-        full_distr_y2=df_model_djf["total_gen"]
-    )
+    # # # Do the same but with uas
+    # plot_multi_var_perc(
+    #     obs_df=block_max_obs_dnw,
+    #     model_df=block_max_model_dnw,
+    #     x_var_name_obs="data_c_dt",
+    #     y_var_name_obs="total_gen",
+    #     x_var_name_model="demand_net_wind_bc_max", # DnW on the x-axis
+    #     y_var_name_model="data_tas_c_drift_bc_dt_UK_demand", # Demand on the y1-axis
+    #     xlabel="Demand net wind percentiles",
+    #     ylabel="Demand (GW)",
+    #     title="Percentiles of demand net wind vs demand/WP gen, DnW days",
+    #     legend_y1="Demand (GW)",
+    #     legend_y2="Wind Power Generation (GW)",
+    #     y2_var_name_model="total_gen_dt",
+    #     y2_label="Wind Power Generation (GW)",
+    #     figsize=(5, 6),
+    #     inverse_flag=False,
+    #     xlims=[-10, 110],
+    #     ylims=[43, 53],
+    #     y2_lims=[2, 5.5],
+    #     y1_hlines=[44, 50],
+    #     y2_hlines=[2.5, 4.5],
+    #     full_distr_y1=df_model_djf["data_tas_c_drift_bc_dt_UK_demand"],
+    #     full_distr_y2=df_model_djf["total_gen"]
+    # )
 
-    sys.exit()
+    # sys.exit()
 
     # # print the columns in block max obs demand and model demand
     # print(block_max_obs_demand.columns)
@@ -5103,7 +5103,7 @@ def main():
     print("Block max obs dnw max row")
     print(block_max_obs_dnw[block_max_obs_dnw["demand_net_wind_max"] == np.max(block_max_obs_dnw["demand_net_wind_max"])])
 
-    sys.exit()
+    # sys.exit()
 
     # # # plot the GEV fitted return periods
     # # plot_gev_rps(
@@ -5193,7 +5193,7 @@ def main():
         # Save the model data
         block_max_model_dnw.to_csv(model_dnw_fpath, index=True)
 
-    sys.exit()
+    # sys.exit()
 
     # Apply the lead time dependent mean bias correction
     # For temperature
