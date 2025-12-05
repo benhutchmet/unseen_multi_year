@@ -67,6 +67,7 @@ def pivot_emp_rps_dnw(
     obs_time_name: str,
     nsamples: int = 1000,
     figsize: tuple[int, int] = (5, 5),
+    fontsize: int = 14,
 ) -> None:
     """
     Pivots the entire ensemble for both temperature and wind speed around each
@@ -216,18 +217,18 @@ def pivot_emp_rps_dnw(
         - df_obs[f"{obs_var_name_wind}"]
     )
 
-    # Subset df obs to march 2018
-    df_obs_march_18 = df_obs[
-        (df_obs["time"] >= "2018-02-20") & (df_obs["time"] < "2018-04-01")
-    ]
+    # # Subset df obs to march 2018
+    # df_obs_march_18 = df_obs[
+    #     (df_obs["time"] >= "2018-02-20") & (df_obs["time"] < "2018-04-01")
+    # ]
 
     # save the files
     save_dir = "/home/users/benhutch/unseen_multi_year/dfs"
 
     current_time = datetime.now().strftime("%d%m%Y_%H%M%S")
 
-    print("saving march 2018 obs dnw to csv")
-    df_obs_march_18.to_csv(os.path.join(save_dir, f"obs_dnw_march_2018_{current_time}.csv"))
+    # print("saving march 2018 obs dnw to csv")
+    # df_obs_march_18.to_csv(os.path.join(save_dir, f"obs_dnw_march_2018_{current_time}.csv"))
 
     # Calculate the block maxima for the obs
     obs_block_maxima = gev_funcs.obs_block_min_max(
@@ -239,12 +240,12 @@ def pivot_emp_rps_dnw(
     )
 
     # Find the max dnw value in obs block maxima
-    # Find the second highest value directly
-    obs_max_dnw = obs_block_maxima["dnw_max"].nlargest(2).iloc[1]
+    # Find the largest value directly
+    obs_max_dnw = obs_block_maxima["dnw_max"].max()
 
-    # Find the time at which the second highest occurs
-    second_max_index = obs_block_maxima["dnw_max"].nlargest(2).index[1]
-    obs_max_dnw_time = obs_block_maxima.loc[second_max_index, obs_time_name]
+    # Find the time at which the largest occurs
+    max_index = obs_block_maxima["dnw_max"].idxmax()
+    obs_max_dnw_time = obs_block_maxima.loc[max_index, obs_time_name]
 
     # print the obs max dnw time
     print(f"Obs max dnw time: {obs_max_dnw_time}")
@@ -599,7 +600,7 @@ def pivot_emp_rps_dnw(
     # Set new tick labels for the primary y-axis
     # Set up yticks for the primary y-axis
     # Set up yticks for the primary y-axis
-    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+    ax.set_yticks([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     ax.set_yticklabels(
         [
             "0%",
@@ -614,13 +615,7 @@ def pivot_emp_rps_dnw(
             "9%",
             "10%",
             "11%",
-            "12%",
-            "13%",
-            "14%",
-            "15%",
-            "16%",
-            "17%",
-            "18%",
+            "12%"
         ]
     )
 
@@ -632,7 +627,7 @@ def pivot_emp_rps_dnw(
 
     # Set tick labels for the second y-axis (19 labels to match 19 ticks)
     ax2.set_yticklabels(
-        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8", "8", "7", "7", "6", "6", "6"]
+        ["", "100", "50", "33", "25", "20", "17", "14", "13", "11", "10", "9", "8"]
     )
 
     # Set the y-axis limits for both axes to ensure alignment
@@ -641,19 +636,19 @@ def pivot_emp_rps_dnw(
     # Set the y axis labels
     ax2.set_ylabel(
         "Return period (years)",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set up the xlabel
     ax.set_xlabel(
         "Year",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set up the ylabel
     ax.set_ylabel(
         "Chance of event",
-        fontsize=12,
+        fontsize=fontsize,
     )
 
     # Set the xlims as the min and max of the model time
@@ -664,8 +659,8 @@ def pivot_emp_rps_dnw(
 
     # Set up the title
     ax.set_title(
-        f"f) Chance of > 2010-11 DnW by year",
-        fontsize=12,
+        f"f) Chance of > 1995-96 DnW",
+        fontsize=fontsize,
     )
 
     # include faint gridlines
@@ -677,6 +672,23 @@ def pivot_emp_rps_dnw(
     )
 
     # Show the plot
+    plt.show()
+
+    # Set up the save directory
+    save_dir = "/home/users/benhutch/unseen_multi_year/paper_figures"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Set up the current time in DD-MM-YY_HH:MM:SS format
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    plot_fname = os.path.join(save_dir, f"rps_pivot_DNW_{current_datetime}.png")
+
+    # Save the figure
+    fig.savefig(plot_fname, dpi=1000, bbox_inches="tight", format="png")
+    print(f"Saved plot to {plot_fname}")
+
+    # Show the plot (after saving)
     plt.show()
 
     return None
@@ -3347,7 +3359,7 @@ def main():
         model_var_name_tas="data_tas_c_drift_bc",
         model_time_name="effective_dec_year",
         obs_time_name="effective_dec_year",
-        nsamples=10,
+        nsamples=1000,
         figsize=(5, 5),
     )
 
