@@ -41,12 +41,12 @@ from iris.util import equalise_attributes
 # Local imports
 import gev_functions as gev_funcs
 
-# from process_dnw_gev import (
-#     select_leads_wyears_DJF,
-#     plot_distributions_extremes,
-#     plot_multi_var_perc,
-#     ws_to_wp_gen,
-# )
+from process_dnw_gev import (
+    select_leads_wyears_DJF,
+    plot_distributions_extremes,
+    plot_multi_var_perc,
+    ws_to_wp_gen,
+)
 
 # Load my specific functions
 sys.path.append("/home/users/benhutch/unseen_functions")
@@ -4587,7 +4587,8 @@ def main():
         title="c) Chance < 2005-06 wind speed",
     )
 
-    sys.exit()
+    # sys.exit()
+
 
     # # # plot the empirical return periods for wind speed short
     # plot_emp_rps(
@@ -4780,7 +4781,7 @@ def main():
         model_var_name="data_tas_c_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
-        nboot=10,
+        nboot=1000,
         model_lead_name="winter_year",
     )
 
@@ -4792,7 +4793,7 @@ def main():
         model_var_name="data_sfcWind_min_drift_bc_dt",
         obs_time_name="effective_dec_year",
         model_time_name="effective_dec_year",
-        nboot=10,
+        nboot=1000,
         model_lead_name="winter_year",
     )
 
@@ -4808,17 +4809,17 @@ def main():
     #     model_lead_name="winter_year",
     # )
 
-    # process the GEV params for the bias corrected wind speed data
-    gev_params_bc_wind = gev_funcs.process_gev_params(
-        obs_df=block_minima_obs_wind,
-        model_df=block_minima_model_wind_bc,
-        obs_var_name="data_min",
-        model_var_name="data_min_bc",
-        obs_time_name="effective_dec_year",
-        model_time_name="effective_dec_year",
-        nboot=10,
-        model_lead_name="winter_year",
-    )
+    # # process the GEV params for the bias corrected wind speed data
+    # gev_params_bc_wind = gev_funcs.process_gev_params(
+    #     obs_df=block_minima_obs_wind,
+    #     model_df=block_minima_model_wind_bc,
+    #     obs_var_name="data_min",
+    #     model_var_name="data_min_bc",
+    #     obs_time_name="effective_dec_year",
+    #     model_time_name="effective_dec_year",
+    #     nboot=10,
+    #     model_lead_name="winter_year",
+    # )
 
     # Now test the plotting function for these
     gev_funcs.plot_gev_params_subplots(
@@ -4837,6 +4838,7 @@ def main():
         title_top="a) DJF block minima temperature (°C)",
         title_bottom="e) DJF block minima wind speed (m/s)",
         figsize=(15, 10),
+        fontsize=14,
     )
 
     # Now test the plotting function for these

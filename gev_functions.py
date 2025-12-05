@@ -175,9 +175,7 @@ def pivot_detrend_model(
     y_axis_vals = df_copy.groupby(model_x_axis_name)[model_y_axis_name].mean()
 
     # Calculate the trend
-    slope, intercept, r_value, p_value, std_err = linregress(
-        x_axis_vals, y_axis_vals
-    )
+    slope, intercept, r_value, p_value, std_err = linregress(x_axis_vals, y_axis_vals)
 
     # calculate the slope and intercept for the obs
     slope_obs, intercept_obs, r_value_obs, p_value_obs, std_err_obs = linregress(
@@ -241,28 +239,33 @@ def pivot_detrend_model(
 
     # Ensure the effective_dec_year column exists in df_copy
     # (This column should map rows to indices of the trend array)
-    if 'effective_dec_year' not in df_copy.columns:
-        raise ValueError("df_copy must have an 'effective_dec_year' column to map the trend.")
+    if "effective_dec_year" not in df_copy.columns:
+        raise ValueError(
+            "df_copy must have an 'effective_dec_year' column to map the trend."
+        )
 
     # Normalize the effective_dec_year values to start from 0
-    min_year = df_copy['effective_dec_year'].min()
-    df_copy['normalized_dec_year'] = df_copy['effective_dec_year'] - min_year
+    min_year = df_copy["effective_dec_year"].min()
+    df_copy["normalized_dec_year"] = df_copy["effective_dec_year"] - min_year
 
     # Check that the effective_dec_year values are within the range of the trend array
-    if df_copy['normalized_dec_year'].max() >= len(trend):
-        raise ValueError("Values in 'normalized_dec_year' exceed the length of the trend array.")
+    if df_copy["normalized_dec_year"].max() >= len(trend):
+        raise ValueError(
+            "Values in 'normalized_dec_year' exceed the length of the trend array."
+        )
 
     # Map the trend values to the corresponding rows in df_copy
-    df_copy['trend_value'] = df_copy['normalized_dec_year'].map(
+    df_copy["trend_value"] = df_copy["normalized_dec_year"].map(
         lambda x: trend[x] if x < len(trend) else np.nan
     )
 
     # Apply the trend correction
     df_copy[model_y_axis_name + suffix] = (
-        final_point_model - df_copy['trend_value'] + df_copy[model_y_axis_name]
+        final_point_model - df_copy["trend_value"] + df_copy[model_y_axis_name]
     )
 
     return df_copy
+
 
 # Write a function to pivot detrend the model
 # but using the rolling mean methodology
@@ -331,6 +334,7 @@ def pivot_detrend_model_rolling(
     )
 
     return df_copy
+
 
 # Define a function to calculate the obs block minima/maxima
 def obs_block_min_max(
@@ -523,7 +527,8 @@ def model_block_min_max(
 
         # Select only the required columns
         block_df = min_max_rows[
-            [time_name, winter_year, member_name, f"{min_max_var_name}_{name}"] + new_df_cols
+            [time_name, winter_year, member_name, f"{min_max_var_name}_{name}"]
+            + new_df_cols
         ]
     else:
         print("Assuming first winter year only")
@@ -865,7 +870,7 @@ def process_gev_params(
 
     print("unique times in obs")
     print(obs_df[obs_time_name].unique())
-    
+
     # Loop over the nboot
     for i in tqdm(range(nboot)):
         # Set up the psuedo-observed data
@@ -1164,22 +1169,21 @@ def plot_multi_var_dist(
         axs[r, 0].set_yticks([])
 
         # Set the row title to the left, rotated 90 degrees and larger font size
-        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=fontsize,
-                              labelpad=20)
+        axs[r, 0].set_ylabel(row_titles[r], rotation=90, fontsize=fontsize, labelpad=20)
 
         # Set subplot titles offset to the left
         axs[r, 0].set_title(
             subplot_titles[r][0],
             fontsize=fontsize,
-            loc='left',  # Left-align the title
-            pad=5
+            loc="left",  # Left-align the title
+            pad=5,
         )
 
         axs[r, 1].set_title(
             subplot_titles[r][1],
             fontsize=fontsize,
-            loc='left',  # Left-align the title
-            pad=5
+            loc="left",  # Left-align the title
+            pad=5,
         )
 
         # Plot the bias corrected distribution on the second axis
@@ -1206,28 +1210,30 @@ def plot_multi_var_dist(
         if r == 0:
             # Get the figure object
             fig = axs[r, 0].get_figure()
-            
+
             # Add "Raw" and "Bias corrected" as text above each column
             # Calculate positions based on subplot positions
             bbox0 = axs[r, 0].get_position()
             bbox1 = axs[r, 1].get_position()
-            
+
             fig.text(
-                (bbox0.x0 + bbox0.x1) / 2, 1.001,  # Use fixed y position near top
+                (bbox0.x0 + bbox0.x1) / 2,
+                1.001,  # Use fixed y position near top
                 "Raw",
                 fontsize=fontsize + 2,
-                ha='center',
-                va='top',
-                transform=fig.transFigure
+                ha="center",
+                va="top",
+                transform=fig.transFigure,
             )
-            
+
             fig.text(
-                (bbox1.x0 + bbox1.x1) / 2, 1.001,  # Use fixed y position near top
+                (bbox1.x0 + bbox1.x1) / 2,
+                1.001,  # Use fixed y position near top
                 "Bias corrected",
                 fontsize=fontsize + 2,
-                ha='center',
-                va='top',
-                transform=fig.transFigure
+                ha="center",
+                va="top",
+                transform=fig.transFigure,
             )
 
             # include a legend
@@ -1268,7 +1274,7 @@ def plot_multi_var_dist(
     plot_fname = os.path.join(save_dir, f"multi_var_dists_{current_datetime}.png")
 
     # Save the figure
-    fig.savefig(plot_fname, dpi=600, bbox_inches="tight", format='png')
+    fig.savefig(plot_fname, dpi=600, bbox_inches="tight", format="png")
     print(f"Saved plot to {plot_fname}")
 
     # Show the plot
@@ -1666,6 +1672,7 @@ def plot_gev_params_subplots(
     obs_label: str = "Observed",
     model_label: str = "Model",
     figsize: tuple = (15, 10),
+    fontsize: int = 12,
 ) -> None:
     """
     Plot the GEV parameters.
@@ -1690,6 +1697,8 @@ def plot_gev_params_subplots(
         Label for the model data, by default "Model".
     figsize : tuple, optional
         Figure size, by default (12, 8).
+    fontsize: int, optional
+        Font size for titles, by default 12.
 
     Returns
     -------
@@ -1731,10 +1740,7 @@ def plot_gev_params_subplots(
     # Set up the list of titles
     titles = [title_top, title_bottom]
 
-    ax_title_labels = [
-        ["b)", "c)", "d)"],
-        ["f)", "g)", "h)"]
-    ]
+    ax_title_labels = [["b)", "c)", "d)"], ["f)", "g)", "h)"]]
 
     # Loop over the axes
     for i, ax_row in enumerate(axes):
@@ -1760,7 +1766,7 @@ def plot_gev_params_subplots(
         gev_params_non_bc = gev_params_list[i][0]
 
         # Set up the gev params bc
-        gev_params = gev_params_list[i][1] # Set default as BC
+        gev_params = gev_params_list[i][1]  # Set default as BC
 
         # Set up the title
         title = titles[i]
@@ -1827,10 +1833,10 @@ def plot_gev_params_subplots(
         # print(f"Obs scale: {gev_params['obs_scale']}")
 
         # Set the title
-        ax0.set_title(title)
+        ax0.set_title(title, fontsize=fontsize)
 
         # Include a legend
-        ax0.legend(loc="upper right")
+        ax0.legend(loc="upper right", fontsize=fontsize)
 
         # Plot the histogram of the loc values in red
         ax1.hist(gev_params["model_loc"][0], bins=30, color="red", alpha=0.5)
@@ -1891,7 +1897,10 @@ def plot_gev_params_subplots(
         )
 
         # Set the title
-        ax1.set_title(f"{ax_title_labels[i][0]} location, {round(obs_percentile_loc)}%")
+        ax1.set_title(
+            f"{ax_title_labels[i][0]} location, {round(obs_percentile_loc)}%",
+            fontsize=fontsize,
+        )
 
         # Plot the scale values
         ax2.hist(gev_params["model_scale"][0], bins=30, color="red", alpha=0.5)
@@ -1952,7 +1961,8 @@ def plot_gev_params_subplots(
 
             # Set the title
             ax2.set_title(
-                f"{ax_title_labels[i][1]} scale, {round(obs_percentile_scale)}%"
+                f"{ax_title_labels[i][1]} scale, {round(obs_percentile_scale)}%",
+                fontsize=fontsize,
             )
 
         else:
@@ -1965,7 +1975,10 @@ def plot_gev_params_subplots(
             )
 
             # Set the title
-            ax2.set_title(f"{ax_title_labels[i][1]} scale, {round(obs_percentile_scale)}%")
+            ax2.set_title(
+                f"{ax_title_labels[i][1]} scale, {round(obs_percentile_scale)}%",
+                fontsize=fontsize,
+            )
 
         # Plot the shape values
         ax3.hist(gev_params["model_shape"][0], bins=30, color="red", alpha=0.5)
@@ -2028,16 +2041,36 @@ def plot_gev_params_subplots(
         )
 
         # Set the title
-        ax3.set_title(f"{ax_title_labels[i][2]} shape, {round(obs_percentile_shape)}%")
+        ax3.set_title(
+            f"{ax_title_labels[i][2]} shape, {round(obs_percentile_shape)}%",
+            fontsize=fontsize,
+        )
 
         # remove the y-axis ticks
         for ax in [ax0, ax1, ax2, ax3]:
             ax.yaxis.set_ticks([])
+            # Increase x-axis tick label size
+            ax.tick_params(axis="x", labelsize=fontsize)
 
     # Set up a tight layout
     plt.tight_layout()
 
+    # Set up the save directory
+    save_dir = "/home/users/benhutch/unseen_multi_year/paper_figures"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Set up the current time in DD-MM-YY_HH:MM:SS format
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    plot_fname = os.path.join(save_dir, f"gev_params_subplots_{current_datetime}.png")
+
+    # Save the figure
+    fig.savefig(plot_fname, dpi=800, bbox_inches="tight", format="png")
+    print(f"Saved plot to {plot_fname}")
+
     return None
+
 
 # Define a function for plotting the time series
 def plot_detrend_ts(
@@ -2370,19 +2403,29 @@ def plot_detrend_ts_subplots(
 
         if plot_min:
             # Include a solid black line for the min value of the observed data (no dt)
-            ax.axhline(obs_df_this[obs_var_name_this].min(), color="black", linestyle="--")
+            ax.axhline(
+                obs_df_this[obs_var_name_this].min(), color="black", linestyle="--"
+            )
 
             # if detrend suffix is not None
             if detrend_suffix is not None:
                 # Include a solid black line for the min value of the observed data (dt)
-                ax.axhline(obs_df_this[f"{obs_var_name_this}{detrend_suffix}"].min(), color="black")
+                ax.axhline(
+                    obs_df_this[f"{obs_var_name_this}{detrend_suffix}"].min(),
+                    color="black",
+                )
         else:
             # Include a solid black line for the max value of the observed data (dt)
-            ax.axhline(obs_df_this[f"{obs_var_name_this}"].max(), color="black", linestyle="--")
+            ax.axhline(
+                obs_df_this[f"{obs_var_name_this}"].max(), color="black", linestyle="--"
+            )
 
             if detrend_suffix is not None:
                 # Include a solid black line for the max value of the observed data (dt)
-                ax.axhline(obs_df_this[f"{obs_var_name_this}{detrend_suffix}"].max(), color="black")
+                ax.axhline(
+                    obs_df_this[f"{obs_var_name_this}{detrend_suffix}"].max(),
+                    color="black",
+                )
 
         # # Include text on these lines
         # ax.text(
@@ -2436,6 +2479,7 @@ def plot_detrend_ts_subplots(
         ax.legend(loc="upper center", ncol=3)
 
     return None
+
 
 # Define a function to plot the scatter cmap plots
 def plot_scatter_cmap(
@@ -3500,6 +3544,7 @@ def plot_rel_var(
 
     return None
 
+
 # Define a function for plotting the return periods for a given decade
 def plot_return_periods_decades(
     model_df: pd.DataFrame,
@@ -3515,10 +3560,10 @@ def plot_return_periods_decades(
 ) -> None:
     """
     Estimates the return period of extremes for a given decade.
-    
+
     Parameters
     ----------
-    
+
     model_df : pd.DataFrame
         DataFrame of model data.
     model_var_name : str
@@ -3540,12 +3585,12 @@ def plot_return_periods_decades(
     bad_min : bool, optional
         Whether to use the block minima or maxima, by default True.
         True for minima, False for maxima.
-        
+
     Returns
     -------
-    
+
     None
-    
+
     """
 
     # Sort out the decade years
@@ -3562,28 +3607,36 @@ def plot_return_periods_decades(
     decade_years_flat = np.concatenate(decade_years)
 
     # Filter out the years not in the model data
-    filtered_years = [year for year in decade_years_flat if year in model_df[model_year_name].unique()]
+    filtered_years = [
+        year for year in decade_years_flat if year in model_df[model_year_name].unique()
+    ]
 
     # Reshape the filtered list back into the original decade structure
     filtered_decade_years = []
     for i, decade in enumerate(decades):
         if i == 0:
-            filtered_decade_years.append(np.array([year for year in filtered_years if 1961 <= year <= 1970]))
+            filtered_decade_years.append(
+                np.array([year for year in filtered_years if 1961 <= year <= 1970])
+            )
         else:
-            filtered_decade_years.append(np.array([year for year in filtered_years if decade + 1 <= year <= decade + 10]))
+            filtered_decade_years.append(
+                np.array(
+                    [
+                        year
+                        for year in filtered_years
+                        if decade + 1 <= year <= decade + 10
+                    ]
+                )
+            )
 
     # Extract the unique winter years from the model df
     unique_winter_years = model_df[model_year_name].unique()
 
     # Set up the min or max bad yea
     if bad_min:
-        bad_year = obs_df.loc[
-            obs_df[obs_var_name].idxmin()
-        ]
+        bad_year = obs_df.loc[obs_df[obs_var_name].idxmin()]
     else:
-        bad_year = obs_df.loc[
-            obs_df[obs_var_name].idxmax()
-        ]
+        bad_year = obs_df.loc[obs_df[obs_var_name].idxmax()]
 
         # # # bad year is the 95th percentile of the obs data
         # # bad_year = np.percentile(
@@ -3593,7 +3646,6 @@ def plot_return_periods_decades(
 
         # bad_year = 47.2775813456939
 
-
     # Print the bad year
     print(f"Bad year: {bad_year}")
 
@@ -3601,11 +3653,7 @@ def plot_return_periods_decades(
     print(f"Value: {bad_year}")
 
     # Set up the params for the decade
-    decade_params = np.zeros([
-        len(filtered_decade_years),
-        num_samples,
-        3
-    ])
+    decade_params = np.zeros([len(filtered_decade_years), num_samples, 3])
 
     # print the filtered decade years
     print(f"Filtered decade years: {filtered_decade_years}")
@@ -3627,13 +3675,13 @@ def plot_return_periods_decades(
         # Loop over the number of samples
         for j in range(num_samples):
             params_decade_this[j, :] = gev.fit(
-            np.random.choice(
-                model_df_decade[model_var_name],
-                size=len(model_df_decade),
-                replace=True,
+                np.random.choice(
+                    model_df_decade[model_var_name],
+                    size=len(model_df_decade),
+                    replace=True,
                 )
             )
-        
+
         # Append the params to the model year
         decade_params[i, :, :] = params_decade_this
 
@@ -3717,8 +3765,10 @@ def plot_return_periods_decades(
         model_decades_rls["decade"],
         model_decades_rls["mean_rp (years)"],
         yerr=[
-            model_decades_rls["mean_rp (years)"] - model_decades_rls["0975_rp (years)"], # lower errors
-            model_decades_rls["0025_rp (years)"] - model_decades_rls["mean_rp (years)"], # upper errors
+            model_decades_rls["mean_rp (years)"]
+            - model_decades_rls["0975_rp (years)"],  # lower errors
+            model_decades_rls["0025_rp (years)"]
+            - model_decades_rls["mean_rp (years)"],  # upper errors
         ],
         fmt="none",
         ecolor="blue",
@@ -3738,6 +3788,7 @@ def plot_return_periods_decades(
     plt.title(title)
 
     return None
+
 
 # Write a function to compare the return period in the obs
 # using all of the winter days
@@ -3781,7 +3832,7 @@ def plot_return_periods_decades_obs(
     None
 
     """
-    
+
     # Sort out the decade years
     decade_years = []
 
@@ -3796,26 +3847,34 @@ def plot_return_periods_decades_obs(
     decade_years_flat = np.concatenate(decade_years)
 
     # Filter out the years not in the model data
-    filtered_years = [year for year in decade_years_flat if year in obs_df[year_col_name].unique()]
+    filtered_years = [
+        year for year in decade_years_flat if year in obs_df[year_col_name].unique()
+    ]
 
     # Reshape the filtered list back into the original decade structure
     filtered_decade_years = []
 
     for i, decade in enumerate(decades):
         if i == 0:
-            filtered_decade_years.append(np.array([year for year in filtered_years if 1960 <= year <= 1970]))
+            filtered_decade_years.append(
+                np.array([year for year in filtered_years if 1960 <= year <= 1970])
+            )
         else:
-            filtered_decade_years.append(np.array([year for year in filtered_years if decade + 1 <= year <= decade + 10]))
+            filtered_decade_years.append(
+                np.array(
+                    [
+                        year
+                        for year in filtered_years
+                        if decade + 1 <= year <= decade + 10
+                    ]
+                )
+            )
 
     # Set up the min or max bad year
     if bad_min:
-        bad_year = obs_df.loc[
-            obs_df[obs_var_name].idxmin()
-        ]
+        bad_year = obs_df.loc[obs_df[obs_var_name].idxmin()]
     else:
-        bad_year = obs_df.loc[
-            obs_df[obs_var_name].idxmax()
-        ]
+        bad_year = obs_df.loc[obs_df[obs_var_name].idxmax()]
 
     # Print the bad year
     print(f"Bad year: {bad_year}")
@@ -3824,11 +3883,7 @@ def plot_return_periods_decades_obs(
     print(f"Value: {bad_year[obs_var_name]}")
 
     # Set up the params for the decade
-    decade_params = np.zeros([
-        len(filtered_decade_years),
-        num_samples,
-        3
-    ])
+    decade_params = np.zeros([len(filtered_decade_years), num_samples, 3])
 
     # Loop over the unique winter years
     for i, decade in tqdm(enumerate(filtered_decade_years)):
@@ -3928,8 +3983,10 @@ def plot_return_periods_decades_obs(
         obs_decades_rls["decade"],
         obs_decades_rls["mean_rp (years)"],
         yerr=[
-            obs_decades_rls["mean_rp (years)"] - obs_decades_rls["0975_rp (years)"], # lower errors
-            obs_decades_rls["0025_rp (years)"] - obs_decades_rls["mean_rp (years)"], # upper errors
+            obs_decades_rls["mean_rp (years)"]
+            - obs_decades_rls["0975_rp (years)"],  # lower errors
+            obs_decades_rls["0025_rp (years)"]
+            - obs_decades_rls["mean_rp (years)"],  # upper errors
         ],
         fmt="none",
         ecolor="blue",
@@ -3989,7 +4046,7 @@ def lead_time_trends(
     =======
 
     None
-    
+
     """
 
     # create copies of the model and obs dfs
@@ -4142,7 +4199,8 @@ def lead_time_trends(
         # plot the obs slope as a black dashed line
         axs_flat[i].plot(
             obs_df_copy["effective_dec_year"].unique(),
-            slope_obs_this * obs_df_copy["effective_dec_year"].unique() + intercept_obs_this,
+            slope_obs_this * obs_df_copy["effective_dec_year"].unique()
+            + intercept_obs_this,
             color="black",
             linestyle="--",
         )
@@ -4159,7 +4217,9 @@ def lead_time_trends(
         )
 
         # Set the title
-        axs_flat[i].set_title(f"model: {slope_model_mean_this:.3f} (+/- {ci_model_this:.3f}), obs: {slope_obs_this:.3f}")
+        axs_flat[i].set_title(
+            f"model: {slope_model_mean_this:.3f} (+/- {ci_model_this:.3f}), obs: {slope_obs_this:.3f}"
+        )
 
         # Remove the y-axis ticks
         # axs_flat[i].yaxis.set_ticks([])
@@ -4170,6 +4230,7 @@ def lead_time_trends(
     plt.tight_layout()
 
     return None
+
 
 # Define a function to apply the lead time dependent trend removal
 def lead_time_trend_corr(
@@ -4204,7 +4265,7 @@ def lead_time_trend_corr(
 
     pd.DataFrame
         DataFrame with the linear trends removed.
-    
+
     """
 
     # Make a copy of the dataframe
@@ -4221,7 +4282,7 @@ def lead_time_trend_corr(
     model_df_dt = pd.DataFrame()
 
     # Loop over the unique leads
-    for lead in unique_leads:        
+    for lead in unique_leads:
         # Subset the model data to this lead
         model_df_lead_this = model_df_copy[model_df_copy[lead_name] == lead]
 
@@ -4240,7 +4301,9 @@ def lead_time_trend_corr(
             data_this = model_df_lead_this[model_df_lead_this[member_name] == member]
 
             # Calculate the linear trend
-            slope, intercept, _, _, _ = linregress(data_this[x_axis_name], data_this[y_axis_name])
+            slope, intercept, _, _, _ = linregress(
+                data_this[x_axis_name], data_this[y_axis_name]
+            )
 
             # Store the slope and intercept
             slopes[i] = slope
@@ -4252,7 +4315,9 @@ def lead_time_trend_corr(
         print(f"Mean slope for lead {lead}: {slope_mean}")
 
         # Calculate the intercept using all of the data
-        _, intercept_mean, _, _, _ = linregress(model_df_lead_this[x_axis_name], model_df_lead_this[y_axis_name])
+        _, intercept_mean, _, _, _ = linregress(
+            model_df_lead_this[x_axis_name], model_df_lead_this[y_axis_name]
+        )
 
         # Calculate the trend line
         trend_line = slope_mean * model_df_lead_this[x_axis_name] + intercept_mean
@@ -4270,7 +4335,9 @@ def lead_time_trend_corr(
         # print(model_df_copy.loc[model_df_copy[lead_name] == lead, y_axis_name + suffix])
 
         # Add a column containing the new detrended values to the model df this
-        model_df_lead_this[y_axis_name + suffix] = final_point - trend_line + model_df_lead_this[y_axis_name]
+        model_df_lead_this[y_axis_name + suffix] = (
+            final_point - trend_line + model_df_lead_this[y_axis_name]
+        )
 
         # print the model df lead this head
         print(model_df_lead_this.head())
@@ -4288,6 +4355,7 @@ def lead_time_trend_corr(
         # print(model_df_corr.tail())
 
     return model_df_dt
+
 
 # Set up a function for the dot plot
 def dot_plot_subplots(
@@ -4447,7 +4515,7 @@ def dot_plot_subplots(
         # Extract the axes for this
         ax_big = axes[0]
         # ax_small = axes[1]
-        
+
         # Set up the obs and model dfs
         obs_df = obs_dfs_list[i]
         model_df = model_dfs_list[i]
@@ -4480,7 +4548,7 @@ def dot_plot_subplots(
         )
 
         # Add faint gridlines
-        ax_big.grid(True, alpha=0.3, linestyle='-', linewidth=0.5, color='gray')
+        ax_big.grid(True, alpha=0.3, linestyle="-", linewidth=0.5, color="gray")
         ax_big.set_axisbelow(True)  # Place grid behind plot elements
 
         # print the year of the worst observed value
@@ -4488,9 +4556,18 @@ def dot_plot_subplots(
         print("The no. days for the worst event is:", solid_line(obs_df[obs_val_name]))
 
         # pribt the worst event for the model
-        print("The highest event for the model occurs in the year:", model_df[model_val_name].idxmax())
-        print("The lowest event for the model occurs in the year:", model_df[model_val_name].idxmin())
-        print("The no. days for the worst event in the model is:", solid_line(model_df[model_val_name]))
+        print(
+            "The highest event for the model occurs in the year:",
+            model_df[model_val_name].idxmax(),
+        )
+        print(
+            "The lowest event for the model occurs in the year:",
+            model_df[model_val_name].idxmin(),
+        )
+        print(
+            "The no. days for the worst event in the model is:",
+            solid_line(model_df[model_val_name]),
+        )
 
         # plot the scatter points for the obs
         ax_big.scatter(
@@ -4530,13 +4607,17 @@ def dot_plot_subplots(
 
             # Model data above 80th percentile
             bad_events = model_df[
-                (model_df[model_val_name] > np.quantile(obs_df[obs_val_name], dashed_quant))
+                (
+                    model_df[model_val_name]
+                    > np.quantile(obs_df[obs_val_name], dashed_quant)
+                )
                 & (model_df[model_val_name] < solid_line(obs_df[obs_val_name]))
             ]
 
             # Model data below 80th percentile
             events = model_df[
-                model_df[model_val_name] < np.quantile(obs_df[obs_val_name], dashed_quant)
+                model_df[model_val_name]
+                < np.quantile(obs_df[obs_val_name], dashed_quant)
             ]
 
         else:
@@ -4555,13 +4636,17 @@ def dot_plot_subplots(
 
             # Model data above 80th percentile
             bad_events = model_df[
-                (model_df[model_val_name] < np.quantile(obs_df[obs_val_name], dashed_quant))
+                (
+                    model_df[model_val_name]
+                    < np.quantile(obs_df[obs_val_name], dashed_quant)
+                )
                 & (model_df[model_val_name] > solid_line(obs_df[obs_val_name]))
             ]
 
             # Model data below 80th percentile
             events = model_df[
-                model_df[model_val_name] > np.quantile(obs_df[obs_val_name], dashed_quant)
+                model_df[model_val_name]
+                > np.quantile(obs_df[obs_val_name], dashed_quant)
             ]
 
         # print the chance of a very bad event
@@ -4672,7 +4757,7 @@ def dot_plot_subplots(
         #     linewidth=2,
         #     label=f"Model v. bad events: {round(model_trend_very_bad[0], 3)} C/year",
         # )
-        
+
         # include the legend
         ax_big.legend(fontsize=fontsize, ncol=3, loc="upper center")
 
@@ -4757,7 +4842,6 @@ def dot_plot_subplots(
     #     print(f"Saved plot to {savepath}")
 
     return
-
 
 
 if __name__ == "__main__":
